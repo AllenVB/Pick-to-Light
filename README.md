@@ -185,5 +185,7 @@ Hatalar RFC 7807 **Problem Details** biçiminde döner.
 PDF'leri yeniden üretmek:
 
 ```bash
+npm install -g playwright && npx playwright install chromium   # ilk sefer
 node tools/render-pdf.js docs/plan/proje-plani.html docs/plan/Pick-to-Light-Proje-Plani.pdf
+node tools/render-pdf.js docs/sunum/sunum.html docs/sunum/Pick-to-Light-Sunum-v2.pdf --slayt
 ```
