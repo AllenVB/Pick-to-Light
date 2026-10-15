@@ -1,0 +1,1103 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>Akıllı Depo Pick-to-Light — Proje Planı</title>
+<style>
+  @page { size: A4; margin: 17mm 15mm 16mm 15mm; }
+  @page :first { margin: 0; }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { font-family: "Inter", "DejaVu Sans", sans-serif; font-size: 9.6pt; line-height: 1.5; color: #1b2430; margin: 0; }
+
+  /* --- Kapak --- */
+  .cover { background: #0d1520; color: #eef3f8; height: 297mm; padding: 28mm 22mm; page-break-after: always; position: relative; }
+  .cover .eyebrow { color: #2dd4bf; letter-spacing: .22em; font-size: 8.5pt; font-weight: 700; text-transform: uppercase; }
+  .cover h1 { font-size: 30pt; line-height: 1.12; margin: 14mm 0 6mm; font-weight: 800; letter-spacing: -.02em; }
+  .cover h2 { font-size: 12.5pt; font-weight: 400; color: #9fb2c4; margin: 0 0 16mm; line-height: 1.5; }
+  .cover .lights { display: flex; gap: 10px; margin-bottom: 14mm; }
+  .cover .dot { width: 16px; height: 16px; border-radius: 50%; }
+  .meta { border-top: 1px solid #27384a; padding-top: 6mm; display: flex; flex-wrap: wrap; gap: 6mm 14mm; font-size: 9pt; }
+  .meta b { display: block; color: #6b8299; font-weight: 600; font-size: 7.6pt; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 2px; }
+  .cover .foot { position: absolute; bottom: 20mm; left: 22mm; right: 22mm; color: #5f7389; }
+  .stack-chips { margin-top: 12mm; }
+  .chip { display: inline-block; border: 1px solid #2b4455; color: #7fd8ce; border-radius: 999px; padding: 4px 13px; font-size: 8.4pt; margin: 0 6px 6px 0; }
+
+  /* --- Genel --- */
+  h2.sec { font-size: 15pt; font-weight: 800; color: #0d1520; margin: 0 0 1mm; letter-spacing: -.01em; page-break-after: avoid; }
+  .secnum { color: #0f766e; font-weight: 800; }
+  .lead { color: #5b6b7c; margin: 0 0 4mm; font-size: 9.4pt; page-break-after: avoid; }
+  h3 { font-size: 10.6pt; font-weight: 700; margin: 6mm 0 2mm; color: #10344a; page-break-after: avoid; }
+  h4 { font-size: 9.6pt; font-weight: 700; margin: 4mm 0 1.5mm; color: #0f766e; page-break-after: avoid; }
+  section { page-break-before: always; }
+  section.cont { page-break-before: auto; }
+  p { margin: 0 0 2.5mm; }
+  ul, ol { margin: 0 0 3mm; padding-left: 5mm; }
+  li { margin-bottom: 1.2mm; }
+  code, .mono { font-family: "DejaVu Sans Mono", monospace; font-size: 8.4pt; background: #eef2f6; padding: 1px 4px; border-radius: 3px; color: #0b3c47; }
+  table { width: 100%; border-collapse: collapse; margin: 2mm 0 4mm; font-size: 8.5pt; page-break-inside: avoid; }
+  th { background: #0f766e; color: #fff; text-align: left; padding: 4px 7px; font-weight: 600; font-size: 8.2pt; }
+  td { border-bottom: 1px solid #dfe6ec; padding: 4px 7px; vertical-align: top; }
+  tr:nth-child(even) td { background: #f7fafb; }
+  .t-sm { font-size: 8pt; }
+  .box { border: 1px solid #d8e2ea; border-left: 3px solid #0f766e; background: #f7fafb; padding: 3.5mm 4mm; margin: 3mm 0; page-break-inside: avoid; border-radius: 0 4px 4px 0; }
+  .box.warn { border-left-color: #d97706; background: #fffaf0; }
+  .box.red { border-left-color: #dc2626; background: #fef6f6; }
+  .box b.t { display: block; margin-bottom: 1.5mm; }
+  pre { background: #0d1520; color: #d7e3ee; padding: 3.5mm 4mm; border-radius: 5px; font-family: "DejaVu Sans Mono", monospace; font-size: 7.9pt; line-height: 1.45; overflow: hidden; white-space: pre-wrap; margin: 2mm 0 4mm; page-break-inside: avoid; }
+  pre .k { color: #7fd8ce; } pre .c { color: #6b8299; } pre .s { color: #f0b67f; }
+  .grid2 { display: flex; gap: 4mm; page-break-inside: avoid; }
+  .grid2 > * { flex: 1; }
+  .card { border: 1px solid #dfe6ec; border-radius: 5px; padding: 3mm 3.5mm; page-break-inside: avoid; }
+  .card .h { font-weight: 700; font-size: 9.2pt; margin-bottom: 1.5mm; }
+  .pill { display: inline-block; border-radius: 999px; padding: 1px 8px; font-size: 7.6pt; font-weight: 700; color: #fff; }
+  .g { background: #15803d; } .y { background: #d97706; } .r { background: #dc2626; } .b { background: #0f766e; } .gr { background: #64748b; }
+  .toc { font-size: 9.4pt; }
+  .toc div { display: flex; border-bottom: 1px dotted #cfd9e2; padding: 2.1mm 0; }
+  .toc span.n { width: 10mm; color: #0f766e; font-weight: 700; }
+  .toc span.t { flex: 1; }
+  .kpi { display: flex; gap: 3mm; margin: 3mm 0; }
+  .kpi > div { flex: 1; border: 1px solid #dfe6ec; border-radius: 5px; padding: 2.5mm 3mm; text-align: center; }
+  .kpi .v { font-size: 15pt; font-weight: 800; color: #0f766e; line-height: 1.1; }
+  .kpi .l { font-size: 7.6pt; color: #5b6b7c; margin-top: 1mm; }
+  .note { font-size: 8.2pt; color: #5b6b7c; font-style: italic; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="eyebrow">Proje Planlama Dokümanı &nbsp;·&nbsp; v1.0</div>
+  <h1>Akıllı Depo<br>Pick-to-Light Sistemi</h1>
+  <h2>Işığa duyarlı ürün toplama ve anlık stok yönetimi<br>Sipariş numarasına göre LED yönlendirme · otomatik stok düşme · kırmızı alarm</h2>
+  <div class="lights">
+    <div class="dot" style="background:#22c55e"></div>
+    <div class="dot" style="background:#f59e0b"></div>
+    <div class="dot" style="background:#ef4444"></div>
+  </div>
+  <div class="stack-chips">
+    <span class="chip">C# · .NET 9</span>
+    <span class="chip">ASP.NET Core Web API</span>
+    <span class="chip">React 19 + TypeScript</span>
+    <span class="chip">PostgreSQL 17</span>
+    <span class="chip">MQTT</span>
+    <span class="chip">ESP32</span>
+    <span class="chip">SignalR</span>
+  </div>
+  <div class="meta">
+    <div><b>Doküman</b>Teknik Planlama &amp; Yol Haritası</div>
+    <div><b>Kapsam</b>Yazılım + Elektrik ortak projesi</div>
+    <div><b>Süre</b>8 hafta · prototip teslimi</div>
+    <div><b>Durum</b>Planlama (kodlama başlamadı)</div>
+  </div>
+</div>
+
+<section class="cont" style="page-break-before:auto">
+  <h2 class="sec">İçindekiler</h2>
+  <div class="toc">
+    <div><span class="n">1</span><span class="t">Yönetici Özeti ve Proje Hedefi</span></div>
+    <div><span class="n">2</span><span class="t">Kapsam, Varsayımlar ve Kapsam Dışı</span></div>
+    <div><span class="n">3</span><span class="t">Gereksinimler (Fonksiyonel / Fonksiyonel Olmayan)</span></div>
+    <div><span class="n">4</span><span class="t">Sistem Mimarisi ve Teknoloji Yığını</span></div>
+    <div><span class="n">5</span><span class="t">Veri Modeli ve PostgreSQL Şeması</span></div>
+    <div><span class="n">6</span><span class="t">Çekirdek İş Mantığı: Işık Kararı ve Atomik Stok Düşme</span></div>
+    <div><span class="n">7</span><span class="t">Sipariş Yaşam Döngüsü ve Durum Makineleri</span></div>
+    <div><span class="n">8</span><span class="t">Backend Tasarımı (C# / .NET) ve REST API Sözleşmesi</span></div>
+    <div><span class="n">9</span><span class="t">MQTT Haberleşme Sözleşmesi</span></div>
+    <div><span class="n">10</span><span class="t">Donanım Planı ve ESP32 Firmware Tasarımı</span></div>
+    <div><span class="n">11</span><span class="t">Frontend Tasarımı (React) ve Ekran Planı</span></div>
+    <div><span class="n">12</span><span class="t">Güvenlik, Yetkilendirme ve İzlenebilirlik</span></div>
+    <div><span class="n">13</span><span class="t">Hata Senaryoları ve Kurtarma Stratejisi</span></div>
+    <div><span class="n">14</span><span class="t">Test Planı ve Kabul Kriterleri</span></div>
+    <div><span class="n">15</span><span class="t">8 Haftalık Proje Planı ve İş Kırılım Yapısı</span></div>
+    <div><span class="n">16</span><span class="t">Risk Analizi</span></div>
+    <div><span class="n">17</span><span class="t">Geliştirme Ortamı, Repo Yapısı ve Çalışma Düzeni</span></div>
+    <div><span class="n">18</span><span class="t">Demo Senaryosu ve Başarı Ölçütleri</span></div>
+    <div><span class="n">19</span><span class="t">Sözlük</span></div>
+  </div>
+
+  <div class="box warn" style="margin-top:8mm">
+    <b class="t">Teknoloji yığını hakkında önemli not</b>
+    Hafta-1 sunumunda backend <b>Spring Boot</b>, arayüz <b>Next.js</b> olarak gösterilmişti. Bu planlama dokümanı, güncel talebiniz doğrultusunda <b>C# / .NET 9 + React + PostgreSQL</b> yığını üzerine kurulmuştur. Veri modeli (ER diyagramı), ışık mantığı, MQTT akışı ve donanım tarafı değişmeden korunmuştur; yalnızca uygulama katmanının teknolojisi değişmiştir. Sunumun 7., 9. ve 10. slaytlarındaki teknoloji etiketlerinin güncellenmesi gerekir.
+  </div>
+</section>
+
+<section>
+  <h2 class="sec"><span class="secnum">1.</span> Yönetici Özeti ve Proje Hedefi</h2>
+  <p class="lead">Operatörün ekran taramak yerine yanan ışığı takip ettiği, stoğu kendi düşen bir depo toplama sistemi.</p>
+
+  <h3>1.1 Problem</h3>
+  <p>E-ticaret depolarında sipariş hazırlama (order picking) süresinin büyük bölümü <b>ürünü aramakla</b> geçer. Elle yapılan toplamada üç temel sorun vardır: raf arama kaynaklı zaman kaybı, yanlış ürün/yanlış adet kaynaklı insan hatası ve stoğun anlık görülememesinden doğan "kör stok" durumu — eksik, ancak sipariş anında fark edilir.</p>
+
+  <h3>1.2 Çözüm</h3>
+  <p>Her envanter kutusunun başına bir durum LED'i ve bir onay sensörü yerleştirilir. Sisteme sipariş numarası girildiğinde yazılım, siparişteki her kalem için ilgili kutuyu bulur, stok durumunu değerlendirir ve kutunun LED'ini üç renkten biriyle yakar:</p>
+  <div class="grid2">
+    <div class="card" style="border-left:3px solid #22c55e">
+      <div class="h"><span class="pill g">YEŞİL</span> &nbsp;Stok yeterli</div>
+      <div class="t-sm">Ürün rahatça verilir, sistem stoğu otomatik düşer.</div>
+    </div>
+    <div class="card" style="border-left:3px solid #f59e0b">
+      <div class="h"><span class="pill y">SARI</span> &nbsp;Stok azaldı</div>
+      <div class="t-sm">Sipariş karşılanır ama kritik seviye; uyarı ve tedarik talebi üretilir.</div>
+    </div>
+    <div class="card" style="border-left:3px solid #ef4444">
+      <div class="h"><span class="pill r">KIRMIZI</span> &nbsp;Stok yetersiz</div>
+      <div class="t-sm">Alarm; kalem kilitlenir, ekrana uyarı basılır, tedarik tetiklenir.</div>
+    </div>
+  </div>
+
+  <h3>1.3 Proje hedefi (8. hafta sonunda ulaşılacak nokta)</h3>
+  <div class="box">
+    Sipariş numarasını gören, doğru kutuyu ışıkla gösteren, operatörün onayıyla stoğu <b>kendi düşen</b>, yetersiz stokta <b>alarm veren</b> ve tüm hareketi loglayan, en az <b>4 kutuluk</b> çalışan bir fiziksel prototip + web arayüzü.
+  </div>
+
+  <h3>1.4 Ölçülebilir hedefler</h3>
+  <div class="kpi">
+    <div><div class="v">&lt; 1 sn</div><div class="l">sipariş girişinden LED yanmasına kadar geçen süre</div></div>
+    <div><div class="v">0</div><div class="l">negatif stok / fazla verme vakası (eşzamanlı işlemlerde)</div></div>
+    <div><div class="v">%100</div><div class="l">stok hareketinin loglanma oranı (izlenebilirlik)</div></div>
+    <div><div class="v">&ge; 4</div><div class="l">eşzamanlı çalışan fiziksel kutu sayısı</div></div>
+  </div>
+
+  <h3>1.5 Ekipler ve sorumluluk sınırı</h3>
+  <table>
+    <tr><th style="width:22%">Ekip</th><th>Sorumluluk</th><th style="width:28%">Teslim ettiği arayüz</th></tr>
+    <tr><td><b>Elektrik Mühendisliği</b></td><td>Kare modüler kutu tasarımı ve montajı, LED sürücü devresi, ESP32 programlama, onay sensörü (buton / IR / ağırlık) entegrasyonu, 5 V güç dağıtımı</td><td>MQTT üzerinden konuşan, komutla LED yakan ve teyit mesajı üreten kutu</td></tr>
+    <tr><td><b>Yazılım Mühendisliği</b></td><td>Backend API ve iş mantığı, veritabanı şeması, sipariş &amp; otomatik stok düşme akışı, web arayüzü, alarm ve bildirim servisi</td><td>MQTT komut sözleşmesi + web arayüzü + stok veritabanı</td></tr>
+  </table>
+  <p class="note">İki ekibin buluştuğu tek nokta MQTT mesaj sözleşmesidir (Bölüm 9). Bu sözleşme 2. hafta sonunda dondurulur; böylece iki ekip birbirini beklemeden paralel ilerleyebilir.</p>
+</section>
+
+<section>
+  <h2 class="sec"><span class="secnum">2.</span> Kapsam, Varsayımlar ve Kapsam Dışı</h2>
+  <p class="lead">Ne yapacağız, neyi bilerek yapmıyoruz.</p>
+
+  <h3>2.1 Kapsam içi</h3>
+  <ul>
+    <li>Sipariş girişi (manuel sipariş numarası + kalemleri) ve sipariş listeleme</li>
+    <li>Ürün, kutu ve stok envanterinin yönetimi (CRUD + sayım)</li>
+    <li>Sipariş numarasına göre kutu eşleştirme ve LED yakma</li>
+    <li>Üç renkli stok durumu kararı (yeşil / sarı / kırmızı) ve eşik yönetimi</li>
+    <li>Operatör teyidi sonrası otomatik ve atomik stok düşme</li>
+    <li>Yetersiz stokta ekran alarmı + tedarik talebi kaydı</li>
+    <li>Tüm stok hareketlerinin ve cihaz olaylarının loglanması</li>
+    <li>Canlı web arayüzü (kutu durumları, aktif sipariş, alarm paneli)</li>
+    <li>ESP32 tabanlı fiziksel kutu prototipi (en az 4 adet)</li>
+  </ul>
+
+  <h3>2.2 Kapsam dışı (bu 8 haftada yapılmayacak)</h3>
+  <ul>
+    <li>Gerçek e-ticaret platformu entegrasyonu (Trendyol, Shopify vb. API'leri) — sipariş <b>manuel</b> veya seed verisiyle girilir</li>
+    <li>Kargo/sevkiyat, fatura, muhasebe ve iade süreçleri</li>
+    <li>Barkod/RFID ile ürün doğrulama (NFC alanı şemada hazır bırakıldı, kullanılmayacak)</li>
+    <li>Çok depolu / çok lokasyonlu yapı — tek depo varsayılır</li>
+    <li>Rota optimizasyonu (en kısa toplama yolu hesaplama)</li>
+    <li>Mobil uygulama; arayüz responsive web olarak kalır</li>
+    <li>Bulut dağıtımı ve yüksek erişilebilirlik; sistem yerel ağda (LAN) çalışır</li>
+  </ul>
+
+  <h3>2.3 Varsayımlar</h3>
+  <table>
+    <tr><th style="width:30%">Varsayım</th><th>Gerekçe / etkisi</th></tr>
+    <tr><td>Bir kutuda tek çeşit ürün bulunur</td><td>ER'de <code>kutu.urun_id</code> tekil FK. Çoklu ürün gerekirse ara tablo açılması gerekir — v2 konusu.</td></tr>
+    <tr><td>Bir ürün birden çok kutuda bulunabilir</td><td><code>urun 1—N kutu</code>. Toplama sırasında stoğu en uygun kutu seçilir (Bölüm 6.4).</td></tr>
+    <tr><td>Depo yerel ağı (Wi-Fi) kesintisiz ve ESP32 menzilindedir</td><td>Kopma durumunda LWT ile kutu OFFLINE işaretlenir, sipariş o kutu için elle yürütülür.</td></tr>
+    <tr><td>Operatör sayısı azdır ve sisteme giriş yapar</td><td>Her stok hareketi bir personele bağlanır (izlenebilirlik).</td></tr>
+    <tr><td>Aynı anda birden fazla sipariş toplanabilir</td><td>Bu yüzden stok düşme <b>atomik</b> olmak zorundadır (Bölüm 6.2).</td></tr>
+    <tr><td>Güvenlik stoğu (buffer) ürün bazında tanımlanır</td><td><code>urun.guvenlik_stogu</code>, varsayılan 5. Sarı ışık eşiğini bu belirler.</td></tr>
+  </table>
+
+  <h3>2.4 Paydaşlar</h3>
+  <table>
+    <tr><th style="width:20%">Paydaş</th><th style="width:40%">Beklentisi</th><th>Sistemdeki rolü</th></tr>
+    <tr><td>Depo operatörü</td><td>Ekran okumadan, ışığı takip ederek hızlı toplama</td><td><code>OPERATOR</code> — sipariş toplar, teyit verir</td></tr>
+    <tr><td>Depo sorumlusu</td><td>Anlık stok görünürlüğü, eksik uyarısı, tedarik takibi</td><td><code>ADMIN</code> — ürün/kutu/eşik yönetimi, raporlar</td></tr>
+    <tr><td>Proje danışmanı / jüri</td><td>Çalışan prototip, teknik derinlik, iki disiplinin entegrasyonu</td><td>Demo ve değerlendirme</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2 class="sec"><span class="secnum">3.</span> Gereksinimler</h2>
+  <p class="lead">Her gereksinim numaralıdır; test planındaki kabul kriterleri bu numaralara referans verir.</p>
+
+  <h3>3.1 Fonksiyonel gereksinimler</h3>
+  <table class="t-sm">
+    <tr><th style="width:11%">No</th><th style="width:40%">Gereksinim</th><th>Kabul ölçütü</th></tr>
+    <tr><td><b>FR-01</b></td><td>Sisteme sipariş numarası ve kalemleriyle sipariş girilebilir</td><td>Aynı <code>siparis_no</code> ikinci kez girilemez (UK ihlali kullanıcıya anlaşılır hata döner)</td></tr>
+    <tr><td><b>FR-02</b></td><td>Sipariş başlatıldığında her kalem bir kutuyla eşleştirilir</td><td>Kalem kaydında <code>kutu_id</code> dolu; uygun kutu yoksa kalem <code>YETERSIZ</code> işaretlenir</td></tr>
+    <tr><td><b>FR-03</b></td><td>Stok durumu üç renkten biriyle belirlenir</td><td>s&ge;q+b → YEŞİL, q&le;s&lt;q+b → SARI, s&lt;q → KIRMIZI (Bölüm 6.1)</td></tr>
+    <tr><td><b>FR-04</b></td><td>Kutunun LED'i hesaplanan renkte yakılır</td><td>Komut MQTT ile yayınlanır; cihaz 1 sn içinde ışığı yakar</td></tr>
+    <tr><td><b>FR-05</b></td><td>Yeşil/sarı durumda ürün alındığında stok otomatik düşer</td><td>Teyit sonrası <code>stok.adet</code> azalır ve <code>stok_hareketi</code> kaydı oluşur</td></tr>
+    <tr><td><b>FR-06</b></td><td>Stok düşme işlemi atomiktir ve negatife düşmez</td><td>100 eşzamanlı istekte toplam düşülen miktar mevcut stoğu aşmaz</td></tr>
+    <tr><td><b>FR-07</b></td><td>Stok yetersizse ekrana uyarı döner ve alarm kaydı oluşur</td><td><code>alarm</code> tablosuna <code>STOK_YOK</code>, arayüzde anlık kırmızı bildirim</td></tr>
+    <tr><td><b>FR-08</b></td><td>Stok güvenlik seviyesinin altına düştüğünde tedarik talebi açılır</td><td><code>tedarik_talebi</code> kaydı <code>ACIK</code> durumda; aynı ürün için mükerrer açılmaz</td></tr>
+    <tr><td><b>FR-09</b></td><td>Operatör teyidi buton / IR / ağırlık sensöründen gelebilir</td><td><code>teyit_yontemi</code> alanı doğru kaydedilir; arayüzden manuel teyit de mümkündür</td></tr>
+    <tr><td><b>FR-10</b></td><td>Arayüzde kutu durumları ve stok canlı izlenir</td><td>Sayfa yenilemeden güncellenir (SignalR), gecikme &lt; 1 sn</td></tr>
+    <tr><td><b>FR-11</b></td><td>Tüm stok hareketleri (çıkış/giriş/sayım) loglanır</td><td>Kayıtta önceki ve sonraki adet, personel, zaman bulunur</td></tr>
+    <tr><td><b>FR-12</b></td><td>Cihazların bağlantı durumu izlenir</td><td>Kutu ONLINE/OFFLINE gösterilir; LWT ile 30 sn içinde OFFLINE'a düşer</td></tr>
+    <tr><td><b>FR-13</b></td><td>Sipariş iptal edilebilir ve rezerve stok iade edilir</td><td>İptal sonrası stok eski değerine döner, <code>GIRIS</code> hareketi loglanır</td></tr>
+    <tr><td><b>FR-14</b></td><td>Stok sayımı (düzeltme) yapılabilir</td><td><code>SAYIM</code> tipinde hareket; fark loglanır</td></tr>
+    <tr><td><b>FR-15</b></td><td>Kullanıcı rolüne göre yetkilendirme yapılır</td><td>OPERATOR stok eşiği/ürün değiştiremez; ADMIN tüm işlemleri yapar</td></tr>
+    <tr><td><b>FR-16</b></td><td>Kutu LED'i test edilebilir (bakım modu)</td><td>Arayüzden tek kutuya test komutu gönderilir</td></tr>
+  </table>
+
+  <h3>3.2 Fonksiyonel olmayan gereksinimler</h3>
+  <table class="t-sm">
+    <tr><th style="width:11%">No</th><th style="width:26%">Başlık</th><th>Hedef</th></tr>
+    <tr><td><b>NFR-01</b></td><td>Performans</td><td>Sipariş başlatmadan LED yanmasına uçtan uca &lt; 1 sn (yerel ağ); API p95 &lt; 200 ms</td></tr>
+    <tr><td><b>NFR-02</b></td><td>Tutarlılık</td><td>Stok işlemleri ACID; eşzamanlılıkta negatif stok imkânsız (DB seviyesinde <code>CHECK adet &gt;= 0</code>)</td></tr>
+    <tr><td><b>NFR-03</b></td><td>İdempotenlik</td><td>Aynı <code>mesaj_id</code> ile gelen tekrar teyit mesajı stoğu ikinci kez düşürmez</td></tr>
+    <tr><td><b>NFR-04</b></td><td>Dayanıklılık</td><td>MQTT broker veya cihaz koptuğunda sistem veri kaybetmez; komutlar QoS 1 ile tekrar denenir</td></tr>
+    <tr><td><b>NFR-05</b></td><td>İzlenebilirlik</td><td>Her stok değişimi kim/ne zaman/hangi sipariş bilgisiyle geri izlenebilir</td></tr>
+    <tr><td><b>NFR-06</b></td><td>Ölçeklenebilirlik</td><td>Kutu eklemek yalnızca veritabanına kayıt + cihaz kurulumu gerektirir; kod değişmez</td></tr>
+    <tr><td><b>NFR-07</b></td><td>Güvenlik</td><td>JWT kimlik doğrulama, rol bazlı yetki, cihaz başına MQTT kimlik bilgisi</td></tr>
+    <tr><td><b>NFR-08</b></td><td>Kullanılabilirlik</td><td>Operatör ekranı 3 m mesafeden okunabilir; renk körlüğü için renk + ikon + metin birlikte</td></tr>
+    <tr><td><b>NFR-09</b></td><td>Kurulabilirlik</td><td><code>docker compose up</code> ile tüm sistem (DB + broker + API) tek komutta ayağa kalkar</td></tr>
+    <tr><td><b>NFR-10</b></td><td>Test edilebilirlik</td><td>Donanım olmadan sanal kutu simülatörü ile uçtan uca test yapılabilir</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2 class="sec"><span class="secnum">4.</span> Sistem Mimarisi ve Teknoloji Yığını</h2>
+  <p class="lead">Üç katman: kullanıcı, uygulama, fiziksel. Katmanlar arası tek temas noktaları REST/SignalR ve MQTT'dir.</p>
+
+  <h3>4.1 Katman şeması</h3>
+<pre>
+┌─ KULLANICI KATMANI ──────────────────────────────────────────────┐
+│  React 19 + TypeScript (Vite)        │  Operatör                 │
+│  · Sipariş girişi · canlı pano       │  yanan LED'i takip eder   │
+│  · Alarm ekranı · stok yönetimi      │                           │
+└───────────┬──────────────────────────────────────────────────────┘
+            │  REST (HTTPS/JSON)  +  SignalR (WebSocket, canlı akış)
+┌───────────▼─ UYGULAMA KATMANI ───────────────────────────────────┐
+│  ASP.NET Core 9 Web API                                          │
+│   Api  →  Application  →  Domain  ←  Infrastructure               │
+│   · SiparisServisi   · StokServisi   · IsikKarariServisi          │
+│   · AlarmServisi     · CihazServisi  · MqttHostedService          │
+└───────┬───────────────────────────────────────┬──────────────────┘
+        │ EF Core 9 / Npgsql                    │ MQTTnet (TCP 1883)
+┌───────▼─────────────────┐          ┌──────────▼───────────────────┐
+│  PostgreSQL 17          │          │  Mosquitto MQTT Broker       │
+│  urun · kutu · stok     │          │  depo/kutu/+/komut           │
+│  siparis · hareket · log│          │  depo/kutu/+/olay · durum    │
+└─────────────────────────┘          └──────────┬───────────────────┘
+                                                │ Wi-Fi
+                            ┌───────────────────▼──────────────────┐
+                            │  FİZİKSEL KATMAN — ESP32 × N         │
+                            │  RGB/3'lü LED  +  onay sensörü       │
+                            │  (buton / IR / HX711 ağırlık)        │
+                            └──────────────────────────────────────┘
+</pre>
+
+  <h3>4.2 Teknoloji seçimleri ve gerekçeleri</h3>
+  <table class="t-sm">
+    <tr><th style="width:18%">Katman</th><th style="width:26%">Seçim</th><th>Gerekçe</th></tr>
+    <tr><td>Backend dili/çatısı</td><td>C# 13 · .NET 9 · ASP.NET Core Web API</td><td>Güçlü tipleme, olgun DI ve hosted service altyapısı (MQTT dinleyicisi için ideal), yüksek performans</td></tr>
+    <tr><td>ORM</td><td>EF Core 9 + Npgsql</td><td>Migration ile şema versiyonlama; ham SQL'e de izin verir (atomik stok düşme için gerekli)</td></tr>
+    <tr><td>Canlı iletişim</td><td>SignalR</td><td>.NET ile yerel entegre WebSocket; arayüze anlık stok/alarm/LED durumu push edilir</td></tr>
+    <tr><td>MQTT istemcisi</td><td>MQTTnet 5 (<code>IHostedService</code> olarak)</td><td>.NET'in standart MQTT kütüphanesi; QoS 1, LWT ve yeniden bağlanma desteği</td></tr>
+    <tr><td>Veritabanı</td><td>PostgreSQL 17</td><td>ACID, <code>UPDATE ... RETURNING</code>, kısıt (CHECK) desteği, JSONB ile ham MQTT payload saklama</td></tr>
+    <tr><td>Doğrulama / log</td><td>FluentValidation · Serilog</td><td>İstek doğrulama ve yapılandırılmış log (dosya + konsol)</td></tr>
+    <tr><td>Frontend</td><td>React 19 + TypeScript + Vite</td><td>Hızlı geliştirme, bileşen tabanlı canlı pano; tip güvenliği API DTO'larıyla paylaşılır</td></tr>
+    <tr><td>Veri/stat yönetimi</td><td>TanStack Query + @microsoft/signalr</td><td>Sunucu durumu önbellekleme + canlı olayla invalidate etme kalıbı</td></tr>
+    <tr><td>Stil</td><td>Tailwind CSS</td><td>Kutu ızgarası ve renk durumlarını hızlı kurmak için</td></tr>
+    <tr><td>Broker</td><td>Eclipse Mosquitto 2</td><td>Hafif, ESP32 ile sorunsuz, Docker imajı hazır</td></tr>
+    <tr><td>Firmware</td><td>ESP32 · Arduino framework (PlatformIO)</td><td>Elektrik ekibinin bilgi birikimi; <code>PubSubClient</code>/<code>Adafruit_NeoPixel</code> kütüphaneleri</td></tr>
+    <tr><td>Test</td><td>xUnit · FluentAssertions · Testcontainers · Playwright</td><td>Birim + gerçek PostgreSQL/Mosquitto ile entegrasyon + E2E</td></tr>
+    <tr><td>Ortam</td><td>Docker Compose</td><td>DB + broker + API + frontend tek komutla</td></tr>
+  </table>
+
+  <h3>4.3 Backend proje yapısı (Clean Architecture, 4 katman)</h3>
+<pre>
+PickToLight.sln
+├─ src/PickToLight.Domain          <span class="c">// Entity, enum, iş kuralları — bağımlılığı yok</span>
+│   ├─ Entities/ (Urun, Kutu, Stok, Siparis, SiparisKalemi, StokHareketi, Alarm...)
+│   ├─ Enums/    (LedRengi, SiparisDurumu, KalemDurumu, HareketTipi, AlarmTipi)
+│   └─ Kurallar/ (IsikKarari.cs  → saf fonksiyon, test edilmesi kolay)
+├─ src/PickToLight.Application     <span class="c">// Use-case'ler, DTO, arayüzler</span>
+│   ├─ Siparisler/ (SiparisOlustur, SiparisBaslat, KalemTeyitEt, SiparisIptal)
+│   ├─ Stoklar/    (StokDus, StokIade, StokSayim)
+│   ├─ Abstractions/ (IMqttYayinci, IBildirimYayinci, IStokDeposu)
+│   └─ Dtos/ + Validators/
+├─ src/PickToLight.Infrastructure  <span class="c">// Dış dünya</span>
+│   ├─ Persistence/ (AppDbContext, Configurations, Migrations, StokDeposu)
+│   ├─ Mqtt/        (MqttHostedService, MqttYayinci, OlayIsleyici)
+│   └─ Realtime/    (SignalRBildirimYayinci)
+└─ src/PickToLight.Api             <span class="c">// Giriş noktası</span>
+    ├─ Controllers/ · Hubs/DepoHub.cs · Middleware/HataYakalama.cs
+    └─ Program.cs (DI, auth, CORS, Swagger)
+tests/  Domain.UnitTests · Application.UnitTests · Api.IntegrationTests
+</pre>
+  <p class="note">Bağımlılık yönü daima içe doğrudur: Api → Application → Domain. Infrastructure yalnızca Application'daki arayüzleri uygular. Böylece ışık kararı ve stok kuralları veritabanı/MQTT olmadan test edilebilir.</p>
+</section>
+
+<section>
+  <h2 class="sec"><span class="secnum">5.</span> Veri Modeli ve PostgreSQL Şeması</h2>
+  <p class="lead">Hafta-2 ER diyagramı esas alınmıştır; aşağıda tablo tablo alan sözlüğü, kısıtlar, indeksler ve önerilen küçük eklemeler yer alır.</p>
+
+  <h3>5.1 Tablolar ve rolleri</h3>
+  <table class="t-sm">
+    <tr><th style="width:17%">Tablo</th><th style="width:13%">Grup</th><th>Amacı</th></tr>
+    <tr><td><code>urun</code></td><td>Envanter</td><td>Ürün kataloğu; SKU, ad, birim ağırlık ve <b>güvenlik stoğu (b)</b> burada tutulur</td></tr>
+    <tr><td><code>kutu</code></td><td>Envanter</td><td>Fiziksel kare kutu; ESP32 kimliği (MAC), MQTT topic'i, raf konumu, bağlantı durumu</td></tr>
+    <tr><td><code>stok</code></td><td>Envanter</td><td>Kutu başına <b>mevcut adet (s)</b>; kutu ile 1:1. Optimistic lock için <code>versiyon</code> alanı</td></tr>
+    <tr><td><code>siparis</code></td><td>Sipariş akışı</td><td>Sipariş başlığı; benzersiz sipariş numarası ve durum</td></tr>
+    <tr><td><code>siparis_kalemi</code></td><td>Sipariş akışı</td><td>Hangi üründen kaç adet (<b>q</b>), hangi kutudan, hangi LED rengiyle, hangi yöntemle teyit edildi</td></tr>
+    <tr><td><code>personel</code></td><td>Kullanıcı</td><td>Operatör/yönetici; her hareket bir personele bağlanır</td></tr>
+    <tr><td><code>stok_hareketi</code></td><td>Log</td><td>Değişmez (append-only) hareket defteri: önceki adet, sonraki adet, tip, zaman</td></tr>
+    <tr><td><code>alarm</code></td><td>Log</td><td>STOK_AZALDI / STOK_YOK / CIHAZ_OFFLINE / TEYIT_ZAMAN_ASIMI bildirimleri</td></tr>
+    <tr><td><code>tedarik_talebi</code></td><td>Log</td><td>Eksik ürün için açılan ikmal talebi; ACIK → VERILDI → KAPANDI</td></tr>
+    <tr><td><code>cihaz_olayi</code></td><td>Log</td><td>Ham MQTT payload'ı (JSONB); hata ayıklama ve idempotenlik kontrolü için</td></tr>
+  </table>
+
+  <h3>5.2 Kritik alanlar ve kısıtlar</h3>
+  <table class="t-sm">
+    <tr><th style="width:24%">Alan</th><th style="width:18%">Tip</th><th>Kısıt / kural</th></tr>
+    <tr><td><code>urun.sku</code></td><td>varchar(50)</td><td>UNIQUE, NOT NULL</td></tr>
+    <tr><td><code>urun.guvenlik_stogu</code> (b)</td><td>int</td><td>DEFAULT 5, CHECK &ge; 0 — sarı ışık eşiğini belirler</td></tr>
+    <tr><td><code>kutu.cihaz_mac</code></td><td>varchar(17)</td><td>UNIQUE — cihaz kimliği; MQTT mesajını kutuya bağlar</td></tr>
+    <tr><td><code>kutu.mqtt_topic</code></td><td>varchar(60)</td><td>UNIQUE, örn. <code>depo/kutu/1</code></td></tr>
+    <tr><td><code>kutu.baglanti_durumu</code></td><td>enum</td><td>ONLINE | OFFLINE — LWT ile güncellenir</td></tr>
+    <tr><td><code>stok.adet</code> (s)</td><td>int</td><td><b>CHECK (adet &gt;= 0)</b> — negatif stoğa karşı son savunma hattı</td></tr>
+    <tr><td><code>stok.versiyon</code></td><td>int</td><td>Her güncellemede +1 (optimistic concurrency)</td></tr>
+    <tr><td><code>siparis.siparis_no</code></td><td>varchar(30)</td><td>UNIQUE, NOT NULL</td></tr>
+    <tr><td><code>siparis.durum</code></td><td>enum</td><td>BEKLIYOR | HAZIRLANIYOR | TAMAMLANDI | KISMI_TAMAMLANDI | KILITLI | IPTAL</td></tr>
+    <tr><td><code>siparis_kalemi.miktar</code> (q)</td><td>int</td><td>CHECK (miktar &gt; 0)</td></tr>
+    <tr><td><code>siparis_kalemi.led_rengi</code></td><td>enum</td><td>YESIL | SARI | KIRMIZI</td></tr>
+    <tr><td><code>siparis_kalemi.durum</code></td><td>enum</td><td>BEKLIYOR | ISIK_YANDI | ALINDI | YETERSIZ | IPTAL</td></tr>
+    <tr><td><code>stok_hareketi.tip</code></td><td>enum</td><td>CIKIS | GIRIS | SAYIM</td></tr>
+    <tr><td><code>cihaz_olayi.payload</code></td><td>jsonb</td><td>Ham MQTT mesajı; GIN indeksi opsiyonel</td></tr>
+  </table>
+
+  <h3>5.3 ER diyagramına önerilen küçük eklemeler</h3>
+  <p>Mevcut diyagram iş akışını karşılıyor. Uygulama sırasında şu beş ekleme hayatı kolaylaştırır:</p>
+  <table class="t-sm">
+    <tr><th style="width:26%">Ekleme</th><th>Neden</th></tr>
+    <tr><td><code>siparis_kalemi.sira</code> (int)</td><td>Operatörün kutuları hangi sırayla gezeceğini belirler; ileride rota optimizasyonuna açık kapı</td></tr>
+    <tr><td><code>siparis_kalemi.mesaj_id</code> (uuid, UNIQUE)</td><td>MQTT teyit mesajının idempotenlik anahtarı — aynı teyit iki kez stok düşüremez</td></tr>
+    <tr><td><code>stok.rezerve_adet</code> (int, v2)</td><td>İleride "rezerve ama henüz alınmamış" miktarı ayrı göstermek için. v1'de rezervasyon doğrudan <code>adet</code>'ten düşülecek (Bölüm 6.3)</td></tr>
+    <tr><td><code>kutu.kapasite</code> (int)</td><td>Sayım ve doluluk göstergesi; ağırlık sensörüyle çapraz kontrol</td></tr>
+    <tr><td><code>tedarik_talebi</code> kısmi UNIQUE</td><td><code>UNIQUE (urun_id) WHERE durum = 'ACIK'</code> — aynı ürün için mükerrer açık talebi engeller</td></tr>
+  </table>
+
+  <h3>5.4 Örnek DDL (çekirdek tablolar)</h3>
+<pre><span class="k">CREATE TYPE</span> led_rengi   <span class="k">AS ENUM</span> (<span class="s">'YESIL'</span>,<span class="s">'SARI'</span>,<span class="s">'KIRMIZI'</span>);
+<span class="k">CREATE TYPE</span> hareket_tipi <span class="k">AS ENUM</span> (<span class="s">'CIKIS'</span>,<span class="s">'GIRIS'</span>,<span class="s">'SAYIM'</span>);
+
+<span class="k">CREATE TABLE</span> urun (
+  id              bigserial <span class="k">PRIMARY KEY</span>,
+  sku             varchar(50)  <span class="k">NOT NULL UNIQUE</span>,
+  ad              varchar(150) <span class="k">NOT NULL</span>,
+  birim_agirlik_g numeric(10,2),
+  guvenlik_stogu  int <span class="k">NOT NULL DEFAULT</span> 5 <span class="k">CHECK</span> (guvenlik_stogu &gt;= 0),
+  olusturma       timestamptz <span class="k">NOT NULL DEFAULT</span> now()
+);
+
+<span class="k">CREATE TABLE</span> kutu (
+  id               bigserial <span class="k">PRIMARY KEY</span>,
+  kod              varchar(20) <span class="k">NOT NULL UNIQUE</span>,
+  urun_id          bigint <span class="k">REFERENCES</span> urun(id),
+  cihaz_mac        varchar(17) <span class="k">NOT NULL UNIQUE</span>,
+  mqtt_topic       varchar(60) <span class="k">NOT NULL UNIQUE</span>,
+  raf_konumu       varchar(30),
+  baglanti_durumu  varchar(10) <span class="k">NOT NULL DEFAULT</span> <span class="s">'OFFLINE'</span>,
+  son_gorulme      timestamptz
+);
+
+<span class="k">CREATE TABLE</span> stok (
+  kutu_id       bigint <span class="k">PRIMARY KEY REFERENCES</span> kutu(id) <span class="k">ON DELETE CASCADE</span>,
+  adet          int <span class="k">NOT NULL</span> <span class="k">CHECK</span> (adet &gt;= 0),   <span class="c">-- negatif stok imkânsız</span>
+  son_agirlik_g numeric(10,2),
+  versiyon      int <span class="k">NOT NULL DEFAULT</span> 0,
+  guncelleme    timestamptz <span class="k">NOT NULL DEFAULT</span> now()
+);
+
+<span class="k">CREATE TABLE</span> siparis_kalemi (
+  id            bigserial <span class="k">PRIMARY KEY</span>,
+  siparis_id    bigint <span class="k">NOT NULL REFERENCES</span> siparis(id) <span class="k">ON DELETE CASCADE</span>,
+  urun_id       bigint <span class="k">NOT NULL REFERENCES</span> urun(id),
+  kutu_id       bigint <span class="k">REFERENCES</span> kutu(id),
+  miktar        int <span class="k">NOT NULL CHECK</span> (miktar &gt; 0),
+  led_rengi     led_rengi,
+  durum         varchar(12) <span class="k">NOT NULL DEFAULT</span> <span class="s">'BEKLIYOR'</span>,
+  teyit_yontemi varchar(10),
+  mesaj_id      uuid <span class="k">UNIQUE</span>,                       <span class="c">-- idempotenlik</span>
+  sira          int,
+  alinma_zamani timestamptz
+);</pre>
+
+  <h3>5.5 İndeks planı</h3>
+  <table class="t-sm">
+    <tr><th style="width:42%">İndeks</th><th>Hangi sorgu için</th></tr>
+    <tr><td><code>idx_kalem_siparis ON siparis_kalemi(siparis_id)</code></td><td>Sipariş detayının kalemlerini çekmek</td></tr>
+    <tr><td><code>idx_kalem_durum ON siparis_kalemi(durum) WHERE durum='BEKLIYOR'</code></td><td>Açık toplama görevlerini listelemek (kısmi indeks)</td></tr>
+    <tr><td><code>idx_kutu_urun ON kutu(urun_id)</code></td><td>Ürün için uygun kutu seçimi (Bölüm 6.4)</td></tr>
+    <tr><td><code>idx_hareket_zaman ON stok_hareketi(zaman DESC)</code></td><td>Hareket defteri ekranı, raporlar</td></tr>
+    <tr><td><code>idx_hareket_kutu ON stok_hareketi(kutu_id, zaman DESC)</code></td><td>Tek kutunun geçmişi</td></tr>
+    <tr><td><code>idx_alarm_okunmamis ON alarm(okundu) WHERE okundu = false</code></td><td>Alarm rozetindeki sayaç</td></tr>
+    <tr><td><code>idx_siparis_no ON siparis(siparis_no)</code> (UK ile gelir)</td><td>Sipariş numarasıyla arama — ana giriş noktası</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2 class="sec"><span class="secnum">6.</span> Çekirdek İş Mantığı: Işık Kararı ve Atomik Stok Düşme</h2>
+  <p class="lead">Projenin kalbi burasıdır. Yanlış kurgulanırsa "ışık yeşil ama kutuda ürün yok" durumu doğar.</p>
+
+  <h3>6.1 Işık kararı</h3>
+  <p><code>s</code> = kutudaki mevcut stok · <code>q</code> = sipariş kalemi miktarı · <code>b</code> = ürünün güvenlik stoğu</p>
+  <div class="grid2">
+    <div class="card" style="border-left:3px solid #22c55e"><div class="h"><span class="pill g">YEŞİL</span></div><div class="mono" style="display:block;margin:2mm 0">s &ge; q + b</div><div class="t-sm">Sipariş sonrası bile güvenlik stoğu korunuyor. Ürün verilir, stok düşer.</div></div>
+    <div class="card" style="border-left:3px solid #f59e0b"><div class="h"><span class="pill y">SARI</span></div><div class="mono" style="display:block;margin:2mm 0">q &le; s &lt; q + b</div><div class="t-sm">Sipariş karşılanır fakat kritik seviyeye inilir. Uyarı + tedarik talebi.</div></div>
+    <div class="card" style="border-left:3px solid #ef4444"><div class="h"><span class="pill r">KIRMIZI</span></div><div class="mono" style="display:block;margin:2mm 0">s &lt; q</div><div class="t-sm">Karşılanamaz. Kalem YETERSIZ, alarm, tedarik talebi; stok düşülmez.</div></div>
+  </div>
+
+<pre><span class="c">// Domain/Kurallar/IsikKarari.cs — saf fonksiyon, yan etkisiz, kolay test edilir</span>
+<span class="k">public static</span> LedRengi Belirle(<span class="k">int</span> mevcut, <span class="k">int</span> istenen, <span class="k">int</span> guvenlik)
+{
+    <span class="k">if</span> (istenen &lt;= 0) <span class="k">throw new</span> ArgumentOutOfRangeException(nameof(istenen));
+    <span class="k">if</span> (mevcut &lt;  istenen)             <span class="k">return</span> LedRengi.Kirmizi;
+    <span class="k">if</span> (mevcut &lt;  istenen + guvenlik)  <span class="k">return</span> LedRengi.Sari;
+    <span class="k">return</span> LedRengi.Yesil;
+}</pre>
+
+  <h3>6.2 Atomik stok düşme — yarış koşulunun çözümü</h3>
+  <div class="box red">
+    <b class="t">Problem</b>
+    İki operatör aynı anda aynı kutudan toplama yaparsa: ikisi de stoğu <i>okur</i> (10 adet), ikisi de yeterli görür (q=6), ikisi de düşer → stok −2 olur veya biri eli boş döner. Klasik <b>read-then-write</b> yarış koşulu.
+  </div>
+  <p><b>Çözüm:</b> Kontrol ve düşme ayrı iki adım değil, <b>tek bir koşullu UPDATE</b>'tir. Veritabanı satır kilidini kendisi koyar.</p>
+<pre><span class="c">-- Etkilenen satır sayısı 1 ise düşme başarılı, 0 ise stok yetersiz.</span>
+<span class="k">UPDATE</span> stok
+   <span class="k">SET</span> adet = adet - @q,
+       versiyon = versiyon + 1,
+       guncelleme = now()
+ <span class="k">WHERE</span> kutu_id = @kutuId
+   <span class="k">AND</span> adet &gt;= @q
+<span class="k">RETURNING</span> adet <span class="k">AS</span> sonraki_adet, adet + @q <span class="k">AS</span> onceki_adet;</pre>
+<pre><span class="c">// Infrastructure/Persistence/StokDeposu.cs</span>
+<span class="k">public async</span> Task&lt;StokDusSonucu&gt; DusAsync(<span class="k">long</span> kutuId, <span class="k">int</span> q, CancellationToken ct)
+{
+    <span class="k">await using var</span> tx = <span class="k">await</span> _db.Database.BeginTransactionAsync(ct);
+
+    <span class="k">var</span> satir = <span class="k">await</span> _db.Database
+        .SqlQuery&lt;StokDusSatiri&gt;($<span class="s">"""..."""</span>)   <span class="c">// yukarıdaki UPDATE ... RETURNING</span>
+        .FirstOrDefaultAsync(ct);
+
+    <span class="k">if</span> (satir <span class="k">is null</span>)                       <span class="c">// 0 satır → stok yetersiz</span>
+        <span class="k">return</span> StokDusSonucu.Yetersiz();
+
+    _db.StokHareketleri.Add(<span class="k">new</span> StokHareketi {   <span class="c">// aynı transaction içinde log</span>
+        KutuId = kutuId, Tip = HareketTipi.Cikis, Miktar = q,
+        OncekiAdet = satir.OncekiAdet, SonrakiAdet = satir.SonrakiAdet,
+        SiparisKalemiId = kalemId, PersonelId = personelId
+    });
+    <span class="k">await</span> _db.SaveChangesAsync(ct);
+    <span class="k">await</span> tx.CommitAsync(ct);
+    <span class="k">return</span> StokDusSonucu.Basarili(satir.SonrakiAdet);
+}</pre>
+  <p class="note">Üç savunma hattı birlikte çalışır: (1) <code>WHERE adet &gt;= @q</code> koşulu, (2) tablodaki <code>CHECK (adet &gt;= 0)</code> kısıtı, (3) <code>versiyon</code> alanıyla optimistic lock. Stok hareketi logu aynı transaction'da yazılır; "düştü ama loglanmadı" durumu oluşamaz.</p>
+
+  <h3>6.3 Ne zaman düşeceğiz? — Rezervasyon modeli kararı</h3>
+  <table class="t-sm">
+    <tr><th style="width:24%">Seçenek</th><th style="width:38%">Nasıl çalışır</th><th>Değerlendirme</th></tr>
+    <tr><td><b>A) Sipariş kabulünde düş</b> <span class="pill b">SEÇİLDİ</span></td><td>Sipariş başlatılırken stok atomik düşülür; LED ancak düşme başarılıysa yakılır</td><td>Yeşil ışık <b>garantidir</b> — ışık yandıysa ürün o siparişe ayrılmıştır. Kırmızı daha ışık yanmadan yakalanır. İptal durumunda iade (GIRIS) gerekir.</td></tr>
+    <tr><td>B) Fiziksel teyitte düş</td><td>Işık yanar, operatör alır, teyit gelince düşülür</td><td>Fiziksel gerçeğe daha yakın; ancak iki operatör aynı anda yeşil ışık görebilir ve biri eli boş döner. Reddedildi.</td></tr>
+  </table>
+  <div class="box">
+    <b class="t">Karar (Hafta-1 sunumuyla uyumlu): "Önce stoğu düş, sonra siparişi onayla"</b>
+    1. Sipariş başlatılır → her kalem için koşullu UPDATE denenir.<br>
+    2. Başarılı → kalem <code>ISIK_YANDI</code>, LED yeşil/sarı yanar, <code>CIKIS</code> hareketi loglanır.<br>
+    3. Başarısız (s&lt;q) → kalem <code>YETERSIZ</code>, LED <b>hiç yanmaz</b>, alarm + tedarik talebi; sipariş <code>KILITLI</code> veya kısmi devam.<br>
+    4. Operatör teyidi geldiğinde kalem <code>ALINDI</code> olur — bu adım stoğu <b>tekrar düşürmez</b>, yalnızca fiziksel alımı doğrular.<br>
+    5. Sipariş iptal edilir veya teyit zaman aşımına uğrarsa rezerve miktar <code>GIRIS</code> hareketiyle iade edilir.
+  </div>
+
+  <h3>6.4 Kutu seçim algoritması (bir ürün birden çok kutudaysa)</h3>
+  <ol>
+    <li>Ürünün bağlı olduğu <b>ONLINE</b> kutular listelenir.</li>
+    <li>Stoğu <code>q</code>'yu tek başına karşılayan kutular arasından <b>en az stoğu olan</b> seçilir (FIFO'ya yakın davranır, kutuyu boşaltarak ikmali kolaylaştırır).</li>
+    <li>Hiçbir kutu tek başına yetmiyorsa: toplam stok yeterliyse kalem <b>bölünür</b> (iki kutudan toplama, iki LED sırayla yanar); yetmiyorsa KIRMIZI.</li>
+    <li>Hiç ONLINE kutu yoksa kalem <code>BEKLIYOR</code> kalır, <code>CIHAZ_OFFLINE</code> alarmı üretilir ve arayüz manuel toplama önerir.</li>
+  </ol>
+  <p class="note">v1 sadeleştirmesi: kalem bölme (3. madde) opsiyoneldir, 6. haftada zaman kalırsa eklenir. Varsayılan davranış tek kutudan toplamadır.</p>
+</section>
+
+<section>
+  <h2 class="sec"><span class="secnum">7.</span> Sipariş Yaşam Döngüsü ve Durum Makineleri</h2>
+  <p class="lead">Sipariş girişinden ışığın sönmesine kadar tüm akış ve geçerli durum geçişleri.</p>
+
+  <h3>7.1 Uçtan uca akış</h3>
+<pre>
+ [1] SİPARİŞ GİRİŞİ        Operatör arayüzden sipariş no + kalemleri girer
+        │                  → siparis (BEKLIYOR) + siparis_kalemi (BEKLIYOR)
+        ▼
+ [2] EŞLEŞTİRME            Her kalem için uygun kutu seçilir (Bölüm 6.4)
+        │                  → siparis_kalemi.kutu_id doldurulur
+        ▼
+ [3] STOK KONTROL + DÜŞME  Koşullu atomik UPDATE (Bölüm 6.2)
+        │
+        ├── başarılı ──► renk = Belirle(s,q,b) → YESIL | SARI
+        │                 kalem: ISIK_YANDI · stok_hareketi: CIKIS
+        │                      │
+        │                      ▼
+        │               [4] LED YAK — MQTT: depo/kutu/{id}/komut  (QoS 1)
+        │                      │      ESP32 ışığı yakar, miktarı gösterir
+        │                      ▼
+        │               [5] ALIM &amp; TEYİT — buton / IR / ağırlık
+        │                      │      MQTT: depo/kutu/{id}/olay
+        │                      ▼
+        │               [6] ONAY — kalem: ALINDI, alinma_zamani yazılır
+        │                      │      LED söner, SignalR ile arayüz güncellenir
+        │                      │      SARI ise → tedarik_talebi (ACIK)
+        │                      ▼
+        │                 tüm kalemler ALINDI → siparis: TAMAMLANDI
+        │
+        └── başarısız (s &lt; q) ──► renk = KIRMIZI, LED YAKILMAZ
+                                   kalem: YETERSIZ · alarm: STOK_YOK
+                                   ekranda kırmızı uyarı · tedarik_talebi
+                                   sipariş: KILITLI (veya kısmi devam)
+</pre>
+
+  <h3>7.2 Sipariş durum makinesi</h3>
+  <table class="t-sm">
+    <tr><th style="width:20%">Durum</th><th style="width:34%">Anlamı</th><th>İzin verilen geçişler</th></tr>
+    <tr><td><code>BEKLIYOR</code></td><td>Girildi, henüz başlatılmadı</td><td>→ HAZIRLANIYOR, → IPTAL</td></tr>
+    <tr><td><code>HAZIRLANIYOR</code></td><td>En az bir kalemin ışığı yandı</td><td>→ TAMAMLANDI, → KISMI_TAMAMLANDI, → KILITLI, → IPTAL</td></tr>
+    <tr><td><code>KILITLI</code></td><td>Bir kalem karşılanamadı, müdahale bekliyor</td><td>→ HAZIRLANIYOR (stok ikmal edildi, yeniden dene), → KISMI_TAMAMLANDI, → IPTAL</td></tr>
+    <tr><td><code>KISMI_TAMAMLANDI</code></td><td>Bazı kalemler alındı, bazıları yetersiz</td><td>→ TAMAMLANDI (eksikler sonradan tamamlandı), → IPTAL</td></tr>
+    <tr><td><code>TAMAMLANDI</code></td><td>Tüm kalemler ALINDI</td><td>son durum (değişmez)</td></tr>
+    <tr><td><code>IPTAL</code></td><td>İptal edildi; rezerve stok iade edildi</td><td>son durum</td></tr>
+  </table>
+
+  <h3>7.3 Sipariş kalemi durum makinesi</h3>
+  <table class="t-sm">
+    <tr><th style="width:20%">Durum</th><th style="width:34%">Anlamı</th><th>Çıkış geçişleri</th></tr>
+    <tr><td><code>BEKLIYOR</code></td><td>Kutu eşleşmedi veya kutu offline</td><td>→ ISIK_YANDI, → YETERSIZ, → IPTAL</td></tr>
+    <tr><td><code>ISIK_YANDI</code></td><td>Stok rezerve edildi, LED yanıyor</td><td>→ ALINDI (teyit), → IPTAL (zaman aşımı/iptal → stok iade)</td></tr>
+    <tr><td><code>ALINDI</code></td><td>Fiziksel alım teyit edildi</td><td>son durum</td></tr>
+    <tr><td><code>YETERSIZ</code></td><td>s &lt; q; ışık yakılmadı</td><td>→ ISIK_YANDI (ikmal sonrası yeniden deneme), → IPTAL</td></tr>
+    <tr><td><code>IPTAL</code></td><td>İptal; rezerve varsa iade edildi</td><td>son durum</td></tr>
+  </table>
+  <div class="box">
+    <b class="t">Zaman aşımı kuralı</b>
+    <code>ISIK_YANDI</code> durumundaki bir kalem <b>5 dakika</b> (yapılandırılabilir) içinde teyit almazsa: LED söner, <code>TEYIT_ZAMAN_ASIMI</code> alarmı üretilir, rezerve stok <code>GIRIS</code> hareketiyle iade edilir ve kalem <code>BEKLIYOR</code>'a döner. Bu işi bir arka plan servisi (<code>ZamanAsimiKontrolServisi : BackgroundService</code>) 30 saniyede bir yapar.
+  </div>
+</section>
+
+<section>
+  <h2 class="sec"><span class="secnum">8.</span> Backend Tasarımı ve REST API Sözleşmesi</h2>
+  <p class="lead">Servis sorumlulukları, uç noktalar ve canlı olay akışı.</p>
+
+  <h3>8.1 Servisler</h3>
+  <table class="t-sm">
+    <tr><th style="width:26%">Servis</th><th>Sorumluluğu</th></tr>
+    <tr><td><code>SiparisServisi</code></td><td>Sipariş oluşturma, başlatma, iptal, durum geçişlerinin doğrulanması</td></tr>
+    <tr><td><code>StokServisi</code></td><td>Atomik düşme, iade, sayım, hareket loglama</td></tr>
+    <tr><td><code>IsikKarariServisi</code></td><td>Kutu seçimi + renk hesabı (Domain kuralını kullanır)</td></tr>
+    <tr><td><code>CihazServisi</code></td><td>Kutu kayıt/eşleme, LED komutu yayınlama, bağlantı durumu takibi</td></tr>
+    <tr><td><code>AlarmServisi</code></td><td>Alarm üretme, okundu işaretleme, tedarik talebi açma (mükerrer engelli)</td></tr>
+    <tr><td><code>BildirimServisi</code></td><td>SignalR üzerinden arayüze canlı olay gönderme</td></tr>
+    <tr><td><code>MqttHostedService</code></td><td>Broker bağlantısı, abonelik, gelen olayların iş servislerine yönlendirilmesi, yeniden bağlanma</td></tr>
+    <tr><td><code>ZamanAsimiKontrolServisi</code></td><td>Periyodik olarak süresi dolan rezervasyonları iade eder</td></tr>
+  </table>
+
+  <h3>8.2 REST uç noktaları</h3>
+  <table class="t-sm">
+    <tr><th style="width:7%">Metot</th><th style="width:31%">Yol</th><th style="width:40%">Açıklama</th><th>Rol</th></tr>
+    <tr><td>POST</td><td><code>/api/auth/giris</code></td><td>JWT access + refresh token üretir</td><td>—</td></tr>
+    <tr><td>POST</td><td><code>/api/siparisler</code></td><td>Sipariş + kalemlerini oluşturur (BEKLIYOR)</td><td>OP</td></tr>
+    <tr><td>GET</td><td><code>/api/siparisler?durum=&amp;sayfa=</code></td><td>Sipariş listesi (sayfalı)</td><td>OP</td></tr>
+    <tr><td>GET</td><td><code>/api/siparisler/{siparisNo}</code></td><td>Sipariş detayı + kalemler + LED renkleri</td><td>OP</td></tr>
+    <tr><td>POST</td><td><code>/api/siparisler/{id}/baslat</code></td><td><b>Ana akış:</b> eşleştir → stok düş → LED yak</td><td>OP</td></tr>
+    <tr><td>POST</td><td><code>/api/siparisler/{id}/iptal</code></td><td>Siparişi iptal eder, rezerve stoğu iade eder</td><td>OP</td></tr>
+    <tr><td>POST</td><td><code>/api/kalemler/{id}/teyit</code></td><td>Manuel teyit (sensör çalışmazsa yedek yol)</td><td>OP</td></tr>
+    <tr><td>GET</td><td><code>/api/stok</code></td><td>Tüm kutuların stok durumu + renk önizlemesi</td><td>OP</td></tr>
+    <tr><td>POST</td><td><code>/api/stok/{kutuId}/sayim</code></td><td>Fiziksel sayım düzeltmesi (SAYIM hareketi)</td><td>ADMIN</td></tr>
+    <tr><td>POST</td><td><code>/api/stok/{kutuId}/giris</code></td><td>Mal kabul / ikmal (GIRIS hareketi)</td><td>ADMIN</td></tr>
+    <tr><td>GET</td><td><code>/api/urunler</code> · POST · PUT</td><td>Ürün kataloğu, güvenlik stoğu ayarı</td><td>ADMIN</td></tr>
+    <tr><td>GET</td><td><code>/api/kutular</code></td><td>Kutu listesi + bağlantı durumu + son görülme</td><td>OP</td></tr>
+    <tr><td>POST</td><td><code>/api/kutular/{id}/led-test</code></td><td>Bakım: seçilen renkte test yakma</td><td>ADMIN</td></tr>
+    <tr><td>GET</td><td><code>/api/alarmlar?okundu=false</code></td><td>Alarm listesi</td><td>OP</td></tr>
+    <tr><td>POST</td><td><code>/api/alarmlar/{id}/okundu</code></td><td>Alarmı okundu işaretle</td><td>OP</td></tr>
+    <tr><td>GET</td><td><code>/api/tedarik-talepleri</code></td><td>Açık ikmal talepleri</td><td>ADMIN</td></tr>
+    <tr><td>GET</td><td><code>/api/hareketler?kutuId=&amp;tarih=</code></td><td>Stok hareket defteri (rapor)</td><td>ADMIN</td></tr>
+  </table>
+
+  <h4>Örnek: sipariş başlatma yanıtı</h4>
+<pre><span class="c">POST /api/siparisler/42/baslat  →  200 OK</span>
+{
+  <span class="s">"siparisNo"</span>: <span class="s">"SIP-2026-00042"</span>,
+  <span class="s">"durum"</span>: <span class="s">"HAZIRLANIYOR"</span>,
+  <span class="s">"kalemler"</span>: [
+    { <span class="s">"kalemId"</span>: 101, <span class="s">"urun"</span>: <span class="s">"Kablo 2m"</span>, <span class="s">"kutuKod"</span>: <span class="s">"K-01"</span>, <span class="s">"rafKonumu"</span>: <span class="s">"A1-R2"</span>,
+      <span class="s">"miktar"</span>: 3, <span class="s">"kalanStok"</span>: 14, <span class="s">"ledRengi"</span>: <span class="s">"YESIL"</span>, <span class="s">"durum"</span>: <span class="s">"ISIK_YANDI"</span> },
+    { <span class="s">"kalemId"</span>: 102, <span class="s">"urun"</span>: <span class="s">"Adaptör 5V"</span>, <span class="s">"kutuKod"</span>: <span class="s">"K-04"</span>, <span class="s">"rafKonumu"</span>: <span class="s">"A2-R1"</span>,
+      <span class="s">"miktar"</span>: 2, <span class="s">"kalanStok"</span>: 3,  <span class="s">"ledRengi"</span>: <span class="s">"SARI"</span>,  <span class="s">"durum"</span>: <span class="s">"ISIK_YANDI"</span>,
+      <span class="s">"uyari"</span>: <span class="s">"Stok güvenlik seviyesinin altına indi — tedarik talebi açıldı"</span> },
+    { <span class="s">"kalemId"</span>: 103, <span class="s">"urun"</span>: <span class="s">"Sensör IR"</span>,  <span class="s">"kutuKod"</span>: <span class="s">"K-07"</span>, <span class="s">"rafKonumu"</span>: <span class="s">"B1-R3"</span>,
+      <span class="s">"miktar"</span>: 5, <span class="s">"kalanStok"</span>: 1,  <span class="s">"ledRengi"</span>: <span class="s">"KIRMIZI"</span>, <span class="s">"durum"</span>: <span class="s">"YETERSIZ"</span>,
+      <span class="s">"hata"</span>: <span class="s">"STOK_YETERSIZ: istenen 5, mevcut 1"</span> }
+  ],
+  <span class="s">"alarmlar"</span>: [ { <span class="s">"tip"</span>: <span class="s">"STOK_YOK"</span>, <span class="s">"mesaj"</span>: <span class="s">"K-07 / Sensör IR: 4 adet eksik"</span> } ]
+}</pre>
+
+  <h3>8.3 SignalR canlı olayları (<code>/hubs/depo</code>)</h3>
+  <table class="t-sm">
+    <tr><th style="width:28%">Olay</th><th style="width:36%">Payload</th><th>Arayüzdeki etkisi</th></tr>
+    <tr><td><code>StokGuncellendi</code></td><td>kutuId, yeniAdet, renk</td><td>Kutu kartı ve stok tablosu anında güncellenir</td></tr>
+    <tr><td><code>KutuIsikDegisti</code></td><td>kutuId, renk, miktar, kalemId</td><td>Pano üzerinde kutu yanıp söner</td></tr>
+    <tr><td><code>KalemTeyitEdildi</code></td><td>kalemId, yontem, zaman</td><td>Toplama listesinde satır yeşile döner</td></tr>
+    <tr><td><code>SiparisDurumDegisti</code></td><td>siparisId, durum</td><td>Sipariş başlığı ve listeler güncellenir</td></tr>
+    <tr><td><code>AlarmOlustu</code></td><td>tip, mesaj, kutuId</td><td>Kırmızı toast + alarm rozetinde sayaç artışı</td></tr>
+    <tr><td><code>CihazDurumDegisti</code></td><td>kutuId, baglanti</td><td>Kutu kartı gri (OFFLINE) olur</td></tr>
+  </table>
+
+  <h3>8.4 Hata sözleşmesi</h3>
+  <p>Tüm hatalar <b>RFC 7807 Problem Details</b> formatında döner; arayüz tek bir yerde yorumlar.</p>
+<pre>{ <span class="s">"type"</span>: <span class="s">"https://pick-to-light/errors/stok-yetersiz"</span>,
+  <span class="s">"title"</span>: <span class="s">"Stok yetersiz"</span>, <span class="s">"status"</span>: 409,
+  <span class="s">"detail"</span>: <span class="s">"K-07 kutusunda 1 adet var, 5 adet istendi."</span>,
+  <span class="s">"kutuKod"</span>: <span class="s">"K-07"</span>, <span class="s">"mevcut"</span>: 1, <span class="s">"istenen"</span>: 5 }</pre>
+  <table class="t-sm">
+    <tr><th style="width:12%">Kod</th><th>Durum</th></tr>
+    <tr><td>400</td><td>Doğrulama hatası (miktar &le; 0, boş sipariş no)</td></tr>
+    <tr><td>401 / 403</td><td>Kimlik doğrulanmadı / rol yetersiz</td></tr>
+    <tr><td>404</td><td>Sipariş, ürün veya kutu bulunamadı</td></tr>
+    <tr><td>409</td><td><b>Stok yetersiz</b>, mükerrer sipariş no, geçersiz durum geçişi</td></tr>
+    <tr><td>422</td><td>Ürün için tanımlı kutu yok / tüm kutular OFFLINE</td></tr>
+    <tr><td>503</td><td>MQTT broker erişilemiyor (komut kuyruğa alındı bilgisiyle)</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2 class="sec"><span class="secnum">9.</span> MQTT Haberleşme Sözleşmesi</h2>
+  <p class="lead">Yazılım ve elektrik ekiplerinin ortak dili. 2. hafta sonunda dondurulur, sonra değiştirilmez.</p>
+
+  <h3>9.1 Topic şeması</h3>
+  <table class="t-sm">
+    <tr><th style="width:30%">Topic</th><th style="width:12%">Yön</th><th style="width:10%">QoS</th><th>İçerik</th></tr>
+    <tr><td><code>depo/kutu/{kutuId}/komut</code></td><td>Sunucu → Cihaz</td><td>1</td><td>LED yak / söndür / test komutu</td></tr>
+    <tr><td><code>depo/kutu/{kutuId}/olay</code></td><td>Cihaz → Sunucu</td><td>1</td><td>Teyit (buton/IR/ağırlık), buton basımı, hata</td></tr>
+    <tr><td><code>depo/kutu/{kutuId}/durum</code></td><td>Cihaz → Sunucu</td><td>1 · <b>retained</b></td><td>ONLINE/OFFLINE, firmware sürümü, RSSI</td></tr>
+    <tr><td><code>depo/kutu/{kutuId}/telemetri</code></td><td>Cihaz → Sunucu</td><td>0</td><td>Ağırlık ölçümü, sıcaklık (opsiyonel, 10 sn periyot)</td></tr>
+    <tr><td><code>depo/sistem/duyuru</code></td><td>Sunucu → Tümü</td><td>1</td><td>Toplu söndürme, bakım modu</td></tr>
+  </table>
+  <p class="note">Sunucu <code>depo/kutu/+/olay</code> ve <code>depo/kutu/+/durum</code> joker aboneliklerini kullanır; yeni kutu eklendiğinde kod değişmez (NFR-06).</p>
+
+  <h3>9.2 Mesaj formatları</h3>
+  <h4>LED yakma komutu (sunucu → cihaz)</h4>
+<pre>{ <span class="s">"mesajId"</span>: <span class="s">"8f1c...-uuid"</span>,     <span class="c">// idempotenlik + teyit eşleştirme anahtarı</span>
+  <span class="s">"tip"</span>: <span class="s">"LED_YAK"</span>,
+  <span class="s">"renk"</span>: <span class="s">"YESIL"</span>,              <span class="c">// YESIL | SARI | KIRMIZI</span>
+  <span class="s">"miktar"</span>: 3,                   <span class="c">// kaç adet alınacak (7-segment/yanıp sönme ile gösterilebilir)</span>
+  <span class="s">"kalemId"</span>: 101,
+  <span class="s">"ttlSn"</span>: 300,                  <span class="c">// bu süre sonunda cihaz ışığı kendi söndürür</span>
+  <span class="s">"zaman"</span>: <span class="s">"2026-03-10T09:14:22Z"</span> }</pre>
+
+  <h4>Teyit olayı (cihaz → sunucu)</h4>
+<pre>{ <span class="s">"mesajId"</span>: <span class="s">"8f1c...-uuid"</span>,     <span class="c">// komuttan gelen id aynen geri döner</span>
+  <span class="s">"tip"</span>: <span class="s">"TEYIT"</span>,                <span class="c">// TEYIT | IPTAL | HATA | BUTON</span>
+  <span class="s">"yontem"</span>: <span class="s">"BUTON"</span>,             <span class="c">// BUTON | IR | AGIRLIK</span>
+  <span class="s">"olculenFark"</span>: -148.5,        <span class="c">// gram (yalnız AGIRLIK yönteminde)</span>
+  <span class="s">"cihazMac"</span>: <span class="s">"A0:B1:C2:D3:E4:F5"</span>,
+  <span class="s">"zaman"</span>: <span class="s">"2026-03-10T09:14:31Z"</span> }</pre>
+
+  <h4>Durum / LWT mesajı (retained)</h4>
+<pre><span class="c">// Cihaz bağlanınca yayınlar:</span>
+{ <span class="s">"baglanti"</span>: <span class="s">"ONLINE"</span>, <span class="s">"fw"</span>: <span class="s">"1.0.2"</span>, <span class="s">"rssi"</span>: -58, <span class="s">"ip"</span>: <span class="s">"192.168.1.41"</span> }
+
+<span class="c">// Last Will &amp; Testament — broker, cihaz koptuğunda bunu otomatik yayınlar:</span>
+{ <span class="s">"baglanti"</span>: <span class="s">"OFFLINE"</span> }</pre>
+
+  <h3>9.3 Güvenilirlik kuralları</h3>
+  <table class="t-sm">
+    <tr><th style="width:26%">Kural</th><th>Uygulama</th></tr>
+    <tr><td>İdempotenlik</td><td>Her komut bir <code>mesajId</code> taşır; teyit aynı id ile döner. Sunucu bu id'yi <code>siparis_kalemi.mesaj_id</code> UNIQUE alanına yazar — tekrar gelen teyit sessizce yok sayılır (NFR-03).</td></tr>
+    <tr><td>QoS 1 (en az bir kez)</td><td>Komut ve teyitler kaybolmaz; tekrar gelme ihtimali idempotenlikle karşılanır.</td></tr>
+    <tr><td>Retained durum</td><td>Sunucu yeniden başladığında tüm kutuların güncel ONLINE/OFFLINE durumunu anında öğrenir.</td></tr>
+    <tr><td>LWT</td><td>Kutu elektriği giderse broker 30 sn içinde OFFLINE yayınlar; kutu panoda grileşir.</td></tr>
+    <tr><td>Keep-alive</td><td>20 sn; <code>kutu.son_gorulme</code> her mesajda güncellenir.</td></tr>
+    <tr><td>Yeniden bağlanma</td><td>Hem cihaz hem sunucu tarafında üstel geri çekilme (1→2→4→8→30 sn tavan).</td></tr>
+    <tr><td>Ham log</td><td>Gelen her mesaj <code>cihaz_olayi</code> tablosuna JSONB olarak yazılır — hata ayıklamanın tek kaynağı.</td></tr>
+    <tr><td>Cihaz kimliği</td><td>Her ESP32 kendi MQTT kullanıcı adı/parolasıyla bağlanır; broker ACL'i ile yalnızca kendi topic'ine yazabilir.</td></tr>
+  </table>
+
+  <div class="box">
+    <b class="t">Sanal kutu simülatörü (NFR-10)</b>
+    Donanım hazır olmadan yazılımın ilerleyebilmesi için küçük bir .NET konsol uygulaması (<code>tools/KutuSimulatoru</code>) yazılır: aynı topic'lere abone olur, LED komutu alınca ekrana renk basar ve 2 sn sonra teyit mesajı döner. Yazılım ekibi 3. haftadan itibaren tüm akışı bununla test eder.
+  </div>
+</section>
+
+<section>
+  <h2 class="sec"><span class="secnum">10.</span> Donanım Planı ve ESP32 Firmware Tasarımı</h2>
+  <p class="lead">Elektrik ekibinin iş paketi: kare modüler kutu, LED sürücü, onay sensörü, güç ve firmware.</p>
+
+  <h3>10.1 Kutu başına malzeme listesi (BOM)</h3>
+  <table class="t-sm">
+    <tr><th style="width:24%">Bileşen</th><th style="width:26%">Seçim</th><th style="width:12%">Adet</th><th>Not</th></tr>
+    <tr><td>Mikrodenetleyici</td><td>ESP32-WROOM-32 DevKit</td><td>1</td><td>Dahili Wi-Fi; LED sürer, sensör okur, MQTT konuşur</td></tr>
+    <tr><td>Durum LED'i</td><td>WS2812B (adreslenebilir RGB) <i>veya</i> 3'lü ayrı LED</td><td>1 / 3</td><td>WS2812B tek pinle üç rengi verir, kablolama azalır — önerilen</td></tr>
+    <tr><td>Direnç</td><td>220 Ω (ayrı LED kullanılırsa) · 10 kΩ pull-up</td><td>3 / 1</td><td>Akım sınırlama ve buton pull-up</td></tr>
+    <tr><td>Onay sensörü</td><td>Buton (v1) · TCRT5000 IR · HX711 + load cell</td><td>1</td><td>v1'de buton; IR/ağırlık 5-6. haftada eklenir</td></tr>
+    <tr><td>Güç</td><td>5 V 10 A ortak hat + kutu başına paralel besleme</td><td>—</td><td>Kutu başına ~100 mA (LED dahil); 8 kutu ≈ 1 A</td></tr>
+    <tr><td>Kasa</td><td>Kare modüler kutu (MDF/pleksi veya 3D baskı)</td><td>1</td><td>Yan yana çoğaltılabilir; ürün gözü + LED yuvası</td></tr>
+    <tr><td>Kablolama</td><td>JST konnektör, 2×0.5 mm² güç hattı</td><td>—</td><td>Ortak GND şart; konnektörle kutu sökülebilir olmalı</td></tr>
+  </table>
+
+  <h3>10.2 Pin planı (öneri)</h3>
+  <table class="t-sm">
+    <tr><th style="width:18%">Pin</th><th style="width:28%">Bağlantı</th><th>Açıklama</th></tr>
+    <tr><td>GPIO 5</td><td>WS2812B DIN</td><td>Veri hattı (330 Ω seri direnç önerilir)</td></tr>
+    <tr><td>GPIO 18 / 19 / 21</td><td>Yeşil / Sarı / Kırmızı LED</td><td>Ayrı LED kullanılırsa; her biri 220 Ω üzerinden</td></tr>
+    <tr><td>GPIO 4</td><td>Onay butonu</td><td>INPUT_PULLUP, 50 ms yazılımsal debounce</td></tr>
+    <tr><td>GPIO 32 / 33</td><td>HX711 DT / SCK</td><td>Ağırlık sensörü (opsiyonel)</td></tr>
+    <tr><td>GPIO 34</td><td>TCRT5000 OUT</td><td>IR mesafe sensörü (opsiyonel, sadece giriş)</td></tr>
+    <tr><td>5V / GND</td><td>Ortak güç hattı</td><td>Tüm kutular paralel; GND ortak olmalı</td></tr>
+  </table>
+
+  <h3>10.3 Firmware durum makinesi</h3>
+<pre>
+  BOOT ──► WIFI_BAGLAN ──► MQTT_BAGLAN ──► BEKLEME ◄──────────────┐
+            │  (hata)        │  (hata)        │                   │
+            └──► yeniden ◄───┘                │ komut: LED_YAK    │
+                 dene (üstel)                 ▼                   │
+                                          ISIK_AKTIF              │
+                                              │                   │
+                     ┌────────────────────────┼───────────────┐   │
+                     │ buton/IR/ağırlık       │ ttl doldu     │   │
+                     ▼                        ▼               │   │
+                 TEYIT_GONDER            ISIK_SONDUR ─────────┴───┘
+                     │ (QoS 1, ack bekler)
+                     └──► BEKLEME
+
+  Bağlantı koptuysa: teyit mesajı yerel tamponda (max 20 kayıt) saklanır,
+  bağlantı dönünce sırayla gönderilir → "offline'da alınan ürün" kaybolmaz.
+</pre>
+
+  <h3>10.4 Firmware gereksinimleri</h3>
+  <ul>
+    <li><b>Kimlik:</b> cihaz MAC adresi topic ve kimlik doğrulamada kullanılır; <code>kutuId</code> ilk kurulumda NVS'e yazılır.</li>
+    <li><b>Yanıt süresi:</b> komut alındıktan sonra LED &lt; 200 ms içinde yanar.</li>
+    <li><b>Miktar gösterimi:</b> alınacak adet, LED'in o sayıda kısa yanıp sönmesiyle gösterilir (ek donanım gerektirmeyen çözüm).</li>
+    <li><b>Debounce:</b> buton için 50 ms; çift tetiklenme firmware'de engellenir, sunucu tarafında ayrıca <code>mesajId</code> ile korunur.</li>
+    <li><b>Ağırlık doğrulaması:</b> HX711 kullanılıyorsa alınan ağırlık <code>miktar × urun.birim_agirlik_g</code> ile ±%10 toleransla karşılaştırılır; uyuşmazsa <code>HATA</code> olayı gönderilir.</li>
+    <li><b>Güvenli varsayılan:</b> MQTT bağlantısı yoksa LED yakılmaz (yanlış yönlendirme riskini ortadan kaldırır); kutu üzerinde küçük bir "bağlantı yok" göstergesi (LED kısa mavi/beyaz nabız) kullanılır.</li>
+    <li><b>OTA (opsiyonel):</b> ArduinoOTA ile kablosuz firmware güncelleme — 7. haftada zaman kalırsa.</li>
+  </ul>
+
+  <h3>10.5 Elektrik ekibi teslim takvimi</h3>
+  <table class="t-sm">
+    <tr><th style="width:14%">Hafta</th><th>Teslim</th></tr>
+    <tr><td>H2</td><td>Kutu çizimi/ölçüleri, BOM onayı, 1 adet prototip kutu montajı</td></tr>
+    <tr><td>H3</td><td>ESP32 + LED + buton breadboard devresi; MQTT ile "merhaba" mesajı</td></tr>
+    <tr><td>H4</td><td>Sözleşmeye uygun firmware v1: komutla LED yakma + buton teyidi</td></tr>
+    <tr><td>H5</td><td>Kutu 2-3-4 çoğaltma, güç dağıtım hattı, kablolama düzeni</td></tr>
+    <tr><td>H6</td><td>Onay sensörü yükseltmesi (IR veya HX711), ağırlık kalibrasyonu</td></tr>
+    <tr><td>H7</td><td>Mekanik son montaj, etiketleme, dayanıklılık testi (100 toplama döngüsü)</td></tr>
+    <tr><td>H8</td><td>Demo düzeneği kurulumu ve yedek kutu/kablo hazırlığı</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2 class="sec"><span class="secnum">11.</span> Frontend Tasarımı ve Ekran Planı</h2>
+  <p class="lead">Operatör ekrana değil ışığa bakar; arayüz denetim ve istisna yönetimi içindir.</p>
+
+  <h3>11.1 Ekranlar</h3>
+  <table class="t-sm">
+    <tr><th style="width:20%">Ekran</th><th style="width:40%">İçerik</th><th>Öncelik</th></tr>
+    <tr><td><b>Canlı Pano</b> <code>/</code></td><td>Kutu ızgarası (her kutu bir kart: kod, ürün, stok, renk, ONLINE/OFFLINE), aktif sipariş özeti, son alarmlar</td><td>Yüksek — demo ekranı</td></tr>
+    <tr><td><b>Sipariş Girişi</b> <code>/siparis/yeni</code></td><td>Sipariş no + kalem ekleme (ürün ara, miktar), "Siparişi Başlat" butonu</td><td>Yüksek</td></tr>
+    <tr><td><b>Toplama Ekranı</b> <code>/siparis/{no}</code></td><td>Kalem listesi: kutu kodu, raf konumu, miktar, renk rozeti, durum; manuel teyit butonu; ilerleme çubuğu</td><td>Yüksek</td></tr>
+    <tr><td><b>Alarm Paneli</b> <code>/alarmlar</code></td><td>Kırmızı/sarı uyarılar, okundu işaretleme, ilgili siparişe gitme</td><td>Yüksek</td></tr>
+    <tr><td><b>Stok Yönetimi</b> <code>/stok</code></td><td>Kutu-ürün-adet tablosu, mal kabul (GIRIS), sayım (SAYIM), güvenlik stoğu düzenleme</td><td>Orta</td></tr>
+    <tr><td><b>Kutu/Cihaz Yönetimi</b> <code>/kutular</code></td><td>Kutu ekleme, MAC-topic eşleme, LED test, son görülme zamanı</td><td>Orta</td></tr>
+    <tr><td><b>Raporlar</b> <code>/raporlar</code></td><td>Hareket defteri, en çok toplanan ürünler, ortalama toplama süresi</td><td>Düşük — zaman kalırsa</td></tr>
+    <tr><td><b>Giriş</b> <code>/giris</code></td><td>Personel kodu + parola, JWT alma</td><td>Yüksek</td></tr>
+  </table>
+
+  <h3>11.2 Kutu kartı bileşeni — görsel dil</h3>
+  <table class="t-sm">
+    <tr><th style="width:16%">Durum</th><th style="width:22%">Görünüm</th><th>Ek işaret (renk körlüğü için — NFR-08)</th></tr>
+    <tr><td><span class="pill g">YEŞİL</span></td><td>Yeşil çerçeve + dolu nokta</td><td>✓ ikonu + "Yeterli" metni</td></tr>
+    <tr><td><span class="pill y">SARI</span></td><td>Sarı çerçeve, hafif nabız animasyonu</td><td>⚠ ikonu + "Azaldı" metni</td></tr>
+    <tr><td><span class="pill r">KIRMIZI</span></td><td>Kırmızı çerçeve, yanıp sönme + sesli uyarı (opsiyonel)</td><td>✕ ikonu + "Yetersiz" metni</td></tr>
+    <tr><td><span class="pill gr">OFFLINE</span></td><td>Gri, soluk kart</td><td>Fiş ikonu + "Bağlantı yok"</td></tr>
+  </table>
+
+  <h3>11.3 Veri akışı kalıbı</h3>
+<pre><span class="c">// Sunucu durumu TanStack Query'de; SignalR olayı geldiğinde ilgili sorgu tazelenir.</span>
+<span class="k">const</span> { data: kutular } = useQuery({ queryKey: [<span class="s">'kutular'</span>], queryFn: kutuApi.listele });
+
+useSignalR(<span class="s">'StokGuncellendi'</span>, (olay) =&gt; {
+  qc.setQueryData([<span class="s">'kutular'</span>], (eski) =&gt; guncelle(eski, olay));   <span class="c">// anlık yansıt</span>
+  qc.invalidateQueries({ queryKey: [<span class="s">'stok'</span>] });                     <span class="c">// arka planda doğrula</span>
+});
+
+useSignalR(<span class="s">'AlarmOlustu'</span>, (a) =&gt; toast.hata(a.mesaj));</pre>
+
+  <h3>11.4 Klasör yapısı</h3>
+<pre>web/src/
+├─ api/        (axios istemci, uç nokta fonksiyonları, tip tanımları)
+├─ hooks/      (useSignalR, useSiparis, useKutular)
+├─ components/ (KutuKarti, RenkRozeti, KalemSatiri, AlarmToast, Yukleniyor)
+├─ pages/      (Pano, SiparisYeni, SiparisDetay, Stok, Kutular, Alarmlar, Giris)
+├─ store/      (oturum durumu — Zustand)
+└─ types/      (backend DTO'larıyla birebir eşleşen arayüzler)</pre>
+</section>
+
+<section>
+  <h2 class="sec"><span class="secnum">12.</span> Güvenlik, Yetkilendirme ve İzlenebilirlik</h2>
+
+  <h3>12.1 Kimlik doğrulama ve yetki</h3>
+  <table class="t-sm">
+    <tr><th style="width:26%">Konu</th><th>Yaklaşım</th></tr>
+    <tr><td>Kimlik doğrulama</td><td>JWT Bearer — access token 15 dk, refresh token 7 gün (HttpOnly cookie)</td></tr>
+    <tr><td>Parola saklama</td><td>ASP.NET Core Identity <code>PasswordHasher</code> (PBKDF2); düz parola asla saklanmaz</td></tr>
+    <tr><td>Roller</td><td><code>ADMIN</code>: ürün/kutu/eşik yönetimi, sayım, raporlar · <code>OPERATOR</code>: sipariş toplama, teyit, alarm okuma</td></tr>
+    <tr><td>Yetki uygulaması</td><td>Controller seviyesinde <code>[Authorize(Roles = "ADMIN")]</code>; kritik işlemler ayrıca servis katmanında kontrol edilir</td></tr>
+    <tr><td>Cihaz kimliği</td><td>Her ESP32 için ayrı MQTT kullanıcı/parola + broker ACL: cihaz yalnızca kendi <code>depo/kutu/{id}/*</code> topic'ine yazabilir</td></tr>
+    <tr><td>Taşıma güvenliği</td><td>Web: HTTPS · MQTT: v1'de yerel ağda 1883; demo sonrası TLS (8883) opsiyonu</td></tr>
+    <tr><td>Sırlar</td><td>Geliştirmede <code>dotnet user-secrets</code>, çalıştırmada ortam değişkeni; bağlantı dizeleri depoya <b>asla</b> commit edilmez</td></tr>
+    <tr><td>Hız sınırlama</td><td>ASP.NET Core Rate Limiting: giriş uç noktası dakikada 5 deneme</td></tr>
+    <tr><td>CORS</td><td>Yalnızca arayüz origin'ine izin</td></tr>
+  </table>
+
+  <h3>12.2 İzlenebilirlik (audit)</h3>
+  <ul>
+    <li><b>Stok hareket defteri</b> (<code>stok_hareketi</code>): her değişimde önceki adet, sonraki adet, tip, personel, sipariş kalemi, zaman — <b>append-only</b>, güncelleme/silme yoktur.</li>
+    <li><b>Cihaz olay logu</b> (<code>cihaz_olayi</code>): gelen ham MQTT mesajı JSONB olarak; "ışık neden yanmadı" sorusunun cevabı burada.</li>
+    <li><b>Uygulama logu</b> (Serilog): yapılandırılmış JSON log; her isteğe <code>CorrelationId</code> eklenir, MQTT mesajına da taşınır — tek bir toplama olayı uçtan uca izlenebilir.</li>
+    <li><b>Sağlık kontrolü</b>: <code>/health</code> uç noktası DB + MQTT broker bağlantısını raporlar.</li>
+  </ul>
+</section>
+
+<section>
+  <h2 class="sec"><span class="secnum">13.</span> Hata Senaryoları ve Kurtarma Stratejisi</h2>
+  <p class="lead">"Her şey yolunda gittiğinde" çalışan sistem kolaydır; not bu tablodan alınır.</p>
+  <table class="t-sm">
+    <tr><th style="width:22%">Senaryo</th><th style="width:30%">Sistem davranışı</th><th>Kurtarma</th></tr>
+    <tr><td>Kutu OFFLINE (elektrik/Wi-Fi gitti)</td><td>LWT ile kutu gri; o kutuya komut gönderilmez, kalem <code>BEKLIYOR</code> kalır</td><td><code>CIHAZ_OFFLINE</code> alarmı; arayüz "manuel topla + manuel teyit ver" yolunu açar</td></tr>
+    <tr><td>MQTT broker erişilemiyor</td><td>Komutlar bellek içi kuyruğa alınır; API 503 + "komut kuyrukta" bilgisi döner</td><td>Yeniden bağlanınca kuyruk boşaltılır; 60 sn'yi aşarsa rezervasyonlar iade edilir</td></tr>
+    <tr><td>Teyit mesajı hiç gelmiyor</td><td>Kalem <code>ISIK_YANDI</code>'da takılı kalır</td><td>5 dk sonra zaman aşımı: LED söner, stok iade edilir, <code>TEYIT_ZAMAN_ASIMI</code> alarmı (Bölüm 7.3)</td></tr>
+    <tr><td>Aynı teyit iki kez geliyor (QoS 1 tekrarı)</td><td>İkinci mesaj <code>mesajId</code> çakışmasından yakalanır</td><td>Sessizce yok sayılır, stok ikinci kez düşmez (NFR-03)</td></tr>
+    <tr><td>İki sipariş aynı kutudan eşzamanlı istiyor</td><td>Koşullu UPDATE birini başarısız kılar</td><td>İkincisine KIRMIZI/alternatif kutu önerilir; negatif stok oluşmaz (FR-06)</td></tr>
+    <tr><td>Operatör yanlış kutudan ürün alıyor</td><td>Beklenmeyen kutudan teyit gelir; eşleşen aktif kalem yoktur</td><td>Olay <code>cihaz_olayi</code>'na yazılır, <code>BEKLENMEYEN_TEYIT</code> alarmı üretilir, stok <b>düşülmez</b></td></tr>
+    <tr><td>Ağırlık sensörü uyumsuzluk bildiriyor</td><td>Alınan ağırlık beklenenin ±%10 dışında</td><td>Teyit kabul edilir ama "sayım farkı" uyarısı; sorumluya sayım önerilir</td></tr>
+    <tr><td>Fiziksel stok ile kayıt uyuşmuyor</td><td>Sayım ekranından fark girilir</td><td><code>SAYIM</code> hareketi, fark loglanır, sapma raporuna düşer</td></tr>
+    <tr><td>Veritabanı kısıt ihlali (adet &lt; 0)</td><td>Transaction geri alınır</td><td>Hiçbir kısmi değişiklik kalmaz; hata loglanır ve 409 döner</td></tr>
+    <tr><td>Sunucu yeniden başlıyor</td><td>Retained durum mesajlarıyla kutu durumları geri yüklenir</td><td>Açık rezervasyonlar DB'den okunur; süresi geçenler iade edilir</td></tr>
+    <tr><td>Sipariş iptal edildi</td><td>Rezerve kalemler bulunur</td><td>Her biri için <code>GIRIS</code> hareketi, LED söndürme komutu, kalem <code>IPTAL</code> (FR-13)</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2 class="sec"><span class="secnum">14.</span> Test Planı ve Kabul Kriterleri</h2>
+
+  <h3>14.1 Test piramidi</h3>
+  <table class="t-sm">
+    <tr><th style="width:20%">Seviye</th><th style="width:24%">Araç</th><th>Kapsam</th></tr>
+    <tr><td>Birim</td><td>xUnit + FluentAssertions</td><td>Işık kararı (sınır değerler), durum makinesi geçişleri, kutu seçim algoritması</td></tr>
+    <tr><td>Entegrasyon</td><td>Testcontainers (PostgreSQL + Mosquitto)</td><td>Atomik stok düşme, hareket loglama, MQTT komut/olay turu, idempotenlik</td></tr>
+    <tr><td>Eşzamanlılık</td><td>xUnit + <code>Parallel.ForEachAsync</code></td><td>100 paralel toplama isteği → negatif stok yok, toplam düşüm = başlangıç stoğu</td></tr>
+    <tr><td>API sözleşme</td><td>WebApplicationFactory</td><td>Uç nokta yanıt kodları, Problem Details formatı, yetki kontrolleri</td></tr>
+    <tr><td>E2E (arayüz)</td><td>Playwright</td><td>Sipariş gir → başlat → simülatörden teyit → stok düştü ekranda görüldü</td></tr>
+    <tr><td>Donanım-in-the-loop</td><td>Gerçek ESP32 + manuel senaryo</td><td>LED yanma süresi, buton debounce, Wi-Fi kopma/dönme, 100 döngü dayanıklılık</td></tr>
+  </table>
+
+  <h3>14.2 Işık kararı birim test tablosu (sınır değer analizi)</h3>
+  <table class="t-sm">
+    <tr><th>s (mevcut)</th><th>q (istenen)</th><th>b (güvenlik)</th><th>Beklenen</th><th>Neden</th></tr>
+    <tr><td>20</td><td>3</td><td>5</td><td><span class="pill g">YEŞİL</span></td><td>20 ≥ 8</td></tr>
+    <tr><td>8</td><td>3</td><td>5</td><td><span class="pill g">YEŞİL</span></td><td>tam sınır: s = q+b</td></tr>
+    <tr><td>7</td><td>3</td><td>5</td><td><span class="pill y">SARI</span></td><td>3 ≤ 7 &lt; 8</td></tr>
+    <tr><td>3</td><td>3</td><td>5</td><td><span class="pill y">SARI</span></td><td>tam sınır: s = q</td></tr>
+    <tr><td>2</td><td>3</td><td>5</td><td><span class="pill r">KIRMIZI</span></td><td>2 &lt; 3</td></tr>
+    <tr><td>0</td><td>1</td><td>5</td><td><span class="pill r">KIRMIZI</span></td><td>stok tükendi</td></tr>
+    <tr><td>5</td><td>5</td><td>0</td><td><span class="pill g">YEŞİL</span></td><td>güvenlik stoğu 0 ise s=q yeşildir</td></tr>
+  </table>
+
+  <h3>14.3 Kabul kriterleri (UAT — 8. hafta)</h3>
+  <table class="t-sm">
+    <tr><th style="width:9%">No</th><th style="width:44%">Senaryo</th><th>Beklenen sonuç</th></tr>
+    <tr><td>UAT-1</td><td>3 kalemli sipariş girilir ve başlatılır</td><td>3 kutunun LED'i doğru renkte &lt; 1 sn içinde yanar</td></tr>
+    <tr><td>UAT-2</td><td>Yeşil yanan kutudan ürün alınır, butona basılır</td><td>LED söner, stok ekranda anında azalır, hareket loglanır</td></tr>
+    <tr><td>UAT-3</td><td>Stoğu güvenlik seviyesine yakın üründen talep edilir</td><td>Sarı yanar, tedarik talebi açılır, uyarı gösterilir</td></tr>
+    <tr><td>UAT-4</td><td>Stoktan fazla miktar talep edilir</td><td>LED yanmaz, ekranda kırmızı alarm, sipariş kilitlenir, stok değişmez</td></tr>
+    <tr><td>UAT-5</td><td>İki sipariş aynı kutudan eşzamanlı başlatılır</td><td>Yalnızca stoğun yettiği kadarı rezerve edilir; negatif stok yok</td></tr>
+    <tr><td>UAT-6</td><td>Bir kutunun fişi çekilir</td><td>30 sn içinde panoda OFFLINE; o kutuya komut gönderilmez, alarm üretilir</td></tr>
+    <tr><td>UAT-7</td><td>Işık yandıktan sonra teyit verilmez (5 dk beklenir)</td><td>LED söner, stok iade edilir, zaman aşımı alarmı düşer</td></tr>
+    <tr><td>UAT-8</td><td>Sipariş iptal edilir</td><td>Rezerve stok geri yüklenir, GIRIS hareketi loglanır, LED'ler söner</td></tr>
+    <tr><td>UAT-9</td><td>Sayım ile stok düzeltilir</td><td>SAYIM hareketi oluşur, fark raporda görünür</td></tr>
+    <tr><td>UAT-10</td><td>OPERATOR rolüyle güvenlik stoğu değiştirilmeye çalışılır</td><td>403 döner, işlem gerçekleşmez</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2 class="sec"><span class="secnum">15.</span> 8 Haftalık Proje Planı ve İş Kırılım Yapısı</h2>
+  <p class="lead">Hafta-1 sunumundaki yol haritasının göreve dökülmüş hâli. "Y" = Yazılım ekibi, "E" = Elektrik ekibi.</p>
+
+  <h3>15.1 Hafta hafta plan</h3>
+  <table class="t-sm">
+    <tr><th style="width:9%">Hafta</th><th style="width:20%">Tema</th><th style="width:44%">Görevler</th><th>Hafta sonu teslimi</th></tr>
+    <tr><td><b>H1</b><br><span class="pill b">şu an</span></td><td>Fikir, gereksinim, planlama</td><td>Y+E: problem analizi, sunum, gereksinim listesi, ER diyagramı, <b>bu planlama dokümanı</b></td><td>Onaylanmış kapsam ve teknoloji yığını</td></tr>
+    <tr><td><b>H2</b></td><td>Mimari + iskelet</td><td>Y: solution yapısı (4 katman), EF Core şeması + ilk migration, seed verisi, Docker Compose (Postgres + Mosquitto), <b>MQTT sözleşmesinin dondurulması</b><br>E: kutu çizimi, BOM onayı, 1 prototip kutu montajı</td><td>Boş ama çalışan API + ayağa kalkan veritabanı + 1 fiziksel kutu</td></tr>
+    <tr><td><b>H3</b></td><td>Çekirdek iş mantığı</td><td>Y: ışık kararı (birim testleriyle), atomik stok düşme, hareket loglama, sipariş CRUD uçları, <b>kutu simülatörü</b><br>E: ESP32 + LED + buton devresi, MQTT'ye ilk bağlantı</td><td>Simülatör üzerinden uçtan uca akış (donanımsız)</td></tr>
+    <tr><td><b>H4</b></td><td>LED mantığı + MQTT entegrasyonu</td><td>Y: <code>MqttHostedService</code>, komut yayını, olay işleme, idempotenlik, alarm servisi<br>E: firmware v1 — sözleşmeye uygun komut alma + buton teyidi</td><td><b>Gerçek kutu gerçek komutla yanıyor</b> (kilometre taşı)</td></tr>
+    <tr><td><b>H5</b></td><td>Çoklu kutu + arayüz başlangıcı</td><td>Y: SignalR hub + canlı pano, sipariş giriş ekranı, giriş/yetkilendirme<br>E: kutu 2-3-4 çoğaltma, güç dağıtımı, kablolama</td><td>4 kutu + canlı pano üzerinde izlenebilen akış</td></tr>
+    <tr><td><b>H6</b></td><td>Otomatik stok düşme + alarm ekranı</td><td>Y: teyit→stok düşme zinciri, zaman aşımı servisi, alarm/tedarik ekranları, stok yönetimi<br>E: onay sensörü yükseltmesi (IR / HX711), kalibrasyon</td><td>Tam akış: ışık → alım → otomatik düşme → alarm</td></tr>
+    <tr><td><b>H7</b></td><td>Sağlamlaştırma + testler</td><td>Y: entegrasyon ve eşzamanlılık testleri, hata senaryoları, iptal/iade akışı, raporlar, performans ölçümü<br>E: mekanik son montaj, 100 döngü dayanıklılık testi, etiketleme</td><td>Test raporu + kararlı sistem</td></tr>
+    <tr><td><b>H8</b></td><td>Uçtan uca test, demo, sunum</td><td>Y+E: UAT senaryolarının koşulması, demo verisi, kurulum dokümanı, final sunumu, yedek plan (plan B videosu)</td><td><b>Çalışan prototip + final sunum</b></td></tr>
+  </table>
+
+  <h3>15.2 Kilometre taşları</h3>
+  <table class="t-sm">
+    <tr><th style="width:14%">Tarih</th><th style="width:30%">Kilometre taşı</th><th>Neden kritik</th></tr>
+    <tr><td>H2 sonu</td><td>MQTT sözleşmesi donduruldu</td><td>İki ekibin paralel çalışabilmesinin ön şartı; geciken her gün iki ekibi birden bloke eder</td></tr>
+    <tr><td>H3 sonu</td><td>Simülatörle uçtan uca akış</td><td>Donanım gecikse bile yazılım ilerleyebilir (risk R-1'in önlemi)</td></tr>
+    <tr><td>H4 sonu</td><td>İlk gerçek LED yanması</td><td>Projenin "çalışıyor" kanıtı; entegrasyon riskinin en erken ölçüldüğü an</td></tr>
+    <tr><td>H6 sonu</td><td>Özellik dondurma (feature freeze)</td><td>Son iki hafta yalnızca test, düzeltme ve sunuma ayrılır</td></tr>
+    <tr><td>H8</td><td>Demo + teslim</td><td>UAT senaryolarının tamamı geçmiş olmalı</td></tr>
+  </table>
+
+  <h3>15.3 Görev dağılımı özeti</h3>
+  <div class="grid2">
+    <div class="card">
+      <div class="h">Elektrik Ekibi</div>
+      <ul class="t-sm" style="margin-bottom:0">
+        <li>Kare modüler kutu tasarımı ve montajı</li>
+        <li>LED sürücü devresi ve dirençler</li>
+        <li>ESP32 programlama (Arduino/PlatformIO)</li>
+        <li>Onay sensörü (buton / IR / ağırlık) entegrasyonu</li>
+        <li>5 V güç dağıtımı ve kablolama</li>
+        <li>Mekanik dayanıklılık testi</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="h">Yazılım Ekibi</div>
+      <ul class="t-sm" style="margin-bottom:0">
+        <li>Backend API ve iş mantığı (.NET 9)</li>
+        <li>Veritabanı şeması ve stok modeli (PostgreSQL)</li>
+        <li>Sipariş &amp; otomatik stok düşme akışı</li>
+        <li>Web arayüzü ve canlı alarm ekranı (React)</li>
+        <li>MQTT haberleşme ve bildirim servisi</li>
+        <li>Test altyapısı ve kutu simülatörü</li>
+      </ul>
+    </div>
+  </div>
+  <p class="note">Ortak sorumluluk: MQTT sözleşmesi (H2), entegrasyon testleri (H4, H7), demo kurulumu (H8). Haftada bir 30 dakikalık ortak senkron toplantı önerilir; sözleşme değişikliği iki ekibin onayı olmadan yapılmaz.</p>
+</section>
+
+<section>
+  <h2 class="sec"><span class="secnum">16.</span> Risk Analizi</h2>
+  <p class="lead">O = Olasılık, E = Etki (1 düşük – 3 yüksek).</p>
+  <table class="t-sm">
+    <tr><th style="width:7%">No</th><th style="width:26%">Risk</th><th style="width:5%">O</th><th style="width:5%">E</th><th>Önlem / plan B</th></tr>
+    <tr><td><b>R-1</b></td><td>Donanım malzemesi geç gelir, ESP32/sensör tedarik edilemez</td><td>2</td><td>3</td><td>Kutu simülatörü (H3) ile yazılım bağımsız ilerler; demo gerekirse 2 kutuyla yapılır; yedek ESP32 ve LED önceden alınır</td></tr>
+    <tr><td><b>R-2</b></td><td>Wi-Fi kopmaları, MQTT kararsızlığı</td><td>3</td><td>2</td><td>QoS 1 + LWT + yeniden bağlanma + cihazda yerel tampon; demo için ayrı/temiz bir SSID kullanılır</td></tr>
+    <tr><td><b>R-3</b></td><td>Eşzamanlı toplamada stok tutarsızlığı</td><td>2</td><td>3</td><td>Koşullu atomik UPDATE + CHECK kısıtı + eşzamanlılık testi (Bölüm 6.2, 14.1)</td></tr>
+    <tr><td><b>R-4</b></td><td>İki ekibin entegrasyonu geç kalır, son hafta "birleştirme krizi"</td><td>2</td><td>3</td><td>Sözleşmenin H2'de dondurulması; H4'te ilk gerçek entegrasyon kilometre taşı; haftalık senkron</td></tr>
+    <tr><td><b>R-5</b></td><td>Ağırlık sensörü (HX711) kalibrasyonu güvenilmez çıkar</td><td>3</td><td>1</td><td>v1'de teyit butonu esas; ağırlık yalnızca doğrulama amaçlı ikincil sinyal olarak kullanılır</td></tr>
+    <tr><td><b>R-6</b></td><td>Kapsam şişmesi (barkod, rota optimizasyonu, mobil uygulama istekleri)</td><td>3</td><td>2</td><td>Bölüm 2.2'deki kapsam dışı listesi referans alınır; H6'da özellik dondurma</td></tr>
+    <tr><td><b>R-7</b></td><td>Teknoloji öğrenme eğrisi (.NET + MQTT + React aynı anda)</td><td>2</td><td>2</td><td>H2-H3'te küçük "dikey dilim" (tek kutu, tek ürün) üzerinden öğrenme; çift programlama</td></tr>
+    <tr><td><b>R-8</b></td><td>Güç dağıtımı sorunları (gerilim düşümü, ortak GND eksikliği)</td><td>2</td><td>2</td><td>Ortak GND kuralı, yeterli kesitli kablo, 10 A kaynak; kutu başına akım ölçümü H5'te yapılır</td></tr>
+    <tr><td><b>R-9</b></td><td>Demo günü donanım arızası</td><td>2</td><td>3</td><td>Yedek kutu ve kablo seti; önceden çekilmiş demo videosu; simülatör modu ile sunum yapılabilmesi</td></tr>
+    <tr><td><b>R-10</b></td><td>Ekip üyesi devamsızlığı / zaman çakışması</td><td>2</td><td>2</td><td>Görevlerin tek kişiye bağımlı olmaması, repoda dokümantasyon, haftalık ilerleme kaydı</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2 class="sec"><span class="secnum">17.</span> Geliştirme Ortamı, Repo Yapısı ve Çalışma Düzeni</h2>
+
+  <h3>17.1 Depo yapısı</h3>
+<pre>Pick-to-Light/
+├─ docs/                  <span class="c">// bu doküman, ER diyagramı, sunumlar, kurulum notları</span>
+├─ src/
+│  ├─ PickToLight.Domain/
+│  ├─ PickToLight.Application/
+│  ├─ PickToLight.Infrastructure/
+│  └─ PickToLight.Api/
+├─ web/                   <span class="c">// React + Vite arayüz</span>
+├─ firmware/
+│  └─ kutu-esp32/         <span class="c">// PlatformIO projesi (elektrik ekibi)</span>
+├─ tools/
+│  └─ KutuSimulatoru/     <span class="c">// donanımsız test için sanal kutu</span>
+├─ tests/
+│  ├─ Domain.UnitTests/
+│  ├─ Application.UnitTests/
+│  └─ Api.IntegrationTests/
+├─ docker-compose.yml     <span class="c">// postgres + mosquitto + api + web</span>
+└─ README.md</pre>
+
+  <h3>17.2 Yerel ortam</h3>
+<pre><span class="c"># Tüm altyapı tek komutla</span>
+docker compose up -d        <span class="c"># postgres:17 · eclipse-mosquitto:2 · api · web</span>
+dotnet ef database update   <span class="c"># şema + seed verisi</span>
+dotnet run --project src/PickToLight.Api
+cd web &amp;&amp; npm run dev        <span class="c"># http://localhost:5173</span>
+dotnet run --project tools/KutuSimulatoru -- --kutu 1,2,3,4</pre>
+
+  <h3>17.3 Çalışma düzeni</h3>
+  <table class="t-sm">
+    <tr><th style="width:26%">Konu</th><th>Kural</th></tr>
+    <tr><td>Dal (branch) stratejisi</td><td><code>main</code> daima çalışır durumda; özellik dalları <code>feature/stok-dusme</code>, <code>feature/mqtt-servis</code> biçiminde</td></tr>
+    <tr><td>Commit mesajı</td><td>Türkçe veya İngilizce, tek biçim: <code>feat: atomik stok düşme eklendi</code></td></tr>
+    <tr><td>Kod incelemesi</td><td>Her PR en az bir ekip arkadaşı tarafından okunur; iş mantığı değişen PR'larda test zorunlu</td></tr>
+    <tr><td>Tanımlar</td><td>Veritabanı ve API alan adları Türkçe (ER ile uyumlu), kod içi teknik terimler İngilizce karışımı kabul edilir — ER diyagramındaki isimlendirme esastır</td></tr>
+    <tr><td>Dokümantasyon</td><td>MQTT sözleşmesi ve API değişiklikleri <code>docs/</code> altında aynı PR'da güncellenir</td></tr>
+    <tr><td>Haftalık ritim</td><td>Pazartesi plan, Cuma demo+retrospektif (15 dk); ilerleme bu dokümanın 15.1 tablosuna işlenir</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2 class="sec"><span class="secnum">18.</span> Demo Senaryosu ve Başarı Ölçütleri</h2>
+
+  <h3>18.1 8. hafta demo akışı (≈ 6 dakika)</h3>
+  <ol>
+    <li><b>Kurulum tanıtımı (45 sn)</b> — 4 kutu, her birinin LED'i ve butonu, ekranda canlı pano; kutuların ONLINE olduğu gösterilir.</li>
+    <li><b>Yeşil senaryo (90 sn)</b> — <code>SIP-001</code> siparişi girilir ve başlatılır; iki kutu yeşil yanar. Ürünler alınır, butonlara basılır; LED'ler söner, stok ekranda anında azalır, hareket defteri gösterilir.</li>
+    <li><b>Sarı senaryo (60 sn)</b> — stoğu kritik seviyeye yakın üründen sipariş verilir; sarı yanar, uyarı ve otomatik açılan tedarik talebi gösterilir.</li>
+    <li><b>Kırmızı senaryo (60 sn)</b> — stoktan fazla miktar istenir; <b>LED yanmaz</b>, ekranda kırmızı alarm belirir, siparişin kilitlendiği ve stoğun değişmediği gösterilir.</li>
+    <li><b>Dayanıklılık gösterimi (60 sn)</b> — bir kutunun fişi çekilir, panoda OFFLINE'a düştüğü ve alarmın oluştuğu gösterilir; fiş takılınca otomatik geri döndüğü izlenir.</li>
+    <li><b>Eşzamanlılık (45 sn)</b> — aynı kutudan iki sipariş aynı anda başlatılır; stoğun negatife düşmediği, ikinci siparişin uyarı aldığı gösterilir.</li>
+    <li><b>Kapanış (30 sn)</b> — mimari şeması, 8 haftalık yol ve ekip katkıları.</li>
+  </ol>
+
+  <h3>18.2 Başarı ölçütleri</h3>
+  <table class="t-sm">
+    <tr><th style="width:44%">Ölçüt</th><th style="width:20%">Hedef</th><th>Ölçüm yöntemi</th></tr>
+    <tr><td>Sipariş başlatmadan LED yanmasına süre</td><td>&lt; 1 sn</td><td>Log zaman damgaları (API isteği → cihaz olayı)</td></tr>
+    <tr><td>Eşzamanlı istekte stok tutarsızlığı</td><td>0 vaka</td><td>100 paralel istek testi + DB doğrulaması</td></tr>
+    <tr><td>Teyit edilen alımların loglanma oranı</td><td>%100</td><td><code>stok_hareketi</code> ile <code>siparis_kalemi</code> karşılaştırması</td></tr>
+    <tr><td>Geçen UAT senaryosu</td><td>10/10</td><td>Bölüm 14.3 kontrol listesi</td></tr>
+    <tr><td>Eşzamanlı çalışan kutu</td><td>≥ 4</td><td>Demo düzeneği</td></tr>
+    <tr><td>Kutu kopma sonrası tespit süresi</td><td>&lt; 30 sn</td><td>LWT + keep-alive testi</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2 class="sec"><span class="secnum">19.</span> Sözlük</h2>
+  <table class="t-sm">
+    <tr><th style="width:24%">Terim</th><th>Anlamı</th></tr>
+    <tr><td><b>Pick-to-Light</b></td><td>Toplanacak ürünün bulunduğu rafı/kutuyu ışıkla gösteren endüstriyel toplama sistemi</td></tr>
+    <tr><td><b>s / q / b</b></td><td>s = kutudaki mevcut stok · q = sipariş kalemi miktarı · b = ürünün güvenlik stoğu</td></tr>
+    <tr><td><b>Güvenlik stoğu (buffer)</b></td><td>Ürün bazında belirlenen asgari tampon; sarı ışık eşiğini oluşturur</td></tr>
+    <tr><td><b>Atomik işlem</b></td><td>Ya tamamı uygulanan ya da hiç uygulanmayan, araya başka işlem giremeyen veritabanı işlemi</td></tr>
+    <tr><td><b>Yarış koşulu (race condition)</b></td><td>İki işlemin aynı veriyi eşzamanlı okuyup yazmasından doğan tutarsızlık</td></tr>
+    <tr><td><b>Rezervasyon</b></td><td>Sipariş kabulünde stoğun o siparişe ayrılması (bu projede doğrudan düşülerek yapılır)</td></tr>
+    <tr><td><b>İdempotenlik</b></td><td>Aynı isteğin birden çok kez işlenmesinin tek kez işlenmişle aynı sonucu vermesi</td></tr>
+    <tr><td><b>MQTT</b></td><td>Hafif yayınla/abone ol (publish/subscribe) mesajlaşma protokolü; IoT cihazlarının standardı</td></tr>
+    <tr><td><b>QoS 1</b></td><td>"En az bir kez teslim" garantisi; mesaj kaybolmaz ama tekrarlanabilir</td></tr>
+    <tr><td><b>LWT (Last Will &amp; Testament)</b></td><td>Cihaz beklenmedik şekilde koptuğunda broker'ın onun adına yayınladığı mesaj</td></tr>
+    <tr><td><b>Retained mesaj</b></td><td>Broker'da saklanan son durum mesajı; yeni abone bağlanır bağlanmaz alır</td></tr>
+    <tr><td><b>SignalR</b></td><td>.NET'in gerçek zamanlı sunucu→tarayıcı iletişim kütüphanesi (WebSocket)</td></tr>
+    <tr><td><b>HIL (Hardware-in-the-loop)</b></td><td>Gerçek donanımın döngüye dahil edildiği test yöntemi</td></tr>
+    <tr><td><b>UAT</b></td><td>Kullanıcı kabul testi — sistemin işi gerçekten yapıp yapmadığının son kontrolü</td></tr>
+  </table>
+
+  <div class="box" style="margin-top:8mm">
+    <b class="t">Sonraki adım</b>
+    Bu doküman onaylandıktan sonra 2. hafta işleri başlar: (1) solution iskeleti ve EF Core şeması, (2) Docker Compose ortamı, (3) MQTT sözleşmesinin dondurulması, (4) ilk prototip kutunun montajı. Kodlama aşamasına geçmeden önce Bölüm 5.3'teki ER eklemeleri ve Bölüm 6.3'teki rezervasyon modeli kararının ekipçe onaylanması önerilir.
+  </div>
+</section>
+
+</body>
+</html>
