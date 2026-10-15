@@ -1,38 +1,188 @@
 # Akıllı Depo — Pick-to-Light ve Anlık Stok Yönetim Sistemi
 
-Sipariş numarasına göre doğru kutuyu LED ile gösteren, operatör teyidiyle stoğu otomatik
-düşen ve yetersiz stokta alarm veren depo toplama sistemi.
+Sipariş numarasına göre doğru kutuyu **LED ile gösteren**, operatör teyidiyle **stoğu otomatik düşen**,
+yetersiz stokta **alarm veren** depo toplama sistemi.
 
-**Durum:** Planlama aşaması — kodlama henüz başlamadı.
+> Elektrik Mühendisliği × Yazılım Mühendisliği ortak projesi · 8 haftalık prototip
 
-## Dokümanlar
-
-| Doküman | Açıklama |
-|---|---|
-| [`docs/plan/Pick-to-Light-Proje-Plani.pdf`](docs/plan/Pick-to-Light-Proje-Plani.pdf) | **Teknik planlama dokümanı v1.0** (34 sayfa): gereksinimler, mimari, veri modeli, iş mantığı, MQTT sözleşmesi, donanım, test planı, 8 haftalık yol haritası, risk analizi |
-| [`docs/plan/proje-plani.html`](docs/plan/proje-plani.html) | Planın kaynak dosyası (PDF bundan üretilir) |
-| [`docs/Hafta1-Proje-Sunumu.pdf`](docs/Hafta1-Proje-Sunumu.pdf) | Hafta 1 tanıtım sunumu |
-| [`docs/Hafta2-ER-Diyagrami.pdf`](docs/Hafta2-ER-Diyagrami.pdf) | Veritabanı ER diyagramı |
-
-## Planlanan teknoloji yığını
-
-- **Backend:** C# 13 · .NET 9 · ASP.NET Core Web API · EF Core 9 · SignalR · MQTTnet
-- **Frontend:** React 19 · TypeScript · Vite · TanStack Query · Tailwind CSS
-- **Veritabanı:** PostgreSQL 17
-- **Haberleşme:** MQTT (Eclipse Mosquitto)
-- **Donanım:** ESP32 · RGB/3'lü LED · onay sensörü (buton / IR / HX711)
-
-## Işık mantığı
-
-`s` = mevcut stok · `q` = sipariş miktarı · `b` = güvenlik stoğu
+```
+Sipariş no  →  kutu eşleştirme  →  atomik stok rezervasyonu  →  LED yanar
+            →  operatör ürünü alır  →  buton/sensör teyidi  →  stok düşer, LED söner
+```
 
 | Renk | Koşul | Davranış |
 |---|---|---|
 | 🟢 Yeşil | `s ≥ q + b` | Ürün verilir, stok otomatik düşer |
 | 🟡 Sarı | `q ≤ s < q + b` | Sipariş karşılanır, uyarı + tedarik talebi |
-| 🔴 Kırmızı | `s < q` | LED yanmaz, alarm, sipariş kilitlenir |
+| 🔴 Kırmızı | `s < q` | **LED yanmaz**, alarm, sipariş kilitlenir |
 
-## PDF'i yeniden üretmek
+`s` = kutudaki mevcut stok · `q` = sipariş miktarı · `b` = ürünün güvenlik stoğu
+
+---
+
+## Teknoloji yığını
+
+| Katman | Teknoloji |
+|---|---|
+| Arayüz | Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS · SignalR istemcisi |
+| Backend | C# · ASP.NET Core (net8.0) · EF Core 8 · SignalR · MQTTnet · FluentValidation · Serilog |
+| Veritabanı | PostgreSQL 17 (snake_case şema, atomik stok işlemleri) |
+| Haberleşme | MQTT (Eclipse Mosquitto) · QoS 1 · LWT · retained durum |
+| Donanım | ESP32 · RGB/3'lü LED · onay sensörü (buton / IR / HX711) |
+
+> Hedef çatı `net8.0` (LTS). .NET 9 ile derlemek için `TargetFramework` değerlerini `net9.0` yapmanız yeterli.
+
+---
+
+## Hızlı başlangıç
+
+### 1. Altyapı (PostgreSQL + MQTT broker)
+
+```bash
+docker compose up -d postgres mosquitto
+```
+
+Docker yoksa yerel kurulum da olur: PostgreSQL 16+ ve Mosquitto 2.
+Veritabanı: `picktolight`, kullanıcı `ptl`, parola `ptl_parola` (bkz. `appsettings.json`).
+
+### 2. Backend
+
+```bash
+dotnet run --project src/PickToLight.Api
+# http://localhost:5080  ·  Swagger: http://localhost:5080/swagger
+```
+
+Şema, uygulama açılışında otomatik migrate edilir ve demo verisi yüklenir
+(5 ürün, 5 kutu, 2 kullanıcı).
+
+### 3. Arayüz
+
+```bash
+cd web
+npm install
+npm run dev          # http://localhost:3000
+```
+
+### 4. Kutu simülatörü (donanım olmadan test)
+
+```bash
+dotnet run --project tools/KutuSimulatoru -- --kutu 1,2,3,4,5
+# Seçenekler: --gecikme 2000  --otomatik-teyit false  --kalp-atisi 20  --yontem AGIRLIK
+```
+
+Simülatör, gerçek ESP32 gibi davranır: komutu alır, rengi ekrana basar,
+teyit mesajı döner ve periyodik kalp atışı yayınlar.
+
+### Demo hesapları
+
+| Kullanıcı | Parola | Rol |
+|---|---|---|
+| `operator` | `operator123` | Sipariş toplama, teyit, alarm okuma |
+| `admin` | `admin123` | + ürün/kutu yönetimi, mal kabul, sayım, LED test |
+
+---
+
+## Proje yapısı
+
+```
+├─ src/
+│  ├─ PickToLight.Domain/          # Varlıklar, enum'lar, IsikKarari, durum makineleri
+│  ├─ PickToLight.Application/     # Servisler, DTO'lar, doğrulayıcılar, sözleşmeler
+│  ├─ PickToLight.Infrastructure/  # EF Core, atomik StokDeposu, MQTT, SignalR, JWT
+│  └─ PickToLight.Api/             # REST uçları, hata sözleşmesi, Swagger, hub
+├─ web/                            # Next.js arayüz
+├─ tools/KutuSimulatoru/           # Sanal kutu (donanımsız test)
+├─ tests/                          # 58 test (domain + servis)
+├─ docs/plan/                      # Teknik planlama dokümanı (PDF + kaynak)
+├─ docs/sunum/                     # Sunum (PDF + kaynak)
+└─ docker-compose.yml
+```
+
+---
+
+## Çekirdek karar: atomik stok düşme
+
+Stok kontrolü ve düşme **tek bir koşullu UPDATE** ile yapılır; böylece iki operatör aynı
+kutudan eşzamanlı toplama yaparken "ışık yeşil ama ürün yok" durumu (yarış koşulu) oluşamaz:
+
+```sql
+UPDATE stok
+   SET adet = adet - @miktar, versiyon = versiyon + 1, guncelleme = now()
+ WHERE kutu_id = @kutuId AND adet >= @miktar
+RETURNING adet + @miktar AS onceki, adet AS sonraki;
+-- etkilenen satır yoksa → stok yetersiz, hiçbir değişiklik yapılmadı
+```
+
+Üç savunma hattı: koşullu `UPDATE` · `CHECK (adet >= 0)` kısıtı · `versiyon` eşzamanlılık belirteci.
+Hareket kaydı (`stok_hareketi`) aynı transaction'da yazılır — "düştü ama loglanmadı" durumu oluşamaz.
+
+**Rezervasyon modeli:** stok, fiziksel teyitte değil **sipariş başlatılırken** düşülür.
+Yanan yeşil ışık "bu ürün sana ayrıldı" garantisidir. İptal ve teyit zaman aşımında stok iade edilir.
+
+---
+
+## MQTT sözleşmesi
+
+| Topic | Yön | QoS |
+|---|---|---|
+| `depo/kutu/{id}/komut` | Sunucu → Cihaz | 1 |
+| `depo/kutu/{id}/olay` | Cihaz → Sunucu | 1 |
+| `depo/kutu/{id}/durum` | Cihaz → Sunucu | 1 · retained (+ LWT) |
+| `depo/kutu/{id}/telemetri` | Cihaz → Sunucu | 0 |
+
+```jsonc
+// LED yak (sunucu → cihaz)
+{ "mesajId": "uuid", "tip": "LED_YAK", "renk": "YESIL", "miktar": 3, "kalemId": 101, "ttlSn": 300 }
+
+// Teyit (cihaz → sunucu) — aynı mesajId geri döner (idempotenlik)
+{ "mesajId": "uuid", "tip": "TEYIT", "yontem": "BUTON", "cihazMac": "A0:B1:C2:D3:E4:01" }
+```
+
+---
+
+## Testler
+
+```bash
+dotnet test                     # 58 test: ışık kararı, durum makineleri, sipariş akışı
+```
+
+Kapsanan senaryolar: yeşil/sarı/kırmızı kararları ve sınır değerleri, atomik rezervasyon,
+çift teyidin yok sayılması (idempotenlik), teyit zaman aşımı ve iade, sipariş iptali,
+çevrimdışı kutu, ağırlık uyuşmazlığı, mükerrer sipariş numarası, eşzamanlı rezervasyon.
+
+Gerçek PostgreSQL üzerinde doğrulanan eşzamanlılık senaryosu: 20 paralel sipariş başlatma,
+stok 7 → 1, fazla verme yok, negatif stok yok, hatasız yanıt.
+
+---
+
+## API özeti
+
+| Metot | Yol | Açıklama |
+|---|---|---|
+| POST | `/api/auth/giris` | JWT alır |
+| POST | `/api/siparisler` | Sipariş oluşturur |
+| POST | `/api/siparisler/{id}/baslat` | **Ana akış:** eşleştir → stok düş → LED yak |
+| POST | `/api/siparisler/{id}/iptal` | İptal eder, rezerve stoğu iade eder |
+| POST | `/api/kalemler/{id}/teyit` | Manuel teyit (sensör yedeği) |
+| GET | `/api/stok` · `/api/kutular` | Kutu ve stok durumu + renk önizlemesi |
+| POST | `/api/stok/{kutuId}/giris` · `/sayim` | Mal kabul / sayım (ADMIN) |
+| GET | `/api/alarmlar` · `/api/tedarik-talepleri` | Alarm ve ikmal takibi |
+| GET | `/api/hareketler` | Stok hareket defteri |
+| WS | `/hubs/depo` | Canlı olaylar (SignalR) |
+
+Hatalar RFC 7807 **Problem Details** biçiminde döner.
+
+---
+
+## Dokümanlar
+
+| Doküman | Açıklama |
+|---|---|
+| [`docs/plan/Pick-to-Light-Proje-Plani.pdf`](docs/plan/Pick-to-Light-Proje-Plani.pdf) | 34 sayfalık teknik planlama dokümanı |
+| [`docs/sunum/Pick-to-Light-Sunum-v2.pdf`](docs/sunum/Pick-to-Light-Sunum-v2.pdf) | 14 slaytlık güncel sunum |
+| [`docs/Hafta2-ER-Diyagrami.pdf`](docs/Hafta2-ER-Diyagrami.pdf) | Veritabanı ER diyagramı |
+
+PDF'leri yeniden üretmek:
 
 ```bash
 node tools/render-pdf.js docs/plan/proje-plani.html docs/plan/Pick-to-Light-Proje-Plani.pdf

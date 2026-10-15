@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: dark; }
+
+body {
+  @apply bg-zemin text-slate-100 antialiased;
+}
+
+@layer components {
+  .kart { @apply rounded-xl border border-zemin-cizgi bg-zemin-kart p-4; }
+  .baslik { @apply text-xl font-bold tracking-tight; }
+  .etiket { @apply text-xs uppercase tracking-widest text-slate-400; }
+  .dugme {
+    @apply rounded-lg bg-marka px-4 py-2 text-sm font-semibold text-white
+           transition hover:bg-marka-acik disabled:cursor-not-allowed disabled:opacity-40;
+  }
+  .dugme-ikincil {
+    @apply rounded-lg border border-zemin-cizgi px-4 py-2 text-sm font-semibold
+           text-slate-200 transition hover:border-marka-acik hover:text-marka-acik;
+  }
+  .girdi {
+    @apply w-full rounded-lg border border-zemin-cizgi bg-zemin px-3 py-2 text-sm
+           text-slate-100 outline-none placeholder:text-slate-500 focus:border-marka-acik;
+  }
+  .tablo { @apply w-full text-left text-sm; }
+  .tablo th { @apply border-b border-zemin-cizgi px-3 py-2 text-xs uppercase tracking-wider text-slate-400; }
+  .tablo td { @apply border-b border-zemin-cizgi/60 px-3 py-2; }
+}
+
+@keyframes nabiz-kirmizi {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.55); }
+  50% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+}
+.nabiz-kirmizi { animation: nabiz-kirmizi 1.4s infinite; }
+
+@keyframes nabiz-sari {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.5); }
+  50% { box-shadow: 0 0 0 9px rgba(245, 158, 11, 0); }
+}
+.nabiz-sari { animation: nabiz-sari 2s infinite; }
