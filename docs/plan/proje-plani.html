@@ -560,7 +560,7 @@ tests/  Domain.UnitTests · Application.UnitTests · Api.IntegrationTests
   <h3>7.2 Sipariş durum makinesi</h3>
   <table class="t-sm">
     <tr><th style="width:20%">Durum</th><th style="width:34%">Anlamı</th><th>İzin verilen geçişler</th></tr>
-    <tr><td><code>BEKLIYOR</code></td><td>Girildi, henüz başlatılmadı</td><td>→ HAZIRLANIYOR, → IPTAL</td></tr>
+    <tr><td><code>BEKLIYOR</code></td><td>Girildi, henüz başlatılmadı</td><td>→ HAZIRLANIYOR, → KILITLI (başlatıldı ama hiçbir kalem karşılanamadı), → IPTAL</td></tr>
     <tr><td><code>HAZIRLANIYOR</code></td><td>En az bir kalemin ışığı yandı</td><td>→ TAMAMLANDI, → KISMI_TAMAMLANDI, → KILITLI, → IPTAL</td></tr>
     <tr><td><code>KILITLI</code></td><td>Bir kalem karşılanamadı, müdahale bekliyor</td><td>→ HAZIRLANIYOR (stok ikmal edildi, yeniden dene), → KISMI_TAMAMLANDI, → IPTAL</td></tr>
     <tr><td><code>KISMI_TAMAMLANDI</code></td><td>Bazı kalemler alındı, bazıları yetersiz</td><td>→ TAMAMLANDI (eksikler sonradan tamamlandı), → IPTAL</td></tr>

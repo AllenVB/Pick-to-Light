@@ -1,0 +1,65 @@
+# Pick-to-Light yerel geliştirme ortamı:  docker compose up -d
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: ptl-postgres
+    environment:
+      POSTGRES_DB: picktolight
+      POSTGRES_USER: ptl
+      POSTGRES_PASSWORD: ptl_parola
+      TZ: Europe/Istanbul
+    ports:
+      - "5432:5432"
+    volumes:
+      - ptl-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ptl -d picktolight"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: ptl-mosquitto
+    ports:
+      - "1883:1883"   # MQTT
+      - "9001:9001"   # WebSocket (tarayıcıdan izlemek isterseniz)
+    volumes:
+      - ./docker/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ptl-mqtt-data:/mosquitto/data
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    container_name: ptl-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:5080
+      ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=picktolight;Username=ptl;Password=ptl_parola"
+      Mqtt__Sunucu: mosquitto
+      Cors__IzinliKaynaklar__0: "http://localhost:3000"
+    ports:
+      - "5080:5080"
+    profiles: ["tam"]   # varsayılanda API'yi yerelde çalıştırırız: docker compose --profile tam up
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: ptl-web
+    depends_on: [api]
+    environment:
+      NEXT_PUBLIC_API_URL: "http://localhost:5080"
+    ports:
+      - "3000:3000"
+    profiles: ["tam"]
+
+volumes:
+  ptl-pgdata:
+  ptl-mqtt-data:
