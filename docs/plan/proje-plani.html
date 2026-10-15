@@ -77,7 +77,7 @@
   <div class="stack-chips">
     <span class="chip">C# · .NET 9</span>
     <span class="chip">ASP.NET Core Web API</span>
-    <span class="chip">React 19 + TypeScript</span>
+    <span class="chip">Next.js 15 + React 19</span>
     <span class="chip">PostgreSQL 17</span>
     <span class="chip">MQTT</span>
     <span class="chip">ESP32</span>
@@ -104,7 +104,7 @@
     <div><span class="n">8</span><span class="t">Backend Tasarımı (C# / .NET) ve REST API Sözleşmesi</span></div>
     <div><span class="n">9</span><span class="t">MQTT Haberleşme Sözleşmesi</span></div>
     <div><span class="n">10</span><span class="t">Donanım Planı ve ESP32 Firmware Tasarımı</span></div>
-    <div><span class="n">11</span><span class="t">Frontend Tasarımı (React) ve Ekran Planı</span></div>
+    <div><span class="n">11</span><span class="t">Frontend Tasarımı (Next.js) ve Ekran Planı</span></div>
     <div><span class="n">12</span><span class="t">Güvenlik, Yetkilendirme ve İzlenebilirlik</span></div>
     <div><span class="n">13</span><span class="t">Hata Senaryoları ve Kurtarma Stratejisi</span></div>
     <div><span class="n">14</span><span class="t">Test Planı ve Kabul Kriterleri</span></div>
@@ -117,7 +117,7 @@
 
   <div class="box warn" style="margin-top:8mm">
     <b class="t">Teknoloji yığını hakkında önemli not</b>
-    Hafta-1 sunumunda backend <b>Spring Boot</b>, arayüz <b>Next.js</b> olarak gösterilmişti. Bu planlama dokümanı, güncel talebiniz doğrultusunda <b>C# / .NET 9 + React + PostgreSQL</b> yığını üzerine kurulmuştur. Veri modeli (ER diyagramı), ışık mantığı, MQTT akışı ve donanım tarafı değişmeden korunmuştur; yalnızca uygulama katmanının teknolojisi değişmiştir. Sunumun 7., 9. ve 10. slaytlarındaki teknoloji etiketlerinin güncellenmesi gerekir.
+    Hafta-1 sunumunda backend <b>Spring Boot</b> olarak gösterilmişti. Bu planlama dokümanı, güncel talebiniz doğrultusunda <b>C# / .NET 9 + Next.js + PostgreSQL</b> yığını üzerine kurulmuştur: <b>backend Java/Spring Boot yerine C# /.NET</b> ile yazılacak, <b>arayüz Next.js olarak korunmuştur</b>. Veri modeli (ER diyagramı), ışık mantığı, MQTT akışı ve donanım tarafı değişmemiştir. Sunumun 7. ve 9. slaytlarındaki backend etiketi güncellenmiştir (bkz. güncel sunum PDF'i).
   </div>
 </section>
 
@@ -263,7 +263,7 @@
   <h3>4.1 Katman şeması</h3>
 <pre>
 ┌─ KULLANICI KATMANI ──────────────────────────────────────────────┐
-│  React 19 + TypeScript (Vite)        │  Operatör                 │
+│  Next.js 15 (App Router) + TS        │  Operatör                 │
 │  · Sipariş girişi · canlı pano       │  yanan LED'i takip eder   │
 │  · Alarm ekranı · stok yönetimi      │                           │
 └───────────┬──────────────────────────────────────────────────────┘
@@ -297,7 +297,7 @@
     <tr><td>MQTT istemcisi</td><td>MQTTnet 5 (<code>IHostedService</code> olarak)</td><td>.NET'in standart MQTT kütüphanesi; QoS 1, LWT ve yeniden bağlanma desteği</td></tr>
     <tr><td>Veritabanı</td><td>PostgreSQL 17</td><td>ACID, <code>UPDATE ... RETURNING</code>, kısıt (CHECK) desteği, JSONB ile ham MQTT payload saklama</td></tr>
     <tr><td>Doğrulama / log</td><td>FluentValidation · Serilog</td><td>İstek doğrulama ve yapılandırılmış log (dosya + konsol)</td></tr>
-    <tr><td>Frontend</td><td>React 19 + TypeScript + Vite</td><td>Hızlı geliştirme, bileşen tabanlı canlı pano; tip güvenliği API DTO'larıyla paylaşılır</td></tr>
+    <tr><td>Frontend</td><td>Next.js 15 (App Router) + React 19 + TypeScript</td><td>Dosya tabanlı yönlendirme, sunucu/istemci bileşen ayrımı, tek komutla üretim derlemesi; tip güvenliği API DTO'larıyla paylaşılır</td></tr>
     <tr><td>Veri/stat yönetimi</td><td>TanStack Query + @microsoft/signalr</td><td>Sunucu durumu önbellekleme + canlı olayla invalidate etme kalıbı</td></tr>
     <tr><td>Stil</td><td>Tailwind CSS</td><td>Kutu ızgarası ve renk durumlarını hızlı kurmak için</td></tr>
     <tr><td>Broker</td><td>Eclipse Mosquitto 2</td><td>Hafif, ESP32 ile sorunsuz, Docker imajı hazır</td></tr>
@@ -798,7 +798,7 @@ tests/  Domain.UnitTests · Application.UnitTests · Api.IntegrationTests
 </section>
 
 <section>
-  <h2 class="sec"><span class="secnum">11.</span> Frontend Tasarımı ve Ekran Planı</h2>
+  <h2 class="sec"><span class="secnum">11.</span> Frontend Tasarımı (Next.js) ve Ekran Planı</h2>
   <p class="lead">Operatör ekrana değil ışığa bakar; arayüz denetim ve istisna yönetimi içindir.</p>
 
   <h3>11.1 Ekranlar</h3>
@@ -835,13 +835,17 @@ useSignalR(<span class="s">'StokGuncellendi'</span>, (olay) =&gt; {
 useSignalR(<span class="s">'AlarmOlustu'</span>, (a) =&gt; toast.hata(a.mesaj));</pre>
 
   <h3>11.4 Klasör yapısı</h3>
-<pre>web/src/
-├─ api/        (axios istemci, uç nokta fonksiyonları, tip tanımları)
-├─ hooks/      (useSignalR, useSiparis, useKutular)
-├─ components/ (KutuKarti, RenkRozeti, KalemSatiri, AlarmToast, Yukleniyor)
-├─ pages/      (Pano, SiparisYeni, SiparisDetay, Stok, Kutular, Alarmlar, Giris)
-├─ store/      (oturum durumu — Zustand)
-└─ types/      (backend DTO'larıyla birebir eşleşen arayüzler)</pre>
+<pre>web/
+├─ src/app/                 <span class="c">// App Router — her klasör bir rota</span>
+│   ├─ layout.tsx · page.tsx            <span class="c">// kök düzen + canlı pano</span>
+│   ├─ siparis/yeni/page.tsx · siparis/[no]/page.tsx
+│   ├─ stok/page.tsx · kutular/page.tsx · alarmlar/page.tsx
+│   └─ giris/page.tsx
+├─ src/lib/      (apiClient.ts, signalr.ts, auth.ts)
+├─ src/hooks/    (useSignalR, useSiparis, useKutular)
+├─ src/components/ (KutuKarti, RenkRozeti, KalemSatiri, AlarmToast)
+├─ src/types/    (backend DTO'larıyla birebir eşleşen arayüzler)
+└─ next.config.ts · tailwind.config.ts</pre>
 </section>
 
 <section>
@@ -977,7 +981,7 @@ useSignalR(<span class="s">'AlarmOlustu'</span>, (a) =&gt; toast.hata(a.mesaj));
         <li>Backend API ve iş mantığı (.NET 9)</li>
         <li>Veritabanı şeması ve stok modeli (PostgreSQL)</li>
         <li>Sipariş &amp; otomatik stok düşme akışı</li>
-        <li>Web arayüzü ve canlı alarm ekranı (React)</li>
+        <li>Web arayüzü ve canlı alarm ekranı (Next.js)</li>
         <li>MQTT haberleşme ve bildirim servisi</li>
         <li>Test altyapısı ve kutu simülatörü</li>
       </ul>
@@ -1015,7 +1019,7 @@ useSignalR(<span class="s">'AlarmOlustu'</span>, (a) =&gt; toast.hata(a.mesaj));
 │  ├─ PickToLight.Application/
 │  ├─ PickToLight.Infrastructure/
 │  └─ PickToLight.Api/
-├─ web/                   <span class="c">// React + Vite arayüz</span>
+├─ web/                   <span class="c">// Next.js (App Router) arayüz</span>
 ├─ firmware/
 │  └─ kutu-esp32/         <span class="c">// PlatformIO projesi (elektrik ekibi)</span>
 ├─ tools/
@@ -1032,7 +1036,7 @@ useSignalR(<span class="s">'AlarmOlustu'</span>, (a) =&gt; toast.hata(a.mesaj));
 docker compose up -d        <span class="c"># postgres:17 · eclipse-mosquitto:2 · api · web</span>
 dotnet ef database update   <span class="c"># şema + seed verisi</span>
 dotnet run --project src/PickToLight.Api
-cd web &amp;&amp; npm run dev        <span class="c"># http://localhost:5173</span>
+cd web &amp;&amp; npm run dev        <span class="c"># http://localhost:3000</span>
 dotnet run --project tools/KutuSimulatoru -- --kutu 1,2,3,4</pre>
 
   <h3>17.3 Çalışma düzeni</h3>

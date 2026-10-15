@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>Akıllı Depo Pick-to-Light — Güncel Sunum</title>
+<style>
+  @page { size: 338.67mm 190.5mm; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { font-family: "Inter", "DejaVu Sans", sans-serif; }
+
+  .slide { width: 338.67mm; height: 190.5mm; padding: 15mm 18mm; position: relative; page-break-after: always; overflow: hidden; display: flex; flex-direction: column; }
+  .slide:last-child { page-break-after: auto; }
+  .dark  { background: #0d1520; color: #eef3f8; }
+  .light { background: #ffffff; color: #1b2430; }
+
+  .badge { display: inline-block; align-self: flex-start; border-radius: 999px; padding: 4px 14px; font-size: 9pt; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #fff; background: #0f766e; }
+  .badge.amber { background: #d97706; } .badge.green { background: #15803d; } .badge.red { background: #dc2626; } .badge.slate { background: #334155; }
+  h1 { font-size: 27pt; font-weight: 800; letter-spacing: -.02em; margin: 6mm 0 2mm; line-height: 1.12; }
+  .sub { font-size: 12pt; line-height: 1.45; }
+  .dark .sub { color: #9fb2c4; } .light .sub { color: #5b6b7c; }
+  .lights { position: absolute; top: 15mm; right: 18mm; display: flex; gap: 7px; }
+  .lights i { width: 13px; height: 13px; border-radius: 50%; display: block; }
+  .pg { position: absolute; bottom: 9mm; right: 18mm; font-size: 8.5pt; letter-spacing: .1em; }
+  .dark .pg { color: #4d6b84; } .light .pg { color: #9aa8b5; }
+  .body { flex: 1; display: flex; gap: 7mm; margin-top: 7mm; align-items: center; }
+  .body.fill { align-items: stretch; }
+  .body.top { align-items: flex-start; }
+  .col { flex: 1; display: flex; flex-direction: column; gap: 5mm; }
+
+  .card { border-radius: 8px; padding: 6mm 6mm; }
+  .light .card { background: #f5f8fa; border: 1px solid #e3eaef; }
+  .dark  .card { background: #16212e; border: 1px solid #27384a; }
+  .card h3 { font-size: 13.5pt; font-weight: 700; margin-bottom: 2.5mm; }
+  .card p { font-size: 10.5pt; line-height: 1.5; }
+  .light .card p { color: #51616f; } .dark .card p { color: #9fb2c4; }
+  .big { font-size: 24pt; font-weight: 800; color: #0f766e; line-height: 1.1; }
+  .hr { height: 1px; background: #dde5eb; margin: 4mm 0 3mm; }
+  .dark .hr { background: #27384a; }
+  .tiny { font-size: 9pt; } .light .tiny { color: #7b8a98; } .dark .tiny { color: #6b8299; }
+
+  .step { display: flex; align-items: center; gap: 4mm; border-radius: 7px; padding: 3.6mm 5mm; }
+  .light .step { background: #f5f8fa; border: 1px solid #e3eaef; }
+  .dark .step { background: #16212e; border: 1px solid #27384a; }
+  .step .n { width: 9mm; height: 9mm; min-width: 9mm; border-radius: 50%; background: #0f766e; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 11pt; }
+  .dark .step .n { background: #14b8a6; color: #06231f; }
+  .step .tx b { font-size: 11pt; display: block; }
+  .step .tx span { font-size: 9.4pt; }
+  .light .step .tx span { color: #5b6b7c; } .dark .step .tx span { color: #9fb2c4; }
+
+  .lamp { width: 17mm; height: 17mm; border-radius: 50%; margin: 0 auto 3mm; }
+  .l-g { background: #22c55e; box-shadow: 0 0 0 5mm rgba(34,197,94,.17); }
+  .l-y { background: #f59e0b; box-shadow: 0 0 0 5mm rgba(245,158,11,.17); }
+  .l-r { background: #ef4444; box-shadow: 0 0 0 5mm rgba(239,68,68,.17); }
+  .formula { font-family: "DejaVu Sans Mono", monospace; font-size: 13pt; font-weight: 700; text-align: center; padding: 3.5mm; border-radius: 6px; background: #0d1520; color: #d7e3ee; margin: 3mm 0; }
+  .ccard { border-radius: 9px; padding: 6mm; text-align: center; flex: 1; }
+  .ccard.g { border: 2px solid #22c55e; } .ccard.y { border: 2px solid #f59e0b; } .ccard.r { border: 2px solid #ef4444; }
+  .light .ccard { background: #f7fafb; }
+  .ccard .t { font-size: 15pt; font-weight: 800; letter-spacing: .04em; }
+  .ccard .s { font-size: 10pt; font-weight: 600; margin-top: 1mm; }
+  .light .ccard .s { color: #5b6b7c; }
+  .ccard .d { font-size: 9.6pt; line-height: 1.45; margin-top: 3mm; }
+  .light .ccard .d { color: #51616f; }
+
+  pre { font-family: "DejaVu Sans Mono", monospace; font-size: 9.6pt; line-height: 1.55; background: #0d1520; color: #d7e3ee; border-radius: 7px; padding: 5mm 6mm; white-space: pre-wrap; }
+  .dark pre { background: #0a1119; border: 1px solid #27384a; }
+  pre .k { color: #7fd8ce; } pre .c { color: #6b8299; } pre .s { color: #f0b67f; } pre .r { color: #fda4a4; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 10pt; }
+  th { background: #0f766e; color: #fff; text-align: left; padding: 3mm 4mm; font-size: 9.4pt; font-weight: 600; }
+  td { padding: 2.8mm 4mm; border-bottom: 1px solid #e3eaef; }
+  .dark td { border-bottom: 1px solid #27384a; }
+  .light tr:nth-child(even) td { background: #f7fafb; }
+  .dark tr:nth-child(even) td { background: #16212e; }
+  .mono { font-family: "DejaVu Sans Mono", monospace; font-size: 9.4pt; }
+
+  ul.chk { list-style: none; }
+  ul.chk li { font-size: 10.6pt; line-height: 1.5; padding: 2mm 0 2mm 7mm; position: relative; }
+  ul.chk li:before { content: "●"; position: absolute; left: 1mm; color: #0f766e; font-size: 9pt; }
+  .dark ul.chk li:before { color: #2dd4bf; }
+  ul.chk.amber li:before { color: #d97706; }
+
+  .chips span { display: inline-block; border-radius: 999px; padding: 3px 12px; font-size: 9pt; font-weight: 600; margin: 0 4px 5px 0; }
+  .light .chips span { background: #e8f1f0; color: #0f766e; }
+  .dark .chips span { border: 1px solid #2b4455; color: #7fd8ce; }
+
+  .flowbox { border-radius: 8px; padding: 4.5mm 5mm; text-align: center; font-size: 10.4pt; font-weight: 600; }
+  .light .flowbox { background: #f5f8fa; border: 1px solid #e3eaef; }
+  .dark .flowbox { background: #16212e; border: 1px solid #27384a; }
+  .flowbox small { display: block; font-weight: 400; font-size: 9pt; margin-top: 1.5mm; }
+  .light .flowbox small { color: #5b6b7c; } .dark .flowbox small { color: #9fb2c4; }
+  .arrow { text-align: center; color: #0f766e; font-size: 14pt; line-height: 1; margin: 1.5mm 0; }
+  .dark .arrow { color: #2dd4bf; }
+  .tl { display: flex; gap: 3mm; margin-top: 6mm; }
+  .tl .it { flex: 1; border-radius: 8px; padding: 4.5mm; }
+  .light .tl .it { background: #f5f8fa; border: 1px solid #e3eaef; }
+  .dark .tl .it { background: #16212e; border: 1px solid #27384a; }
+  .tl .it.now { border: 2px solid #14b8a6; }
+  .tl .it b { display: block; font-size: 12pt; color: #0f766e; margin-bottom: 2mm; }
+  .dark .tl .it b { color: #2dd4bf; }
+  .tl .it p { font-size: 9.4pt; line-height: 1.45; }
+  .light .tl .it p { color: #51616f; } .dark .tl .it p { color: #9fb2c4; }
+</style>
+</head>
+<body>
+
+<!-- 1 KAPAK -->
+<div class="slide dark">
+  <div class="lights"><i style="background:#22c55e"></i><i style="background:#f59e0b"></i><i style="background:#ef4444"></i></div>
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;max-width:72%">
+    <div style="color:#2dd4bf;letter-spacing:.22em;font-size:9.5pt;font-weight:700;text-transform:uppercase">Planlama Güncellemesi · v2</div>
+    <h1>Akıllı Stok Yönetimi &amp;<br>Işıkla Toplama Sistemi</h1>
+    <div class="sub" style="margin-top:3mm">Sipariş numarasına göre LED'le yönlendiren, stoğu otomatik düşen envanter sistemi</div>
+    <div class="chips" style="margin-top:9mm">
+      <span>C# · .NET 9</span><span>ASP.NET Core Web API</span><span>Next.js 15</span><span>PostgreSQL 17</span><span>MQTT</span><span>ESP32</span><span>SignalR</span>
+    </div>
+    <div style="margin-top:9mm;font-size:10.5pt;color:#9fb2c4;border-top:1px solid #27384a;padding-top:5mm">
+      <b style="color:#eef3f8">Elektrik Mühendisliği</b> &nbsp;×&nbsp; <b style="color:#eef3f8">Yazılım Mühendisliği</b> &nbsp; ortak projesi
+    </div>
+  </div>
+  <div class="pg">01 / 14</div>
+</div>
+
+<!-- 2 PROBLEM -->
+<div class="slide light">
+  <div class="lights"><i style="background:#22c55e"></i><i style="background:#f59e0b"></i><i style="background:#ef4444"></i></div>
+  <div class="badge red">Problem &amp; Motivasyon</div>
+  <h1>Neden böyle bir sisteme ihtiyaç var?</h1>
+  <div class="sub">Klasik depolarda sipariş toplama elle yapılır. Bu üç temel soruna yol açar:</div>
+  <div class="body">
+    <div class="col"><div class="card" style="flex:1">
+      <h3>Zaman kaybı</h3>
+      <p>Operatör doğru rafı ve ürünü ararken vakit harcar; sipariş başına süre uzar.</p>
+      <div class="hr"></div><div class="big">%30+</div><div class="tiny">toplama süresi kaybı</div>
+    </div></div>
+    <div class="col"><div class="card" style="flex:1">
+      <h3>İnsan hatası</h3>
+      <p>Yanlış ürün, yanlış adet veya eksik stok fark edilmeden siparişe girer.</p>
+      <div class="hr"></div><div class="big">≈ %1–3</div><div class="tiny">hatalı toplama oranı</div>
+    </div></div>
+    <div class="col"><div class="card" style="flex:1">
+      <h3>Kör stok</h3>
+      <p>Stoğun ne zaman bittiği anlık görülmez; sipariş anında sürpriz eksik çıkar.</p>
+      <div class="hr"></div><div class="big">Anlık</div><div class="tiny">stok görünürlüğü yok</div>
+    </div></div>
+  </div>
+  <div class="pg">02 / 14</div>
+</div>
+
+<!-- 3 ÇÖZÜM -->
+<div class="slide light">
+  <div class="lights"><i style="background:#22c55e"></i><i style="background:#f59e0b"></i><i style="background:#ef4444"></i></div>
+  <div class="badge green">Çözüm</div>
+  <h1>Işık seni doğru kutuya götürsün</h1>
+  <div class="body fill">
+    <div class="col" style="flex:1.05">
+      <div class="sub" style="margin-bottom:2mm">Sipariş numarası sisteme düşer, sistem ürünü bir kutuyla eşleştirir ve kutunun LED'ini yakar. Operatör ekrana değil, yanan ışığa bakar; ürünü alır, sistem stoğu otomatik düşer.</div>
+      <div class="step"><div class="n">1</div><div class="tx"><b>Sipariş no girilir</b><span>Next.js arayüzünden veya API ile</span></div></div>
+      <div class="step"><div class="n">2</div><div class="tx"><b>Sistem ürünü kutuyla eşler</b><span>Stoğu uygun, çevrimiçi kutu seçilir</span></div></div>
+      <div class="step"><div class="n">3</div><div class="tx"><b>Doğru kutunun LED'i yanar</b><span>MQTT komutu ile &lt; 1 saniyede</span></div></div>
+      <div class="step"><div class="n">4</div><div class="tx"><b>Ürün alınır → stok otomatik düşer</b><span>Buton/sensör teyidi ile onaylanır</span></div></div>
+    </div>
+    <div class="col">
+      <div class="card dark" style="background:#0d1520;border:none;flex:1;display:flex;flex-direction:column;justify-content:center">
+        <h3 style="color:#eef3f8;text-align:center;margin-bottom:6mm">Kutu üç durumdan birini gösterir</h3>
+        <div style="display:flex;gap:4mm">
+          <div class="ccard g" style="background:#16212e"><div class="lamp l-g" style="width:13mm;height:13mm;box-shadow:0 0 0 3.5mm rgba(34,197,94,.2)"></div><div class="t" style="color:#22c55e">YEŞİL</div><div class="d" style="color:#9fb2c4">Stok yeterli<br>al</div></div>
+          <div class="ccard y" style="background:#16212e"><div class="lamp l-y" style="width:13mm;height:13mm;box-shadow:0 0 0 3.5mm rgba(245,158,11,.2)"></div><div class="t" style="color:#f59e0b">SARI</div><div class="d" style="color:#9fb2c4">Stok azaldı<br>dikkat</div></div>
+          <div class="ccard r" style="background:#16212e"><div class="lamp l-r" style="width:13mm;height:13mm;box-shadow:0 0 0 3.5mm rgba(239,68,68,.2)"></div><div class="t" style="color:#ef4444">KIRMIZI</div><div class="d" style="color:#9fb2c4">Stok yok<br>alarm</div></div>
+        </div>
+        <div style="text-align:center;color:#2dd4bf;font-style:italic;font-size:10pt;margin-top:7mm">Operatör ekran taramaz — sadece yanan ışığı takip eder.</div>
+      </div>
+    </div>
+  </div>
+  <div class="pg">03 / 14</div>
+</div>
+
+<!-- 4 IŞIK MANTIĞI -->
+<div class="slide light">
+  <div class="lights"><i style="background:#22c55e"></i><i style="background:#f59e0b"></i><i style="background:#ef4444"></i></div>
+  <div class="badge green">Işık Mantığı</div>
+  <h1>Hangi renk ne zaman yanar?</h1>
+  <div class="sub mono" style="font-size:11pt">s = mevcut stok · q = sipariş miktarı · b = güvenlik stoğu (buffer)</div>
+  <div class="body">
+    <div class="ccard g"><div class="lamp l-g"></div><div class="t" style="color:#15803d">YEŞİL</div><div class="s">Stok Yeterli</div>
+      <div class="formula" style="color:#4ade80">s ≥ q + b</div>
+      <div class="d">Sipariş sonrası bile güvenlik stoğu korunur. Ürün rahatça verilir, sistem stoğu otomatik düşer.</div></div>
+    <div class="ccard y"><div class="lamp l-y"></div><div class="t" style="color:#d97706">SARI</div><div class="s">Stok Azaldı</div>
+      <div class="formula" style="color:#fbbf24">q ≤ s &lt; q + b</div>
+      <div class="d">Sipariş karşılanır ama kritik seviyeye inilir. Uyarı gösterilir ve tedarik talebi açılır.</div></div>
+    <div class="ccard r"><div class="lamp l-r"></div><div class="t" style="color:#dc2626">KIRMIZI</div><div class="s">Stok Yetersiz</div>
+      <div class="formula" style="color:#f87171">s &lt; q</div>
+      <div class="d">Alarm! LED hiç yanmaz, ekrana uyarı basılır, sipariş kilitlenir, tedarik tetiklenir.</div></div>
+  </div>
+  <div class="pg">04 / 14</div>
+</div>
+
+<!-- 5 İŞ AKIŞI -->
+<div class="slide dark">
+  <div class="lights"><i style="background:#22c55e"></i><i style="background:#f59e0b"></i><i style="background:#ef4444"></i></div>
+  <div class="badge">İş Akışı</div>
+  <h1>Bir siparişin yaşam döngüsü</h1>
+  <div class="body">
+    <div class="col">
+      <div class="step"><div class="n">1</div><div class="tx"><b>Sipariş girişi</b><span>Sipariş numarası ve kalemleri sisteme girilir.</span></div></div>
+      <div class="arrow">▼</div>
+      <div class="step"><div class="n">2</div><div class="tx"><b>Eşleştirme</b><span>Sistem her kalemi ürüne ve fiziksel kutuya bağlar.</span></div></div>
+      <div class="arrow">▼</div>
+      <div class="step"><div class="n">3</div><div class="tx"><b>Stok kontrolü + rezervasyon</b><span>Atomik UPDATE ile stok düşülür; durum belirlenir.</span></div></div>
+    </div>
+    <div class="col">
+      <div class="step"><div class="n">4</div><div class="tx"><b>LED yanar</b><span>İlgili kutuda yeşil / sarı ışık yakılır (MQTT).</span></div></div>
+      <div class="arrow">▼</div>
+      <div class="step"><div class="n">5</div><div class="tx"><b>Alım &amp; onay</b><span>Operatör ürünü alır; buton/sensör teyit verir.</span></div></div>
+      <div class="arrow">▼</div>
+      <div class="step"><div class="n">6</div><div class="tx"><b>Kapanış</b><span>Kalem ALINDI olur, LED söner, arayüz anında güncellenir. Kırmızı ise alarm + tedarik.</span></div></div>
+    </div>
+  </div>
+  <div class="pg">05 / 14</div>
+</div>
+
+<!-- 6 STOK TUTARLILIĞI -->
+<div class="slide light">
+  <div class="lights"><i style="background:#22c55e"></i><i style="background:#f59e0b"></i><i style="background:#ef4444"></i></div>
+  <div class="badge">Stok Tutarlılığı</div>
+  <h1>Önce stoğu düş, sonra siparişi onayla</h1>
+  <div class="sub">Kontrol ve düşme tek bir atomik işlemde yapılır; böylece "ışık yeşil ama ürün yok" durumu (yarış koşulu) oluşmaz. Kırmızı, daha sipariş kabul edilirken yakalanır — kutuya hiç yansımaz.</div>
+  <div class="body fill">
+    <div class="col">
+      <div class="card" style="flex:1">
+        <div style="font-size:9.5pt;font-weight:700;color:#0f766e;letter-spacing:.1em;margin-bottom:3mm">KURAL</div>
+        <div class="step" style="background:#fff;margin-bottom:3mm"><div class="n" style="background:#1b2430">1</div><div class="tx"><b>Stoğu düş (atomik + kilitli)</b><span>Sistem, siparişi kabul etmeden önce stoğu koşullu ve kilitli olarak düşürür.</span></div></div>
+        <div class="step" style="background:#fff"><div class="n" style="background:#1b2430">2</div><div class="tx"><b>Sonra onayla</b><span>Düşme başarılıysa sipariş onaylanır ve kutunun LED'i yanar.</span></div></div>
+        <pre style="margin-top:4mm"><span class="k">UPDATE</span> stok <span class="k">SET</span> adet = adet - q
+<span class="k">WHERE</span> kutu_id = ? <span class="k">AND</span> adet &gt;= q;
+<span class="c">-- etkilenen satır = 0  →  stok yetersiz</span></pre>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card" style="border:2px solid #22c55e;background:#f3fbf5">
+        <h3 style="color:#15803d">✓ &nbsp;Düşme başarılı → sipariş onay</h3>
+        <p>LED yeşil/sarı yanar · operatör ürünü alır · stok hareketi loglanır.</p>
+      </div>
+      <div class="card" style="border:2px solid #ef4444;background:#fef6f6;flex:1">
+        <h3 style="color:#dc2626">🔒 &nbsp;Düşme başarısız (s &lt; q) → KİLİT</h3>
+        <p>Sipariş kilitlenir · ekrana "stok yok" uyarısı basılır · tedarik talebi açılır. Kutu kırmızıya dönmeden işlem durur.</p>
+        <div class="hr"></div>
+        <p style="font-size:9.6pt"><b>Üç savunma hattı:</b> koşullu UPDATE · <span class="mono">CHECK (adet ≥ 0)</span> kısıtı · versiyon alanıyla optimistic lock.</p>
+      </div>
+    </div>
+  </div>
+  <div class="pg">06 / 14</div>
+</div>
+
+<!-- 7 MİMARİ -->
+<div class="slide dark">
+  <div class="lights"><i style="background:#22c55e"></i><i style="background:#f59e0b"></i><i style="background:#ef4444"></i></div>
+  <div class="badge">Sistem Mimarisi</div>
+  <h1>Uçtan uca akış: sipariş → yazılım → ışık</h1>
+  <div class="body" style="flex-direction:column;gap:4mm">
+    <div style="display:flex;gap:5mm;align-items:center">
+      <div style="width:42mm;color:#2dd4bf;font-size:10pt;font-weight:700;letter-spacing:.12em">KULLANICI<br>KATMANI</div>
+      <div class="flowbox" style="flex:1">Web Arayüzü<small>Next.js 15 · App Router · TypeScript</small></div>
+      <div class="flowbox" style="flex:1">Operatör<small>yanan LED'i takip eder</small></div>
+    </div>
+    <div class="arrow" style="margin:0">▼ &nbsp;<span style="font-size:9.5pt;color:#9fb2c4">REST + SignalR (canlı)</span></div>
+    <div style="display:flex;gap:5mm;align-items:center">
+      <div style="width:42mm;color:#2dd4bf;font-size:10pt;font-weight:700;letter-spacing:.12em">UYGULAMA<br>KATMANI</div>
+      <div class="flowbox" style="flex:1">Backend<small>C# · ASP.NET Core 9 · sipariş + stok + bildirim servisleri</small></div>
+      <div class="flowbox" style="flex:1">Veritabanı<small>PostgreSQL 17 · stok &amp; sipariş kayıtları · EF Core</small></div>
+    </div>
+    <div class="arrow" style="margin:0">▼ &nbsp;<span style="font-size:9.5pt;color:#9fb2c4">MQTTnet · QoS 1</span></div>
+    <div style="display:flex;gap:5mm;align-items:center">
+      <div style="width:42mm;color:#2dd4bf;font-size:10pt;font-weight:700;letter-spacing:.12em">FİZİKSEL<br>KATMAN</div>
+      <div class="flowbox" style="flex:1">MQTT Broker<small>Mosquitto · yazılım ↔ donanım köprüsü</small></div>
+      <div class="flowbox" style="flex:1">ESP32 Kontrolcü<small>her kutuda: LED + onay sensörü</small></div>
+    </div>
+  </div>
+  <div class="pg">07 / 14</div>
+</div>
+
+<!-- 8 YAZILIM TASARIMI -->
+<div class="slide light">
+  <div class="lights"><i style="background:#22c55e"></i><i style="background:#f59e0b"></i><i style="background:#ef4444"></i></div>
+  <div class="badge">Yazılım Tasarımı</div>
+  <h1>Sipariş ve stok beyni — yazılım ekibi</h1>
+  <div class="body" style="flex-direction:column">
+    <div style="display:flex;gap:4mm">
+      <div class="card" style="flex:1;text-align:center"><h3>Arayüz</h3><div style="color:#0f766e;font-weight:700;font-size:11pt;margin-bottom:2mm">Next.js 15</div><p>Sipariş girişi, canlı stok panosu, kırmızı alarm ekranı.</p></div>
+      <div class="card" style="flex:1;text-align:center"><h3>API + Servisler</h3><div style="color:#0f766e;font-weight:700;font-size:11pt;margin-bottom:2mm">C# · ASP.NET Core</div><p>SiparisServisi, StokServisi, AlarmServisi; REST uçları + SignalR.</p></div>
+      <div class="card" style="flex:1;text-align:center"><h3>Veri</h3><div style="color:#0f766e;font-weight:700;font-size:11pt;margin-bottom:2mm">PostgreSQL 17</div><p>Ürün, kutu, stok ve sipariş kayıtları; stok hareket logu.</p></div>
+      <div class="card" style="flex:1;text-align:center"><h3>Haberleşme</h3><div style="color:#0f766e;font-weight:700;font-size:11pt;margin-bottom:2mm">MQTT</div><p>Kutuya 'LED yak' komutu; kutudan 'alındı' teyidi gelir.</p></div>
+    </div>
+    <div style="margin-top:5mm">
+      <pre><span style="color:#2dd4bf;font-weight:700">Çekirdek karar mantığı</span>
+<span class="k">if</span> (adet &gt;= q) <span class="k">→</span> stoğu düş (atomik), sipariş onay, LED yak, logla
+<span class="r">else</span> <span class="k">→</span> sipariş kilitle, <span class="s">'stok yok'</span> uyarısı, tedarik tetikle</pre>
+    </div>
+  </div>
+  <div class="pg">08 / 14</div>
+</div>
+
+<!-- 9 DONANIM -->
+<div class="slide light">
+  <div class="lights"><i style="background:#22c55e"></i><i style="background:#f59e0b"></i><i style="background:#ef4444"></i></div>
+  <div class="badge amber">Donanım Tasarımı</div>
+  <h1>Kutu, LED ve kontrolcü — elektrik ekibi</h1>
+  <div class="body fill">
+    <div class="col" style="flex:.85">
+      <div class="card dark" style="background:#0d1520;border:none;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center">
+        <div class="lamp l-g" style="margin-bottom:5mm"></div>
+        <div style="border:2px solid #22c55e;border-radius:7px;width:72%;height:38%;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4mm">
+          <span style="color:#eef3f8;font-weight:700;font-size:10.5pt;letter-spacing:.08em">KARE MODÜLER KUTU</span>
+        </div>
+        <div style="color:#6b8299;font-style:italic;font-size:9.6pt;margin-top:5mm">Modüler: kutular yan yana çoğaltılabilir</div>
+      </div>
+    </div>
+    <div class="col">
+      <div style="display:flex;gap:4mm;flex:1">
+        <div class="card" style="flex:1"><h3>Mikrodenetleyici</h3><p>ESP32 (Wi-Fi dahili) — LED'i sürer, sensörü okur, MQTT ile konuşur.</p></div>
+        <div class="card" style="flex:1"><h3>Durum LED'i</h3><p>Kutu başına WS2812B RGB veya yeşil/sarı/kırmızı 3'lü LED + sürücü direnci.</p></div>
+      </div>
+      <div style="display:flex;gap:4mm;flex:1">
+        <div class="card" style="flex:1"><h3>Onay sensörü</h3><p>Buton (v1), IR mesafe ya da HX711 ağırlık sensörü — 'ürün alındı' teyidi verir.</p></div>
+        <div class="card" style="flex:1"><h3>Güç</h3><p>Ortak 5 V hat; kutular paralel beslenir, tek adaptörden dağıtım, ortak GND.</p></div>
+      </div>
+    </div>
+  </div>
+  <div class="pg">09 / 14</div>
+</div>
+
+<!-- 10 VERİ MODELİ -->
+<div class="slide light">
+  <div class="lights"><i style="background:#22c55e"></i><i style="background:#f59e0b"></i><i style="background:#ef4444"></i></div>
+  <div class="badge">Veri Modeli</div>
+  <h1>10 tablo, üç sorumluluk alanı</h1>
+  <div class="body">
+    <div class="col">
+      <table>
+        <tr><th style="width:34%">Tablo</th><th>Rolü</th></tr>
+        <tr><td class="mono">urun</td><td>Katalog; SKU, ad, <b>güvenlik stoğu (b)</b></td></tr>
+        <tr><td class="mono">kutu</td><td>Fiziksel kutu; ESP32 MAC, MQTT topic, raf</td></tr>
+        <tr><td class="mono">stok</td><td>Kutu başına <b>mevcut adet (s)</b> + versiyon</td></tr>
+        <tr><td class="mono">siparis</td><td>Sipariş başlığı; benzersiz sipariş no</td></tr>
+        <tr><td class="mono">siparis_kalemi</td><td>Miktar (q), kutu, LED rengi, teyit yöntemi</td></tr>
+        <tr><td class="mono">personel</td><td>Operatör / yönetici — her hareketin sahibi</td></tr>
+      </table>
+    </div>
+    <div class="col">
+      <table>
+        <tr><th style="width:36%">Log tabloları</th><th>Rolü</th></tr>
+        <tr><td class="mono">stok_hareketi</td><td>Append-only defter: önceki/sonraki adet</td></tr>
+        <tr><td class="mono">alarm</td><td>STOK_AZALDI · STOK_YOK · CIHAZ_OFFLINE</td></tr>
+        <tr><td class="mono">tedarik_talebi</td><td>İkmal talebi: AÇIK → VERİLDİ → KAPANDI</td></tr>
+        <tr><td class="mono">cihaz_olayi</td><td>Ham MQTT mesajı (JSONB) — hata ayıklama</td></tr>
+      </table>
+      <div class="card" style="margin-top:2mm">
+        <p><b>Tutarlılık kısıtları:</b> <span class="mono">stok.adet ≥ 0</span> · <span class="mono">miktar &gt; 0</span> · <span class="mono">siparis_no</span> ve <span class="mono">cihaz_mac</span> UNIQUE · teyit için <span class="mono">mesaj_id</span> UNIQUE (idempotenlik).</p>
+      </div>
+    </div>
+  </div>
+  <div class="pg">10 / 14</div>
+</div>
+
+<!-- 11 MQTT SÖZLEŞMESİ -->
+<div class="slide dark">
+  <div class="lights"><i style="background:#22c55e"></i><i style="background:#f59e0b"></i><i style="background:#ef4444"></i></div>
+  <div class="badge slate">Ortak Dil</div>
+  <h1>MQTT sözleşmesi — iki ekibin buluştuğu nokta</h1>
+  <div class="sub">Bu sözleşme 2. hafta sonunda dondurulur; sonrasında iki ekip birbirini beklemeden paralel ilerler.</div>
+  <div class="body">
+    <div class="col">
+      <table>
+        <tr><th>Topic</th><th style="width:30%">Yön</th><th style="width:16%">QoS</th></tr>
+        <tr><td class="mono">depo/kutu/{id}/komut</td><td>Sunucu → Cihaz</td><td>1</td></tr>
+        <tr><td class="mono">depo/kutu/{id}/olay</td><td>Cihaz → Sunucu</td><td>1</td></tr>
+        <tr><td class="mono">depo/kutu/{id}/durum</td><td>Cihaz → Sunucu</td><td>1 · retained</td></tr>
+        <tr><td class="mono">depo/kutu/{id}/telemetri</td><td>Cihaz → Sunucu</td><td>0</td></tr>
+      </table>
+      <ul class="chk" style="margin-top:2mm">
+        <li><b>İdempotenlik:</b> her komut <span class="mono">mesajId</span> taşır, teyit aynı id ile döner — çift düşme olmaz.</li>
+        <li><b>LWT:</b> kutu koparsa broker 30 sn içinde OFFLINE yayınlar.</li>
+      </ul>
+    </div>
+    <div class="col">
+      <pre><span class="c">// LED yakma komutu (sunucu → cihaz)</span>
+{ <span class="s">"mesajId"</span>: <span class="s">"8f1c…"</span>,
+  <span class="s">"tip"</span>: <span class="s">"LED_YAK"</span>,
+  <span class="s">"renk"</span>: <span class="s">"YESIL"</span>,
+  <span class="s">"miktar"</span>: 3,
+  <span class="s">"ttlSn"</span>: 300 }
+
+<span class="c">// Teyit olayı (cihaz → sunucu)</span>
+{ <span class="s">"mesajId"</span>: <span class="s">"8f1c…"</span>,
+  <span class="s">"tip"</span>: <span class="s">"TEYIT"</span>,
+  <span class="s">"yontem"</span>: <span class="s">"BUTON"</span> }</pre>
+    </div>
+  </div>
+  <div class="pg">11 / 14</div>
+</div>
+
+<!-- 12 RİSK -->
+<div class="slide light">
+  <div class="lights"><i style="background:#22c55e"></i><i style="background:#f59e0b"></i><i style="background:#ef4444"></i></div>
+  <div class="badge red">Risk Yönetimi</div>
+  <h1>En büyük riskler ve önlemleri</h1>
+  <div class="body" style="flex-direction:column">
+    <table>
+      <tr><th style="width:30%">Risk</th><th style="width:33%">Neden kritik</th><th>Önlem / plan B</th></tr>
+      <tr><td><b>Donanım geç gelir</b></td><td>Yazılım donanımı beklerse 8 hafta yetmez</td><td><b>Kutu simülatörü</b> (H3) — yazılım donanımsız uçtan uca test edilir</td></tr>
+      <tr><td><b>Eşzamanlı stok tutarsızlığı</b></td><td>Negatif stok veya eli boş dönen operatör</td><td>Koşullu atomik UPDATE + CHECK kısıtı + 100 paralel istek testi</td></tr>
+      <tr><td><b>Entegrasyon geç kalır</b></td><td>Son hafta "birleştirme krizi"</td><td>MQTT sözleşmesi H2'de dondurulur; H4'te ilk gerçek LED yanar</td></tr>
+      <tr><td><b>Wi-Fi / MQTT kopmaları</b></td><td>Komut kaybolur, ışık yanmaz</td><td>QoS 1 + LWT + yeniden bağlanma + cihazda yerel tampon</td></tr>
+      <tr><td><b>Demo günü arızası</b></td><td>Tek kutu bozulursa sunum durur</td><td>Yedek kutu/kablo seti, simülatör modu, önceden çekilmiş demo videosu</td></tr>
+    </table>
+  </div>
+  <div class="pg">12 / 14</div>
+</div>
+
+<!-- 13 EKİPLER -->
+<div class="slide light">
+  <div class="lights"><i style="background:#22c55e"></i><i style="background:#f59e0b"></i><i style="background:#ef4444"></i></div>
+  <div class="badge">Teknoloji &amp; Görev Dağılımı</div>
+  <h1>İki ekip, tek sistem</h1>
+  <div class="body fill">
+    <div class="col">
+      <div class="card" style="padding:0;overflow:hidden;flex:1">
+        <div style="background:#0d1520;color:#fff;padding:5mm 6mm;font-size:14pt;font-weight:700">⚡ &nbsp;Elektrik Ekibi</div>
+        <div style="padding:5mm 6mm">
+          <ul class="chk amber">
+            <li>Kare modüler kutu tasarımı &amp; montajı</li>
+            <li>LED sürücü devresi ve dirençler</li>
+            <li>ESP32 programlama (PlatformIO / Arduino)</li>
+            <li>Onay sensörü (buton / IR / ağırlık) entegrasyonu</li>
+            <li>5 V güç dağıtımı ve kablolama</li>
+          </ul>
+          <div class="hr"></div>
+          <div class="chips"><span style="background:#fdf2e3;color:#b45309">ESP32</span><span style="background:#fdf2e3;color:#b45309">PlatformIO</span><span style="background:#fdf2e3;color:#b45309">WS2812B</span><span style="background:#fdf2e3;color:#b45309">HX711 / IR</span><span style="background:#fdf2e3;color:#b45309">5 V PSU</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card" style="padding:0;overflow:hidden;flex:1">
+        <div style="background:#0f766e;color:#fff;padding:5mm 6mm;font-size:14pt;font-weight:700">&lt;/&gt; &nbsp;Yazılım Ekibi</div>
+        <div style="padding:5mm 6mm">
+          <ul class="chk">
+            <li>Backend API ve iş mantığı (C# · ASP.NET Core)</li>
+            <li>Veritabanı şeması ve stok modeli (PostgreSQL)</li>
+            <li>Sipariş &amp; otomatik stok düşme akışı</li>
+            <li>Web arayüzü ve canlı alarm ekranı (Next.js)</li>
+            <li>MQTT haberleşme ve bildirim servisi</li>
+          </ul>
+          <div class="hr"></div>
+          <div class="chips"><span>C# / .NET 9</span><span>EF Core</span><span>PostgreSQL</span><span>MQTTnet</span><span>SignalR</span><span>Next.js 15</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="pg">13 / 14</div>
+</div>
+
+<!-- 14 YOL HARİTASI -->
+<div class="slide dark">
+  <div class="lights"><i style="background:#22c55e"></i><i style="background:#f59e0b"></i><i style="background:#ef4444"></i></div>
+  <div class="badge">Yol Haritası</div>
+  <h1>8 haftalık plan</h1>
+  <div class="body" style="flex-direction:column;justify-content:center">
+    <div class="tl">
+      <div class="it now"><b>H1</b><p>Fikir &amp; sunum, gereksinim analizi, <b>teknik planlama dokümanı</b></p><div style="color:#2dd4bf;font-size:8.5pt;letter-spacing:.14em;margin-top:3mm">TAMAMLANDI</div></div>
+      <div class="it"><b>H2–3</b><p>Mimari + EF Core şeması + tek prototip kutu + backend iskeleti + simülatör</p></div>
+      <div class="it"><b>H4–5</b><p>LED mantığı + MQTT entegrasyonu + çoklu kutu + canlı pano</p></div>
+      <div class="it"><b>H6–7</b><p>Otomatik stok düşme, alarm ekranı, testler ve sağlamlaştırma</p></div>
+      <div class="it"><b>H8</b><p>Uçtan uca test, demo ve final sunum</p></div>
+    </div>
+    <div class="card" style="margin-top:7mm;border:1px solid #14b8a6;background:#0f1d26">
+      <p style="color:#eef3f8;font-size:11.5pt"><b style="color:#2dd4bf">Hedef:</b> sipariş numarasını gören, doğru kutuyu ışıkla gösteren ve stoğu kendi düşen, en az 4 kutuluk çalışan bir prototip.</p>
+    </div>
+  </div>
+  <div class="pg">14 / 14</div>
+</div>
+
+</body>
+</html>
