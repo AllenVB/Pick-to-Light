@@ -128,6 +128,10 @@ export const api = {
     kod: string; urunId?: number; cihazMac: string; rafKonumu?: string; baslangicStogu: number;
   }) => istek<Kutu>("/api/kutular", { method: "POST", body: JSON.stringify(kutu) }),
 
+  kutuGuncelle: (id: number, kutu: {
+    kod: string; urunId?: number; cihazMac: string; rafKonumu?: string; baslangicStogu: number;
+  }) => istek<void>(`/api/kutular/${id}`, { method: "PUT", body: JSON.stringify(kutu) }),
+
   cihazOlaylari: (kutuId?: number, limit = 100) =>
     istek<CihazOlay[]>(`/api/kutular/olaylar?limit=${limit}${kutuId ? `&kutuId=${kutuId}` : ""}`),
 

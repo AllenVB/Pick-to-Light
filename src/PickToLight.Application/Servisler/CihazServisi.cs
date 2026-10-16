@@ -105,6 +105,47 @@ public sealed class CihazServisi(
     }
 
     /// <summary>
+    /// Kutu bilgilerini günceller: ürün ataması, raf konumu, kod ve cihaz MAC'i.
+    /// MQTT topic'i kutu kimliğinden türetildiği için değişmez.
+    /// </summary>
+    public async Task KutuGuncelleAsync(long kutuId, KutuIstek istek, CancellationToken ct = default)
+    {
+        var kutu = await db.Kutular.FirstOrDefaultAsync(k => k.Id == kutuId, ct)
+                   ?? throw new KayitBulunamadiException("Kutu", kutuId);
+
+        var kod = istek.Kod.Trim();
+        var mac = istek.CihazMac.Trim().ToUpperInvariant();
+
+        if (await db.Kutular.AnyAsync(k => k.Id != kutuId && (k.Kod == kod || k.CihazMac == mac), ct))
+            throw new DomainException("mukerrer-kutu", "Bu kod veya cihaz MAC'i başka bir kutuda kullanılıyor.");
+
+        if (istek.UrunId is not null && !await db.Urunler.AnyAsync(u => u.Id == istek.UrunId, ct))
+            throw new KayitBulunamadiException("Ürün", istek.UrunId);
+
+        var urunDegisti = kutu.UrunId != istek.UrunId;
+
+        kutu.Kod = kod;
+        kutu.CihazMac = mac;
+        kutu.UrunId = istek.UrunId;
+        kutu.RafKonumu = istek.RafKonumu;
+
+        await db.SaveChangesAsync(ct);
+
+        if (urunDegisti)
+        {
+            log.LogInformation("Kutu {Kod} ürün ataması değişti: {UrunId}", kutu.Kod, istek.UrunId);
+
+            // Ürün değiştiyse kutudaki mevcut adet artık yeni ürünün stoğu sayılır:
+            // fiziksel sayım yapılması için uyarı bırakılır.
+            await alarmServisi.UretAsync(AlarmTipi.StokAzaldi,
+                $"{kutu.Kod}: ürün ataması değişti, fiziksel sayım yapılması önerilir.", kutu.Id, null, ct);
+            await db.SaveChangesAsync(ct);
+        }
+
+        await bildirim.CihazDurumDegistiAsync(kutu.Id, kutu.BaglantiDurumu, ct);
+    }
+
+    /// <summary>
     /// Cihazlardan gelen ham MQTT mesajları (Bölüm 12.2). "Işık neden yanmadı?",
     /// "teyit neden işlenmedi?" sorularının cevabı burada aranır.
     /// </summary>

@@ -15,6 +15,7 @@ export default function KutularSayfasi() {
   const [hata, setHata] = useState<string | null>(null);
   const [bilgi, setBilgi] = useState<string | null>(null);
   const [formAcik, setFormAcik] = useState(false);
+  const [duzenlenen, setDuzenlenen] = useState<Kutu | null>(null);
 
   const yenile = useCallback(() => {
     api.kutular().then(setKutular).catch(() => setHata("Kutu listesi alınamadı."));
@@ -46,7 +47,7 @@ export default function KutularSayfasi() {
           </p>
         </div>
         {yonetici && (
-          <button className="dugme" onClick={() => setFormAcik((a) => !a)}>
+          <button className="dugme" onClick={() => { setDuzenlenen(null); setFormAcik((a) => !a); }}>
             {formAcik ? "Formu kapat" : "+ Yeni kutu"}
           </button>
         )}
@@ -55,10 +56,17 @@ export default function KutularSayfasi() {
       {hata && <p className="rounded-lg border border-durum-kirmizi/40 bg-durum-kirmizi/10 px-4 py-2 text-sm text-durum-kirmizi">{hata}</p>}
       {bilgi && <p className="rounded-lg border border-durum-yesil/40 bg-durum-yesil/10 px-4 py-2 text-sm text-durum-yesil">{bilgi}</p>}
 
-      {formAcik && yonetici && (
+      {(formAcik || duzenlenen) && yonetici && (
         <KutuFormu
           urunler={urunler}
-          onKaydet={(istek) => calistir(() => api.kutuEkle(istek), `${istek.kod} eklendi.`).then(() => setFormAcik(false))}
+          mevcut={duzenlenen}
+          onKaydet={(istek) =>
+            calistir(
+              () => duzenlenen ? api.kutuGuncelle(duzenlenen.id, istek) : api.kutuEkle(istek),
+              duzenlenen ? `${istek.kod} güncellendi.` : `${istek.kod} eklendi.`
+            ).then(() => { setFormAcik(false); setDuzenlenen(null); })
+          }
+          onVazgec={() => { setFormAcik(false); setDuzenlenen(null); }}
         />
       )}
 
@@ -90,6 +98,10 @@ export default function KutularSayfasi() {
                 </td>
                 {yonetici && (
                   <td className="whitespace-nowrap">
+                    <button className="mr-2 rounded-md border border-zemin-cizgi px-2 py-1 text-xs hover:border-marka-acik"
+                      onClick={() => { setFormAcik(false); setDuzenlenen(k); }}>
+                      Düzenle
+                    </button>
                     {(["Yesil", "Sari", "Kirmizi"] as LedRengi[]).map((renk) => (
                       <button key={renk} title={`${renk} test`}
                         className="mr-1 rounded-md border border-zemin-cizgi px-2 py-1 text-xs hover:border-marka-acik"
@@ -117,22 +129,24 @@ export default function KutularSayfasi() {
   );
 }
 
-function KutuFormu({ urunler, onKaydet }: {
+function KutuFormu({ urunler, mevcut, onKaydet, onVazgec }: {
   urunler: Urun[];
+  mevcut: Kutu | null;
   onKaydet: (istek: { kod: string; urunId?: number; cihazMac: string; rafKonumu?: string; baslangicStogu: number }) => void;
+  onVazgec: () => void;
 }) {
-  const [kod, setKod] = useState("");
-  const [urunId, setUrunId] = useState<number | "">("");
-  const [cihazMac, setCihazMac] = useState("");
-  const [rafKonumu, setRafKonumu] = useState("");
-  const [baslangicStogu, setBaslangicStogu] = useState(0);
+  const [kod, setKod] = useState(mevcut?.kod ?? "");
+  const [urunId, setUrunId] = useState<number | "">(mevcut?.urunId ?? "");
+  const [cihazMac, setCihazMac] = useState(mevcut?.cihazMac ?? "");
+  const [rafKonumu, setRafKonumu] = useState(mevcut?.rafKonumu ?? "");
+  const [baslangicStogu, setBaslangicStogu] = useState(mevcut?.adet ?? 0);
 
   const macGecerli = /^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$/.test(cihazMac);
   const gecerli = kod.trim().length > 0 && macGecerli;
 
   return (
     <section className="kart space-y-4">
-      <h2 className="etiket">Yeni kutu</h2>
+      <h2 className="etiket">{mevcut ? `${mevcut.kod} — kutuyu düzenle` : "Yeni kutu"}</h2>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <div>
           <label className="etiket">Kod</label>
@@ -160,12 +174,14 @@ function KutuFormu({ urunler, onKaydet }: {
             onChange={(e) => setRafKonumu(e.target.value)} />
         </div>
         <div>
-          <label className="etiket">Başlangıç stoğu</label>
-          <input className="girdi mt-1" type="number" min={0} value={baslangicStogu}
+          <label className="etiket">{mevcut ? "Mevcut stok" : "Başlangıç stoğu"}</label>
+          <input className="girdi mt-1" type="number" min={0} value={baslangicStogu} disabled={!!mevcut}
             onChange={(e) => setBaslangicStogu(Math.max(0, Number(e.target.value)))} />
+          {mevcut && <p className="mt-1 text-[11px] text-slate-500">stok yalnızca sayım/giriş ile değişir</p>}
         </div>
       </div>
 
+      <div className="flex gap-2">
       <button className="dugme" disabled={!gecerli}
         onClick={() => onKaydet({
           kod: kod.trim(),
@@ -174,8 +190,10 @@ function KutuFormu({ urunler, onKaydet }: {
           rafKonumu: rafKonumu.trim() || undefined,
           baslangicStogu,
         })}>
-        Kutuyu ekle
+        {mevcut ? "Değişiklikleri kaydet" : "Kutuyu ekle"}
       </button>
+      <button className="dugme-ikincil" onClick={onVazgec}>Vazgeç</button>
+      </div>
       <p className="text-[11px] text-slate-500">
         Kayıttan sonra kutunun MQTT topic'i <span className="font-mono">depo/kutu/&#123;id&#125;</span> olarak atanır;
         aynı değeri ESP32 firmware'ine kutu kimliği olarak girin.

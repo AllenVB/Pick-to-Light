@@ -20,6 +20,15 @@ public sealed class KutularController(CihazServisi cihaz, StokServisi stok) : Co
     public async Task<ActionResult<KutuDto>> Ekle(KutuIstek istek, CancellationToken ct)
         => Ok(await cihaz.KutuEkleAsync(istek, ct));
 
+    /// <summary>Kutu bilgilerini günceller (ürün ataması, raf, kod, cihaz MAC).</summary>
+    [HttpPut("{id:long}")]
+    [Authorize(Roles = "ADMIN")]
+    public async Task<ActionResult> Guncelle(long id, KutuIstek istek, CancellationToken ct)
+    {
+        await cihaz.KutuGuncelleAsync(id, istek, ct);
+        return NoContent();
+    }
+
     /// <summary>Cihazlardan gelen ham MQTT mesajları — hata ayıklama kaynağı (Bölüm 12.2).</summary>
     [HttpGet("olaylar")]
     public async Task<ActionResult<IReadOnlyList<CihazOlayDto>>> Olaylar(
