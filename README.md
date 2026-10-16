@@ -178,6 +178,7 @@ CHECK kısıtının negatif stoğu reddetmesi, paralel tedarik talebinin tek kay
 | POST | `/api/siparisler/{id}/iptal` | İptal eder, rezerve stoğu iade eder |
 | POST | `/api/kalemler/{id}/teyit` | Manuel teyit (sensör yedeği) |
 | GET | `/api/stok` · `/api/kutular` | Kutu ve stok durumu + renk önizlemesi |
+| POST | `/api/kutular` · `/api/kutular/{id}/led-test` | Kutu ekleme, bakım testi (ADMIN) |
 | POST | `/api/stok/{kutuId}/giris` · `/sayim` | Mal kabul / sayım (ADMIN) |
 | GET | `/api/alarmlar` · `/api/tedarik-talepleri` | Alarm ve ikmal takibi |
 | GET | `/api/hareketler` | Stok hareket defteri |

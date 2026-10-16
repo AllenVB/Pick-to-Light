@@ -113,6 +113,10 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ yeniAdet, aciklama }),
     }),
+  kutuEkle: (kutu: {
+    kod: string; urunId?: number; cihazMac: string; rafKonumu?: string; baslangicStogu: number;
+  }) => istek<Kutu>("/api/kutular", { method: "POST", body: JSON.stringify(kutu) }),
+
   ledTest: (kutuId: number, renk = "Yesil") =>
     istek<unknown>(`/api/kutular/${kutuId}/led-test?renk=${renk}`, { method: "POST" }),
 };

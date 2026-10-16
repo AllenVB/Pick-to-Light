@@ -11,6 +11,7 @@ const BAGLANTILAR = [
   { yol: "/siparis/yeni", ad: "Sipariş Girişi", ikon: "＋" },
   { yol: "/siparisler", ad: "Siparişler", ikon: "☰" },
   { yol: "/stok", ad: "Stok Yönetimi", ikon: "▤" },
+  { yol: "/kutular", ad: "Kutu & Cihaz", ikon: "▣" },
   { yol: "/alarmlar", ad: "Alarmlar", ikon: "⚠" },
   { yol: "/hareketler", ad: "Hareket Defteri", ikon: "⇅" },
 ];
