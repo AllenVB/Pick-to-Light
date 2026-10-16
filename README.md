@@ -185,6 +185,18 @@ CHECK kısıtının negatif stoğu reddetmesi, paralel tedarik talebinin tek kay
 
 ---
 
+## Performans
+
+Uçtan uca gecikme (sipariş başlatma isteğinden LED komutunun broker'a ulaşmasına kadar):
+
+```bash
+python3 tools/olcum.py --tekrar 20
+```
+
+Yerel ağda ölçülen (15 tekrar): **p50 11,5 ms · p95 24,4 ms · en kötü 144 ms** —
+NFR-01 hedefi 1000 ms. Sipariş başlatma API yanıtı: p95 33 ms (hedef 200 ms).
+Ölçüm siparişleri sonunda otomatik iptal edilir, envanter bozulmaz.
+
 ## API özeti
 
 | Metot | Yol | Açıklama |

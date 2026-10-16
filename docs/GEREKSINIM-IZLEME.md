@@ -4,7 +4,7 @@ Planlama dokümanındaki (Bölüm 3) her gereksinimin **kodda nerede karşıland
 **hangi testin doğruladığı**. Durum sütunu: ✅ uygulandı ve test edildi ·
 🟡 uygulandı, otomatik testi yok · ⬜ kapsam dışı.
 
-_Son güncelleme: kodlama fazı · 89 otomatik test (34 domain + 40 servis + 15 entegrasyon)_
+_Son güncelleme: kodlama fazı · 89 otomatik test (34 domain + 40 servis + 15 entegrasyon) · gecikme ölçümü yapıldı_
 
 ## Fonksiyonel gereksinimler
 
@@ -31,7 +31,7 @@ _Son güncelleme: kodlama fazı · 89 otomatik test (34 domain + 40 servis + 15 
 
 | No | Gereksinim | Uygulama | Doğrulama | Durum |
 |---|---|---|---|---|
-| NFR-01 | Sipariş → LED < 1 sn | Doğrudan MQTT yayını, ara kuyruk yok | Yerel ölçüm: sipariş başlatma yanıtı ve simülatörde ışık aynı saniyede | 🟡 |
+| NFR-01 | Sipariş → LED < 1 sn · API p95 < 200 ms | Doğrudan MQTT yayını, ara kuyruk yok | `tools/olcum.py` (15 ölçüm): LED p50 **11,5 ms** · p95 **24,4 ms** · en kötü 144 ms · API p95 **33 ms** | ✅ |
 | NFR-02 | ACID tutarlılık, negatif stok imkânsız | Koşullu UPDATE + CHECK + `versiyon` eşzamanlılık belirteci | 3 eşzamanlılık testi (gerçek PostgreSQL) | ✅ |
 | NFR-03 | İdempotenlik (tekrar eden teyit) | `siparis_kalemi.mesaj_id` UNIQUE + durum kontrolü | `Ayni_teyit_iki_kez_gelirse_ikincisi_yok_sayilir`, entegrasyon eşi | ✅ |
 | NFR-04 | Dayanıklılık (broker/cihaz kopması) | ManagedMqttClient kuyruğu · QoS 1 · LWT · firmware yerel tamponu | `/health` Degraded testi (broker durdurulup geri getirildi) | ✅ |
@@ -58,5 +58,5 @@ _Son güncelleme: kodlama fazı · 89 otomatik test (34 domain + 40 servis + 15 
 |---|---|
 | ESP32 firmware'inin derlenip karta yüklenmesi | Kod yazıldı ve gözden geçirildi; **derleme/karta yükleme yapılmadı** (bu ortamda PlatformIO toolchain'i indirilemiyor) |
 | Gerçek donanımla uçtan uca test (H4 kilometre taşı) | Simülatörle doğrulandı; gerçek kutuyla tekrarlanmalı |
-| NFR-01 süresinin gerçek ağda ölçümü | Yerelde ölçüldü; depo Wi-Fi'ında tekrar ölçülmeli |
+| NFR-01 süresinin gerçek ağda ölçümü | Yerel ağda `tools/olcum.py` ile ölçüldü (p95 24 ms); gerçek ESP32 ve depo Wi-Fi'ı ile tekrarlanmalı (cihazın ışığı yakma süresi dahil değil) |
 | Yük testi (çok sayıda eşzamanlı operatör) | 20 paralel istek test edildi; daha yüksek yük denenmedi |
