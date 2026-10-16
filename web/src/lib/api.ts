@@ -119,6 +119,11 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ yeniAdet, aciklama }),
     }),
+  urunEkle: (urun: { sku: string; ad: string; birimAgirlikG?: number; guvenlikStogu: number }) =>
+    istek<Urun>("/api/urunler", { method: "POST", body: JSON.stringify(urun) }),
+  urunGuncelle: (id: number, urun: { sku: string; ad: string; birimAgirlikG?: number; guvenlikStogu: number }) =>
+    istek<void>(`/api/urunler/${id}`, { method: "PUT", body: JSON.stringify(urun) }),
+
   kutuEkle: (kutu: {
     kod: string; urunId?: number; cihazMac: string; rafKonumu?: string; baslangicStogu: number;
   }) => istek<Kutu>("/api/kutular", { method: "POST", body: JSON.stringify(kutu) }),
