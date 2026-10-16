@@ -10,3 +10,6 @@ out/
 .env
 .env.local
 *.log
+
+# PlatformIO
+.pio/
