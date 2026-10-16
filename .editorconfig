@@ -1,0 +1,36 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+
+[*.{cs,csx}]
+indent_size = 4
+max_line_length = 120
+
+# Proje genelinde benimsenen C# tarzı
+csharp_new_line_before_open_brace = all
+csharp_style_namespace_declarations = file_scoped:warning
+csharp_style_expression_bodied_methods = when_on_single_line:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:warning
+dotnet_sort_system_directives_first = true
+
+# Alan adları Türkçe; derleyicinin "dil" uyarıları kapalı tutulur
+dotnet_diagnostic.CA1707.severity = none
+
+[*.{ts,tsx,js,jsx,json,css,yml,yaml}]
+indent_size = 2
+
+[*.{md,html}]
+indent_size = 2
+trim_trailing_whitespace = false
+
+[*.{cpp,h,ino}]
+indent_size = 2
+
+[*.{csproj,props,targets}]
+indent_size = 2
