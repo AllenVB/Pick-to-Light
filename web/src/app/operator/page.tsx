@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { api } from "@/lib/api";
+import { ApiHata, api } from "@/lib/api";
 import { useCanliOlaylar } from "@/hooks/useCanliOlaylar";
 import { useKorumaliSayfa } from "@/hooks/useKorumaliSayfa";
 import type { Alarm, Kutu, LedRengi } from "@/types";
@@ -22,6 +22,8 @@ export default function OperatorEkrani() {
   const [kutular, setKutular] = useState<Kutu[]>([]);
   const [sonAlarm, setSonAlarm] = useState<Alarm | null>(null);
   const [saat, setSaat] = useState("");
+  const [islemdeki, setIslemdeki] = useState<number | null>(null);
+  const [hata, setHata] = useState<string | null>(null);
 
   const yenile = useCallback(() => {
     api.kutular().then(setKutular).catch(() => undefined);
@@ -49,6 +51,19 @@ export default function OperatorEkrani() {
     CihazDurumDegisti: yenile,
   });
 
+  async function teyitEt(kalemId: number) {
+    setIslemdeki(kalemId);
+    setHata(null);
+    try {
+      await api.kalemTeyit(kalemId, "Manuel");
+      yenile();
+    } catch (h) {
+      setHata(h instanceof ApiHata ? h.message : "Teyit gönderilemedi.");
+    } finally {
+      setIslemdeki(null);
+    }
+  }
+
   if (!oturum) return null;
 
   const yananlar = kutular.filter((k) => k.isikYaniyor);
@@ -75,6 +90,12 @@ export default function OperatorEkrani() {
           <p className="text-xs font-bold uppercase tracking-widest text-durum-kirmizi">{sonAlarm.tip}</p>
           <p className="mt-1 text-xl font-bold">{sonAlarm.mesaj}</p>
         </div>
+      )}
+
+      {hata && (
+        <p className="mt-4 rounded-lg border border-durum-kirmizi/40 bg-durum-kirmizi/10 px-4 py-2 text-sm text-durum-kirmizi">
+          {hata}
+        </p>
       )}
 
       <main className="flex flex-1 items-center justify-center py-8">
@@ -118,9 +139,21 @@ export default function OperatorEkrani() {
                     </div>
                   </div>
 
-                  <div className="mt-6 flex items-end justify-between border-t border-zemin-cizgi pt-4">
+                  <div className="mt-6 flex items-center justify-between border-t border-zemin-cizgi pt-4">
                     <p className={`text-xl font-black tracking-wide ${r.metin}`}>{r.ad}</p>
-                    <p className="text-sm text-slate-500">ürünü al → butona bas</p>
+
+                    {/* Buton/sensör çalışmazsa ekrandan teyit (FR-09 yedek yolu) */}
+                    {k.aktifKalemId ? (
+                      <button
+                        className="rounded-xl bg-marka px-8 py-4 text-lg font-bold text-white transition
+                                   hover:bg-marka-acik disabled:opacity-40"
+                        disabled={islemdeki === k.aktifKalemId}
+                        onClick={() => teyitEt(k.aktifKalemId!)}>
+                        {islemdeki === k.aktifKalemId ? "Gönderiliyor…" : "ALDIM ✓"}
+                      </button>
+                    ) : (
+                      <p className="text-sm text-slate-500">ürünü al → butona bas</p>
+                    )}
                   </div>
                 </div>
               );

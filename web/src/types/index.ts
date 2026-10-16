@@ -28,6 +28,7 @@ export interface Kutu {
   isikYaniyor: boolean;
   alinacakMiktar?: number;
   siparisNo?: string;
+  aktifKalemId?: number;
 }
 
 export interface Kalem {
