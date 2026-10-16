@@ -182,6 +182,7 @@ CHECK kısıtının negatif stoğu reddetmesi, paralel tedarik talebinin tek kay
 | POST | `/api/stok/{kutuId}/giris` · `/sayim` | Mal kabul / sayım (ADMIN) |
 | GET | `/api/alarmlar` · `/api/tedarik-talepleri` | Alarm ve ikmal takibi |
 | GET | `/api/hareketler` | Stok hareket defteri |
+| GET | `/api/raporlar/ozet` · `/urunler` · `/kutular` · `/gunluk` | Toplama performansı raporları |
 | WS | `/hubs/depo` | Canlı olaylar (SignalR) |
 
 Hatalar RFC 7807 **Problem Details** biçiminde döner. Giriş uç noktası IP başına

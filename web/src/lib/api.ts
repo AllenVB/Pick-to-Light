@@ -1,8 +1,8 @@
 "use client";
 
 import type {
-  Alarm, ApiHatasi, Kutu, Oturum, SiparisDetay, SiparisOzet,
-  StokHareket, TedarikTalebi, Urun,
+  Alarm, ApiHatasi, GunlukHareket, Kutu, KutuPerformans, Oturum, RaporOzet,
+  SiparisDetay, SiparisOzet, StokHareket, TedarikTalebi, Urun, UrunHareket,
 } from "@/types";
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5080";
@@ -100,6 +100,12 @@ export const api = {
     istek<Alarm[]>(`/api/alarmlar${okundu === undefined ? "" : `?okundu=${okundu}`}`),
   alarmOkundu: (id: number) => istek<void>(`/api/alarmlar/${id}/okundu`, { method: "POST" }),
   tedarikTalepleri: () => istek<TedarikTalebi[]>("/api/tedarik-talepleri"),
+
+  raporOzet: (gun = 30) => istek<RaporOzet>(`/api/raporlar/ozet?gun=${gun}`),
+  raporUrunler: (gun = 30, limit = 10) =>
+    istek<UrunHareket[]>(`/api/raporlar/urunler?gun=${gun}&limit=${limit}`),
+  raporKutular: (gun = 30) => istek<KutuPerformans[]>(`/api/raporlar/kutular?gun=${gun}`),
+  raporGunluk: (gun = 14) => istek<GunlukHareket[]>(`/api/raporlar/gunluk?gun=${gun}`),
 
   hareketler: (kutuId?: number) =>
     istek<StokHareket[]>(`/api/hareketler${kutuId ? `?kutuId=${kutuId}` : ""}`),

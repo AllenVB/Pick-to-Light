@@ -14,6 +14,7 @@ const BAGLANTILAR = [
   { yol: "/kutular", ad: "Kutu & Cihaz", ikon: "▣" },
   { yol: "/alarmlar", ad: "Alarmlar", ikon: "⚠" },
   { yol: "/hareketler", ad: "Hareket Defteri", ikon: "⇅" },
+  { yol: "/raporlar", ad: "Raporlar", ikon: "◴" },
 ];
 
 export function Kenar() {

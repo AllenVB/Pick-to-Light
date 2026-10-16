@@ -127,3 +127,43 @@ export interface ApiHatasi {
   kod?: string;
   [ek: string]: unknown;
 }
+
+// ───────────────────────── Raporlar ─────────────────────────
+
+export interface RaporOzet {
+  gunSayisi: number;
+  toplamSiparis: number;
+  tamamlananSiparis: number;
+  kilitliSiparis: number;
+  toplananKalem: number;
+  yetersizKalem: number;
+  toplananAdet: number;
+  ortalamaToplamaSaniye?: number;
+  kirmiziOrani: number;
+  acikTedarikTalebi: number;
+  okunmamisAlarm: number;
+}
+
+export interface UrunHareket {
+  urunId: number;
+  sku: string;
+  urunAdi: string;
+  toplamCikis: number;
+  toplamaSayisi: number;
+}
+
+export interface KutuPerformans {
+  kutuId: number;
+  kutuKod: string;
+  urunAdi?: string;
+  toplamaSayisi: number;
+  toplamAdet: number;
+  ortalamaToplamaSaniye?: number;
+  mevcutStok: number;
+}
+
+export interface GunlukHareket {
+  gun: string;
+  cikisAdedi: number;
+  girisAdedi: number;
+}
