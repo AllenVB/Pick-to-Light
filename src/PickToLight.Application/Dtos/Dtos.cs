@@ -24,7 +24,11 @@ public sealed record KalemDto(
     int? Sira,
     DateTimeOffset? AlinmaZamani,
     string? Uyari,
-    string? Hata);
+    string? Hata,
+    /// <summary>Işığın yandığı an (null ise ışık yanmıyor).</summary>
+    DateTimeOffset? IsikYanmaZamani = null,
+    /// <summary>Teyit beklenen son an; sonrasında ışık söner ve rezerve stok iade edilir.</summary>
+    DateTimeOffset? TeyitSonTarihi = null);
 
 public sealed record SiparisDto(
     long Id,

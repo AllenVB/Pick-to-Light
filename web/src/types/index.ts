@@ -45,6 +45,8 @@ export interface Kalem {
   alinmaZamani?: string;
   uyari?: string;
   hata?: string;
+  isikYanmaZamani?: string;
+  teyitSonTarihi?: string;
 }
 
 export interface Alarm {

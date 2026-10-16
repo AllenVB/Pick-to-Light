@@ -470,6 +470,10 @@ public sealed class SiparisServisi(
                     : null,
                 Hata: k.Durum == KalemDurumu.Yetersiz
                     ? $"STOK_YETERSIZ: istenen {k.Miktar}, mevcut {k.Kutu?.Stok?.Adet ?? 0}"
+                    : null,
+                IsikYanmaZamani: k.Durum == KalemDurumu.IsikYandi ? k.IsikYanmaZamani : null,
+                TeyitSonTarihi: k.Durum == KalemDurumu.IsikYandi && k.IsikYanmaZamani is not null
+                    ? k.IsikYanmaZamani.Value.AddSeconds(_ayar.TeyitZamanAsimiSaniye)
                     : null))
             .ToList();
 

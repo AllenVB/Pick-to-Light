@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { ApiHata, api } from "@/lib/api";
 import { useCanliOlaylar } from "@/hooks/useCanliOlaylar";
 import { useKorumaliSayfa } from "@/hooks/useKorumaliSayfa";
+import { GeriSayim } from "@/components/GeriSayim";
 import { KalemRozeti, RenkRozeti, SiparisRozeti } from "@/components/Rozet";
 import type { SiparisDetay } from "@/types";
 
@@ -110,7 +111,12 @@ export default function SiparisDetaySayfasi() {
                 <td className="font-bold">{k.miktar}</td>
                 <td className="text-slate-300">{k.kalanStok ?? "—"}</td>
                 <td><RenkRozeti renk={k.ledRengi} /></td>
-                <td><KalemRozeti durum={k.durum} /></td>
+                <td>
+                  <KalemRozeti durum={k.durum} />
+                  {k.durum === "IsikYandi" && (
+                    <span className="mt-1 block"><GeriSayim sonTarih={k.teyitSonTarihi} /></span>
+                  )}
+                </td>
                 <td>
                   {k.durum === "IsikYandi" && (
                     <button className="dugme-ikincil px-3 py-1 text-xs" disabled={islem}
