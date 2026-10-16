@@ -10,7 +10,9 @@ public sealed record LedKomutMesaji(
     [property: JsonPropertyName("miktar")] int Miktar,
     [property: JsonPropertyName("kalemId")] long? KalemId,
     [property: JsonPropertyName("ttlSn")] int TtlSn,
-    [property: JsonPropertyName("zaman")] DateTimeOffset Zaman);
+    [property: JsonPropertyName("zaman")] DateTimeOffset Zaman,
+    /// <summary>Opsiyonel: isteği uçtan uca izlemek için; cihaz bu alanı yok sayabilir.</summary>
+    [property: JsonPropertyName("korelasyonId")] string? KorelasyonId = null);
 
 /// <summary>Cihaz → sunucu olayı.</summary>
 public sealed class CihazOlayMesaji

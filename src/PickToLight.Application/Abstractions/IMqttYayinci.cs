@@ -10,7 +10,9 @@ public sealed record LedKomutu(
     LedRengi Renk,
     int Miktar,
     long? KalemId,
-    int TtlSn);
+    int TtlSn,
+    /// <summary>İsteği uçtan uca izlemek için korelasyon kimliği (opsiyonel alan).</summary>
+    string? KorelasyonId = null);
 
 public interface IMqttYayinci
 {

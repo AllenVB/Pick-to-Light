@@ -185,7 +185,7 @@ public sealed class SiparisServisi(
 
             await mqtt.LedYakAsync(new LedKomutu(
                 kalem.MesajId.Value, kutu.Id, kutu.MqttTopic, renk, kalem.Miktar, kalem.Id,
-                _ayar.TeyitZamanAsimiSaniye), ct);
+                _ayar.TeyitZamanAsimiSaniye, oturum.KorelasyonId), ct);
 
             await bildirim.KutuIsikDegistiAsync(kutu.Id, renk, kalem.Miktar, kalem.Id, ct);
             await bildirim.StokGuncellendiAsync(kutu.Id, sonuc.SonrakiAdet, renk, ct);

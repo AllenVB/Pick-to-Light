@@ -10,4 +10,9 @@ public sealed class OturumKullanicisi(IHttpContextAccessor erisimci) : IOturumKu
         long.TryParse(erisimci.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : null;
 
     public string? KullaniciAdi => erisimci.HttpContext?.User.FindFirstValue(ClaimTypes.Name);
+
+    public string? KorelasyonId =>
+        erisimci.HttpContext?.Items.TryGetValue(KorelasyonMiddleware.Baslik, out var deger) == true
+            ? deger as string
+            : null;
 }

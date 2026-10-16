@@ -110,7 +110,8 @@ public sealed class MqttIstemciServisi : IHostedService, IMqttYayinci, IAsyncDis
             komut.Miktar,
             komut.KalemId,
             komut.TtlSn,
-            DateTimeOffset.UtcNow);
+            DateTimeOffset.UtcNow,
+            komut.KorelasyonId);
 
         await YayinlaAsync($"{komut.MqttTopic}/komut", mesaj, ct);
         _log.LogInformation("LED komutu: kutu {KutuId} → {Renk} ({Miktar} adet)", komut.KutuId, komut.Renk, komut.Miktar);
@@ -118,7 +119,8 @@ public sealed class MqttIstemciServisi : IHostedService, IMqttYayinci, IAsyncDis
 
     public async Task LedSondurAsync(long kutuId, string mqttTopic, CancellationToken ct = default)
     {
-        var mesaj = new LedKomutMesaji(Guid.NewGuid().ToString(), "LED_SONDUR", null, 0, null, 0, DateTimeOffset.UtcNow);
+        var mesaj = new LedKomutMesaji(Guid.NewGuid().ToString(), "LED_SONDUR", null, 0, null, 0,
+            DateTimeOffset.UtcNow);
         await YayinlaAsync($"{mqttTopic}/komut", mesaj, ct);
     }
 

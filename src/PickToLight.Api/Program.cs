@@ -5,6 +5,7 @@ using System.Threading.RateLimiting;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -15,6 +16,7 @@ using PickToLight.Infrastructure;
 using PickToLight.Infrastructure.Kimlik;
 using PickToLight.Infrastructure.Persistence;
 using PickToLight.Infrastructure.Realtime;
+using PickToLight.Infrastructure.Saglik;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -23,7 +25,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog((ctx, cfg) => cfg
     .ReadFrom.Configuration(ctx.Configuration)
     .Enrich.FromLogContext()
-    .WriteTo.Console());
+    .WriteTo.Console(
+        outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {KorelasyonId}{NewLine}{Exception}"));
 
 // ───────────────────────── Servisler ─────────────────────────
 builder.Services
@@ -148,11 +151,14 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-builder.Services.AddHealthChecks().AddDbContextCheck<AppDbContext>();
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<AppDbContext>("veritabani")
+    .AddCheck<MqttSaglikKontrolu>("mqtt");
 
 var app = builder.Build();
 
 // ───────────────────────── Boru hattı ─────────────────────────
+app.UseMiddleware<KorelasyonMiddleware>();
 app.UseMiddleware<HataYakalamaMiddleware>();
 
 if (app.Environment.IsDevelopment())
@@ -168,7 +174,27 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<DepoHub>("/hubs/depo");
-app.MapHealthChecks("/health");
+app.MapHealthChecks("/health", new HealthCheckOptions
+{
+    ResponseWriter = async (ctx, rapor) =>
+    {
+        ctx.Response.ContentType = "application/json; charset=utf-8";
+
+        await ctx.Response.WriteAsync(JsonSerializer.Serialize(new
+        {
+            durum = rapor.Status.ToString(),
+            sureMs = Math.Round(rapor.TotalDuration.TotalMilliseconds, 1),
+            kontroller = rapor.Entries.ToDictionary(
+                e => e.Key,
+                e => new
+                {
+                    durum = e.Value.Status.ToString(),
+                    aciklama = e.Value.Description,
+                    sureMs = Math.Round(e.Value.Duration.TotalMilliseconds, 1)
+                })
+        }, new JsonSerializerOptions { WriteIndented = true }));
+    }
+});
 
 // ───────────────────────── Şema + tohum verisi ─────────────────────────
 if (builder.Configuration.GetValue("Veritabani:BaslangictaGuncelle", true))

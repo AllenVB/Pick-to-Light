@@ -22,6 +22,7 @@ public sealed class SahteOturum : IOturumKullanicisi
 {
     public long? PersonelId { get; set; } = 1;
     public string? KullaniciAdi => "test";
+    public string? KorelasyonId => "test-korelasyon";
 }
 
 public sealed class SahteMqtt : IMqttYayinci

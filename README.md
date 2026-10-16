@@ -201,8 +201,11 @@ CHECK kısıtının negatif stoğu reddetmesi, paralel tedarik talebinin tek kay
 | GET | `/api/hareketler` | Stok hareket defteri |
 | GET | `/api/raporlar/ozet` · `/urunler` · `/kutular` · `/gunluk` | Toplama performansı raporları |
 | WS | `/hubs/depo` | Canlı olaylar (SignalR) |
+| GET | `/health` | Veritabanı ve MQTT broker durumu (JSON) |
 
-Hatalar RFC 7807 **Problem Details** biçiminde döner. Giriş uç noktası IP başına
+Her isteğe bir korelasyon kimliği verilir (`X-Correlation-Id`); kimlik log kayıtlarına
+ve yayınlanan MQTT komutlarına taşınır, böylece bir toplama olayı arayüzden cihaza
+kadar izlenebilir. Hatalar RFC 7807 **Problem Details** biçiminde döner. Giriş uç noktası IP başına
 hız sınırlıdır (varsayılan: dakikada 5 deneme); aşıldığında `429` döner.
 
 ---
