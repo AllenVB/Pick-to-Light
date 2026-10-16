@@ -20,14 +20,16 @@ export default function AlarmlarSayfasi() {
   const [alarmlar, setAlarmlar] = useState<Alarm[]>([]);
   const [talepler, setTalepler] = useState<TedarikTalebi[]>([]);
   const [sadeceOkunmamis, setSadeceOkunmamis] = useState(true);
+  const [tip, setTip] = useState("");
 
   const yenile = useCallback(() => {
-    api.alarmlar(sadeceOkunmamis ? false : undefined).then(setAlarmlar).catch(() => setAlarmlar([]));
+    api.alarmlar(sadeceOkunmamis ? false : undefined, tip || undefined)
+      .then(setAlarmlar).catch(() => setAlarmlar([]));
     api.tedarikTalepleri().then(setTalepler).catch(() => setTalepler([]));
-  }, [sadeceOkunmamis]);
+  }, [sadeceOkunmamis, tip]);
 
   useEffect(() => { if (oturum) yenile(); }, [oturum, yenile]);
-  useCanliOlaylar({ AlarmOlustu: yenile }, [sadeceOkunmamis]);
+  useCanliOlaylar({ AlarmOlustu: yenile }, [sadeceOkunmamis, tip]);
 
   if (!oturum) return null;
 
@@ -38,11 +40,26 @@ export default function AlarmlarSayfasi() {
           <p className="etiket">Alarmlar</p>
           <h1 className="baslik mt-1">Uyarı ve alarm paneli</h1>
         </div>
-        <label className="flex items-center gap-2 text-sm text-slate-300">
-          <input type="checkbox" checked={sadeceOkunmamis}
-            onChange={(e) => setSadeceOkunmamis(e.target.checked)} />
-          Sadece okunmamışlar
-        </label>
+        <div className="flex flex-wrap items-center gap-3">
+          <select className="girdi w-52" value={tip} onChange={(e) => setTip(e.target.value)}>
+            <option value="">Tüm alarm tipleri</option>
+            <option value="StokYok">Stok yok</option>
+            <option value="StokAzaldi">Stok azaldı</option>
+            <option value="CihazOffline">Cihaz çevrimdışı</option>
+            <option value="TeyitZamanAsimi">Teyit zaman aşımı</option>
+            <option value="BeklenmeyenTeyit">Beklenmeyen teyit</option>
+            <option value="AgirlikUyusmazligi">Ağırlık uyuşmazlığı</option>
+          </select>
+          <label className="flex items-center gap-2 text-sm text-slate-300">
+            <input type="checkbox" checked={sadeceOkunmamis}
+              onChange={(e) => setSadeceOkunmamis(e.target.checked)} />
+            Sadece okunmamışlar
+          </label>
+          <button className="dugme-ikincil text-xs"
+            onClick={() => api.alarmTumunuOkundu().then(yenile)}>
+            Tümünü okundu işaretle
+          </button>
+        </div>
       </header>
 
       <section className="space-y-2">

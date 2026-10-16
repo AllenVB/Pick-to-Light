@@ -96,8 +96,15 @@ export const api = {
     istek<{ islendi: boolean; aciklama: string }>(
       `/api/kalemler/${kalemId}/teyit?yontem=${yontem}`, { method: "POST" }),
 
-  alarmlar: (okundu?: boolean) =>
-    istek<Alarm[]>(`/api/alarmlar${okundu === undefined ? "" : `?okundu=${okundu}`}`),
+  alarmlar: (okundu?: boolean, tip?: string) => {
+    const p = new URLSearchParams();
+    if (okundu !== undefined) p.set("okundu", String(okundu));
+    if (tip) p.set("tip", tip);
+    const q = p.toString();
+    return istek<Alarm[]>(`/api/alarmlar${q ? `?${q}` : ""}`);
+  },
+  alarmTumunuOkundu: () =>
+    istek<{ isaretlenen: number }>("/api/alarmlar/tumunu-okundu", { method: "POST" }),
   alarmOkundu: (id: number) => istek<void>(`/api/alarmlar/${id}/okundu`, { method: "POST" }),
   tedarikTalepleri: () => istek<TedarikTalebi[]>("/api/tedarik-talepleri"),
 

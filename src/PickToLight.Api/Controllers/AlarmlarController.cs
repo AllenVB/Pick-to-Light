@@ -14,8 +14,13 @@ public sealed class AlarmlarController(AlarmServisi alarmlar) : ControllerBase
     /// <summary>Alarmlar (okunmuş/okunmamış filtresiyle), en yeniden eskiye.</summary>
     [HttpGet("alarmlar")]
     public async Task<ActionResult<IReadOnlyList<AlarmDto>>> Listele([FromQuery] bool? okundu,
-        [FromQuery] int limit = 100, CancellationToken ct = default)
-        => Ok(await alarmlar.ListeleAsync(okundu, limit, ct));
+        [FromQuery] int limit = 100, [FromQuery] AlarmTipi? tip = null, CancellationToken ct = default)
+        => Ok(await alarmlar.ListeleAsync(okundu, limit, tip, ct));
+
+    /// <summary>Okunmamış tüm alarmları okundu işaretler.</summary>
+    [HttpPost("alarmlar/tumunu-okundu")]
+    public async Task<ActionResult> TumunuOkundu(CancellationToken ct)
+        => Ok(new { isaretlenen = await alarmlar.TumunuOkunduIsaretleAsync(ct) });
 
     /// <summary>Alarmı okundu işaretler.</summary>
     [HttpPost("alarmlar/{id:long}/okundu")]

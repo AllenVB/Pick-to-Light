@@ -50,12 +50,16 @@ public sealed class AlarmServisi(
         await tedarikDeposu.AcikTalepOlusturAsync(urun.Id, siparisId, talep, ct);
     }
 
-    public async Task<IReadOnlyList<AlarmDto>> ListeleAsync(bool? okundu, int limit = 100, CancellationToken ct = default)
+    public async Task<IReadOnlyList<AlarmDto>> ListeleAsync(bool? okundu, int limit = 100,
+        AlarmTipi? tip = null, CancellationToken ct = default)
     {
         var sorgu = db.Alarmlar.Include(a => a.Kutu).AsNoTracking().AsQueryable();
 
         if (okundu.HasValue)
             sorgu = sorgu.Where(a => a.Okundu == okundu.Value);
+
+        if (tip.HasValue)
+            sorgu = sorgu.Where(a => a.Tip == tip.Value);
 
         return await sorgu
             .OrderByDescending(a => a.Zaman)
@@ -71,6 +75,18 @@ public sealed class AlarmServisi(
 
         alarm.Okundu = true;
         await db.SaveChangesAsync(ct);
+    }
+
+    /// <summary>Okunmamış tüm alarmları okundu işaretler; kaç kaydın etkilendiğini döner.</summary>
+    public async Task<int> TumunuOkunduIsaretleAsync(CancellationToken ct = default)
+    {
+        var okunmamislar = await db.Alarmlar.Where(a => !a.Okundu).ToListAsync(ct);
+
+        foreach (var alarm in okunmamislar)
+            alarm.Okundu = true;
+
+        await db.SaveChangesAsync(ct);
+        return okunmamislar.Count;
     }
 
     public async Task<IReadOnlyList<TedarikTalebiDto>> TedarikListeleAsync(TedarikDurumu? durum,
