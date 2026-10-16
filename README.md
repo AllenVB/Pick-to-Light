@@ -218,6 +218,8 @@ hız sınırlıdır (varsayılan: dakikada 5 deneme); aşıldığında `429` dö
 | [`docs/plan/Pick-to-Light-Proje-Plani.pdf`](docs/plan/Pick-to-Light-Proje-Plani.pdf) | 34 sayfalık teknik planlama dokümanı |
 | [`docs/sunum/Pick-to-Light-Sunum-v2.pdf`](docs/sunum/Pick-to-Light-Sunum-v2.pdf) | 14 slaytlık güncel sunum |
 | [`docs/Hafta2-ER-Diyagrami.pdf`](docs/Hafta2-ER-Diyagrami.pdf) | Veritabanı ER diyagramı |
+| [`docs/GEREKSINIM-IZLEME.md`](docs/GEREKSINIM-IZLEME.md) · [PDF](docs/Gereksinim-Izleme-Matrisi.pdf) | Her gereksinimin kodda ve testte nerede karşılandığı |
+| [`docs/KURULUM.md`](docs/KURULUM.md) | Kurulum, yapılandırma, MQTT güvenliği, testler, sorun giderme |
 
 PDF'leri yeniden üretmek:
 

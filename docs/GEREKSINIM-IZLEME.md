@@ -1,0 +1,62 @@
+# Gereksinim İzleme Matrisi
+
+Planlama dokümanındaki (Bölüm 3) her gereksinimin **kodda nerede karşılandığı** ve
+**hangi testin doğruladığı**. Durum sütunu: ✅ uygulandı ve test edildi ·
+🟡 uygulandı, otomatik testi yok · ⬜ kapsam dışı.
+
+_Son güncelleme: kodlama fazı · 79 otomatik test (34 domain + 30 servis + 15 entegrasyon)_
+
+## Fonksiyonel gereksinimler
+
+| No | Gereksinim | Uygulama | Doğrulayan test | Durum |
+|---|---|---|---|---|
+| FR-01 | Sipariş numarası ve kalemleriyle sipariş girişi | `SiparisServisi.OlusturAsync` · `POST /api/siparisler` · `/siparis/yeni` | `Mukerrer_siparis_numarasi_reddedilir`, `Mukerrer_siparis_numarasi_409_doner…` | ✅ |
+| FR-02 | Kalemlerin kutuyla eşleştirilmesi | `KutuSecici.PlanlaAsync` · `SiparisServisi.BaslatAsync` (1. aşama) | `KalemBolmeTestleri` (6 test), `Tanimli_kutusu_olmayan_urun_yetersiz_isaretlenir` | ✅ |
+| FR-03 | Üç renkli stok durumu kararı | `IsikKarari.Belirle` (Domain) | `IsikKarariTestleri` — 10 sınır değer vakası | ✅ |
+| FR-04 | Kutunun LED'inin yakılması | `MqttIstemciServisi.LedYakAsync` (QoS 1) | `Yesil_senaryo_stogu_dusurur_LED_komutu_yayinlar…` | ✅ |
+| FR-05 | Alım sonrası otomatik stok düşme | `StokDeposu.DusAsync` (rezervasyon) · `SiparisServisi.TeyitEtAsync` | `Yesil_senaryoda_stok_dusulur…`, `Teyit_kalemi_alindi_yapar_ve_stogu_ikinci_kez_dusurmez` | ✅ |
+| FR-06 | Atomik düşme, negatif stok imkânsız | Koşullu `UPDATE … WHERE adet >= @q` + `CHECK (adet >= 0)` | `Yirmi_paralel_siparis…`, `Elli_paralel_dusme…`, `Veritabani_kisiti_negatif_stoga_izin_vermez` | ✅ |
+| FR-07 | Yetersiz stokta ekran uyarısı + alarm | `AlarmServisi.UretAsync` · ProblemDetails · `/alarmlar` | `Kirmizi_senaryoda_led_yakilmaz…` (birim + entegrasyon) | ✅ |
+| FR-08 | Güvenlik seviyesi altında tedarik talebi | `AlarmServisi.TedarikTalebiAcAsync` · `TedarikDeposu` (ON CONFLICT) | `Sari_senaryoda_uyari_ve_tedarik_talebi_uretilir`, `Paralel_tedarik_talebi_acma_tek_kayit_birakir` | ✅ |
+| FR-09 | Buton / IR / ağırlık / manuel teyit | `TeyitYontemi` · MQTT olay işleyici · `POST /api/kalemler/{id}/teyit` | `Agirlik_uyusmazliginda_teyit_kabul_edilir…`, `Tolerans_icindeki_agirlik_alarm_uretmez` | ✅ |
+| FR-10 | Arayüzde canlı stok/kutu izleme | SignalR `DepoHub` · `useCanliOlaylar` · tüm sayfalar | Tarayıcı testi (iki sekme: sipariş → kiosk canlı güncellendi) | 🟡 |
+| FR-11 | Tüm stok hareketlerinin loglanması | `StokHareketi` (append-only, aynı transaction) · `/hareketler` | `Mal_kabul_stogu_artirir_ve_giris_hareketi_yazar`, hareket zinciri testi | ✅ |
+| FR-12 | Cihaz bağlantı durumunun izlenmesi | LWT + retained durum + kalp atışı + `SessizCihazlariIsaretleAsync` | `Kutu_cevrimdisiysa_isik_yakilmaz_ve_stok_rezerve_edilmez` | ✅ |
+| FR-13 | Sipariş iptali ve rezerve stok iadesi | `SiparisServisi.IptalAsync` · `StokDeposu.ArtirAsync` | `Iptal_rezerve_stogu_iade_eder…` (birim + entegrasyon) | ✅ |
+| FR-14 | Stok sayımı (düzeltme) | `StokDeposu.SayimAsync` (FOR UPDATE ile eski değer) | `Sayim_adeti_yeni_degere_ceker_ve_farki_loglar` | ✅ |
+| FR-15 | Rol bazlı yetkilendirme | `[Authorize(Roles = "ADMIN")]` · arayüzde yönetici kontrolleri | `Yetkisiz_istek_401_rol_yetersizligi_403_doner` | ✅ |
+| FR-16 | Kutu LED'inin test edilebilmesi | `CihazServisi.LedTestAsync` · `/kutular` renk butonları | Tarayıcı testi | 🟡 |
+
+## Fonksiyonel olmayan gereksinimler
+
+| No | Gereksinim | Uygulama | Doğrulama | Durum |
+|---|---|---|---|---|
+| NFR-01 | Sipariş → LED < 1 sn | Doğrudan MQTT yayını, ara kuyruk yok | Yerel ölçüm: sipariş başlatma yanıtı ve simülatörde ışık aynı saniyede | 🟡 |
+| NFR-02 | ACID tutarlılık, negatif stok imkânsız | Koşullu UPDATE + CHECK + `versiyon` eşzamanlılık belirteci | 3 eşzamanlılık testi (gerçek PostgreSQL) | ✅ |
+| NFR-03 | İdempotenlik (tekrar eden teyit) | `siparis_kalemi.mesaj_id` UNIQUE + durum kontrolü | `Ayni_teyit_iki_kez_gelirse_ikincisi_yok_sayilir`, entegrasyon eşi | ✅ |
+| NFR-04 | Dayanıklılık (broker/cihaz kopması) | ManagedMqttClient kuyruğu · QoS 1 · LWT · firmware yerel tamponu | `/health` Degraded testi (broker durdurulup geri getirildi) | ✅ |
+| NFR-05 | İzlenebilirlik | `stok_hareketi` + `cihaz_olayi` + `X-Correlation-Id` + Serilog | Hareket defteri ve cihaz olayları ekranları | ✅ |
+| NFR-06 | Ölçeklenebilirlik (kutu ekleme kod değişmeden) | `depo/kutu/+/…` joker abonelikler · `/kutular` kutu ekleme | Tarayıcı testi: yeni kutu eklendi, MQTT topic'i otomatik atandı | ✅ |
+| NFR-07 | Güvenlik | JWT · PBKDF2 · roller · giriş hız sınırı · MQTT kullanıcı/ACL | `GuvenlikTestleri` (3 test) + yerel broker ACL doğrulaması | ✅ |
+| NFR-08 | 3 m mesafeden okunabilirlik, renk körlüğü | `/operator` kiosk ekranı · renk + ikon + metin birlikte | Tarayıcı ekran görüntüsü | 🟡 |
+| NFR-09 | Tek komutla kurulum | `docker compose up -d` · README / KURULUM.md | Yerelde (Docker'sız kurulumla) uçtan uca çalıştırıldı | ✅ |
+| NFR-10 | Donanımsız test edilebilirlik | `tools/KutuSimulatoru` (kalp atışlı, otomatik/manuel teyit) | Tüm uçtan uca testler simülatörle koşuldu | ✅ |
+
+## Planın kapsam dışı bıraktıkları (bilerek yapılmadı)
+
+| Konu | Not |
+|---|---|
+| E-ticaret platformu entegrasyonu | Siparişler arayüzden veya API ile girilir (Bölüm 2.2) |
+| Kargo / fatura / iade süreçleri | Kapsam dışı |
+| Barkod / RFID doğrulama | `personel.nfc_uid` şemada hazır, kullanılmıyor |
+| Çok depolu yapı, rota optimizasyonu | Kapsam dışı; `siparis_kalemi.sira` ileride rota için hazır |
+| Mobil uygulama, bulut dağıtımı | Arayüz responsive web; sistem yerel ağda çalışır |
+
+## Açık kalanlar
+
+| Konu | Durum |
+|---|---|
+| ESP32 firmware'inin derlenip karta yüklenmesi | Kod yazıldı ve gözden geçirildi; **derleme/karta yükleme yapılmadı** (bu ortamda PlatformIO toolchain'i indirilemiyor) |
+| Gerçek donanımla uçtan uca test (H4 kilometre taşı) | Simülatörle doğrulandı; gerçek kutuyla tekrarlanmalı |
+| NFR-01 süresinin gerçek ağda ölçümü | Yerelde ölçüldü; depo Wi-Fi'ında tekrar ölçülmeli |
+| Yük testi (çok sayıda eşzamanlı operatör) | 20 paralel istek test edildi; daha yüksek yük denenmedi |
