@@ -1,5 +1,7 @@
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -87,6 +89,39 @@ builder.Services.AddCors(o => o.AddPolicy("web", p => p
     .AllowAnyMethod()
     .AllowCredentials()));
 
+// ───────────────────────── Hız sınırlama (Bölüm 12.1) ─────────────────────────
+// Giriş uç noktası kaba kuvvet denemelerine karşı IP başına sınırlanır.
+var girisLimiti = builder.Configuration.GetValue("Guvenlik:GirisDenemeLimiti", 5);
+var girisPenceresi = builder.Configuration.GetValue("Guvenlik:GirisPenceresiDakika", 1);
+
+builder.Services.AddRateLimiter(secenek =>
+{
+    secenek.AddPolicy("giris", ctx => RateLimitPartition.GetFixedWindowLimiter(
+        partitionKey: ctx.Connection.RemoteIpAddress?.ToString() ?? "bilinmeyen-ip",
+        factory: _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = girisLimiti,
+            Window = TimeSpan.FromMinutes(girisPenceresi),
+            QueueLimit = 0
+        }));
+
+    // Reddedilen istek de aynı hata sözleşmesiyle (ProblemDetails) döner.
+    secenek.OnRejected = async (ctx, ct) =>
+    {
+        ctx.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        ctx.HttpContext.Response.ContentType = "application/problem+json; charset=utf-8";
+
+        await ctx.HttpContext.Response.WriteAsync(JsonSerializer.Serialize(new
+        {
+            type = "https://pick-to-light/errors/cok-fazla-deneme",
+            title = "Çok fazla deneme",
+            status = StatusCodes.Status429TooManyRequests,
+            detail = $"{girisPenceresi} dakika içinde en fazla {girisLimiti} giriş denemesi yapılabilir.",
+            kod = "cok-fazla-deneme"
+        }), ct);
+    };
+});
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -127,6 +162,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("web");
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 

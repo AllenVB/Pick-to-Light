@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using PickToLight.Application.Dtos;
 using PickToLight.Application.Servisler;
 
@@ -9,9 +10,10 @@ namespace PickToLight.Api.Controllers;
 [Route("api/auth")]
 public sealed class AuthController(KimlikServisi kimlik) : ControllerBase
 {
-    /// <summary>Kullanıcı adı ve parola ile JWT alır.</summary>
+    /// <summary>Kullanıcı adı ve parola ile JWT alır. IP başına hız sınırlıdır.</summary>
     [HttpPost("giris")]
     [AllowAnonymous]
+    [EnableRateLimiting("giris")]
     public async Task<ActionResult<TokenYanit>> Giris(GirisIstek istek, CancellationToken ct)
         => Ok(await kimlik.GirisAsync(istek, ct));
 

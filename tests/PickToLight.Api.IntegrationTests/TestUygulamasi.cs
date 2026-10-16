@@ -20,12 +20,16 @@ namespace PickToLight.Api.IntegrationTests;
 /// Bağlantı: <c>PTL_TEST_POSTGRES</c> ortam değişkeni veya varsayılan yerel sunucu.
 /// PostgreSQL erişilemiyorsa testler <b>atlanır</b> (sessizce geçmez).
 /// </summary>
-public sealed class TestUygulamasi : WebApplicationFactory<Program>, IAsyncLifetime
+public class TestUygulamasi : WebApplicationFactory<Program>, IAsyncLifetime
 {
     private const string VarsayilanSunucu =
         "Host=localhost;Port=5432;Database=postgres;Username=ptl;Password=ptl_parola";
 
     private readonly string _veritabaniAdi = $"ptl_test_{Guid.NewGuid():N}"[..24];
+
+    /// <summary>Giriş hız sınırı. Testler çok kez giriş yaptığı için varsayılan yüksektir;
+    /// hız sınırını sınayan test bunu düşürür.</summary>
+    protected virtual int GirisDenemeLimiti => 1000;
 
     public string? AtlamaSebebi { get; private set; }
     public bool Hazir => AtlamaSebebi is null;
@@ -72,6 +76,7 @@ public sealed class TestUygulamasi : WebApplicationFactory<Program>, IAsyncLifet
         builder.UseSetting("PickToLight:ZamanAsimiTaramaPeriyoduSaniye", "3600");
         builder.UseSetting("PickToLight:CihazOfflineEsigiSaniye", "3600");
         builder.UseSetting("Jwt:Anahtar", "entegrasyon-testleri-icin-en-az-32-karakterlik-anahtar!!");
+        builder.UseSetting("Guvenlik:GirisDenemeLimiti", GirisDenemeLimiti.ToString());
 
         builder.ConfigureServices(servisler =>
         {
@@ -130,7 +135,7 @@ public sealed class TestUygulamasi : WebApplicationFactory<Program>, IAsyncLifet
         await komut.ExecuteNonQueryAsync();
     }
 
-    public new async Task DisposeAsync()
+    public new virtual async Task DisposeAsync()
     {
         await base.DisposeAsync();
 

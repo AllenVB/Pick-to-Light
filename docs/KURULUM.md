@@ -48,6 +48,8 @@ Yapılandırma (`src/PickToLight.Api/appsettings.json`):
 | `PickToLight:CihazOfflineEsigiSaniye` | 60 | Bu süre sessiz kalan kutu çevrimdışı sayılır |
 | `Jwt:Anahtar` | geliştirme anahtarı | **Üretimde ortam değişkeninden verin** |
 | `Cors:IzinliKaynaklar` | localhost:3000 | Arayüz adresi |
+| `Guvenlik:GirisDenemeLimiti` | 5 | IP başına dakikadaki giriş denemesi (kaba kuvvet koruması) |
+| `Guvenlik:GirisPenceresiDakika` | 1 | Sınırın penceresi |
 
 Ortam değişkeniyle geçersiz kılma örneği:
 

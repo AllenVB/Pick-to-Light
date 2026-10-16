@@ -184,7 +184,8 @@ CHECK kısıtının negatif stoğu reddetmesi, paralel tedarik talebinin tek kay
 | GET | `/api/hareketler` | Stok hareket defteri |
 | WS | `/hubs/depo` | Canlı olaylar (SignalR) |
 
-Hatalar RFC 7807 **Problem Details** biçiminde döner.
+Hatalar RFC 7807 **Problem Details** biçiminde döner. Giriş uç noktası IP başına
+hız sınırlıdır (varsayılan: dakikada 5 deneme); aşıldığında `429` döner.
 
 ---
 
