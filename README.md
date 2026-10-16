@@ -73,6 +73,16 @@ dotnet run --project tools/KutuSimulatoru -- --kutu 1,2,3,4,5
 Simülatör, gerçek ESP32 gibi davranır: komutu alır, rengi ekrana basar,
 teyit mesajı döner ve periyodik kalp atışı yayınlar.
 
+### Demo senaryosu
+
+Dört senaryoyu (yeşil / sarı / kırmızı / eşzamanlılık) sırayla çalıştırır:
+
+```bash
+bash tools/demo.sh hepsi      # hazırlık + tüm senaryolar
+bash tools/demo.sh kirmizi    # tek senaryo
+bash tools/demo.sh durum      # kutuların anlık durumu
+```
+
 ### Demo hesapları
 
 | Kullanıcı | Parola | Rol |
