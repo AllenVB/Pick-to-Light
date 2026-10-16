@@ -19,12 +19,14 @@ public sealed class SiparislerController(SiparisServisi siparisler) : Controller
         return CreatedAtAction(nameof(Detay), new { siparisNo = detay.SiparisNo }, detay);
     }
 
+    /// <summary>Siparişleri duruma göre sayfalı listeler.</summary>
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<SiparisDto>>> Listele(
         [FromQuery] SiparisDurumu? durum, [FromQuery] int sayfa = 1, [FromQuery] int boyut = 25,
         CancellationToken ct = default)
         => Ok(await siparisler.ListeleAsync(durum, sayfa, boyut, ct));
 
+    /// <summary>Sipariş detayı: kalemler, ışık renkleri, kalan stok ve siparişin alarmları.</summary>
     [HttpGet("{siparisNo}")]
     public async Task<ActionResult<SiparisDetayDto>> Detay(string siparisNo, CancellationToken ct)
         => Ok(await siparisler.DetayAsync(siparisNo, ct));

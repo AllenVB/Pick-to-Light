@@ -207,7 +207,9 @@ CHECK kısıtının negatif stoğu reddetmesi, paralel tedarik talebinin tek kay
 
 Her isteğe bir korelasyon kimliği verilir (`X-Correlation-Id`); kimlik log kayıtlarına
 ve yayınlanan MQTT komutlarına taşınır, böylece bir toplama olayı arayüzden cihaza
-kadar izlenebilir. Hatalar RFC 7807 **Problem Details** biçiminde döner. Giriş uç noktası IP başına
+kadar izlenebilir. Tüm uç noktalar Swagger'da Türkçe açıklamalarıyla belgelidir (`/swagger`);
+hazır istek koleksiyonu için [`docs/api-ornekleri.http`](docs/api-ornekleri.http).
+Hatalar RFC 7807 **Problem Details** biçiminde döner. Giriş uç noktası IP başına
 hız sınırlıdır (varsayılan: dakikada 5 deneme); aşıldığında `429` döner.
 
 ---

@@ -135,6 +135,10 @@ builder.Services.AddSwaggerGen(c =>
         Description = "Akıllı Depo — ışıkla toplama ve anlık stok yönetim sistemi"
     });
 
+    // Controller ve DTO'lardaki Türkçe XML yorumları Swagger'da görünsün.
+    foreach (var xml in Directory.GetFiles(AppContext.BaseDirectory, "PickToLight.*.xml"))
+        c.IncludeXmlComments(xml, includeControllerXmlComments: true);
+
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",

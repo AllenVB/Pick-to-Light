@@ -11,11 +11,13 @@ namespace PickToLight.Api.Controllers;
 [Route("api")]
 public sealed class AlarmlarController(AlarmServisi alarmlar) : ControllerBase
 {
+    /// <summary>Alarmlar (okunmuş/okunmamış filtresiyle), en yeniden eskiye.</summary>
     [HttpGet("alarmlar")]
     public async Task<ActionResult<IReadOnlyList<AlarmDto>>> Listele([FromQuery] bool? okundu,
         [FromQuery] int limit = 100, CancellationToken ct = default)
         => Ok(await alarmlar.ListeleAsync(okundu, limit, ct));
 
+    /// <summary>Alarmı okundu işaretler.</summary>
     [HttpPost("alarmlar/{id:long}/okundu")]
     public async Task<ActionResult> Okundu(long id, CancellationToken ct)
     {
@@ -23,11 +25,13 @@ public sealed class AlarmlarController(AlarmServisi alarmlar) : ControllerBase
         return NoContent();
     }
 
+    /// <summary>İkmal (tedarik) talepleri; stok kritik seviyeye inince otomatik açılır.</summary>
     [HttpGet("tedarik-talepleri")]
     public async Task<ActionResult<IReadOnlyList<TedarikTalebiDto>>> Tedarik([FromQuery] TedarikDurumu? durum,
         CancellationToken ct = default)
         => Ok(await alarmlar.TedarikListeleAsync(durum, ct));
 
+    /// <summary>Tedarik talebinin durumunu günceller (ACIK → VERILDI → KAPANDI).</summary>
     [HttpPost("tedarik-talepleri/{id:long}/durum")]
     [Authorize(Roles = "ADMIN")]
     public async Task<ActionResult> TedarikDurum(long id, [FromQuery] TedarikDurumu durum, CancellationToken ct)

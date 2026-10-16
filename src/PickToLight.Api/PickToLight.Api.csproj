@@ -3,6 +3,9 @@
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
+    <!-- Swagger'ın uç nokta açıklamalarını XML yorumlarından okuyabilmesi için -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 

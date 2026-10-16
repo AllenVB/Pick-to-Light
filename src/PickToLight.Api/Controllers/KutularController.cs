@@ -11,10 +11,12 @@ namespace PickToLight.Api.Controllers;
 [Route("api/kutular")]
 public sealed class KutularController(CihazServisi cihaz, StokServisi stok) : ControllerBase
 {
+    /// <summary>Kutular: stok, renk önizlemesi, bağlantı durumu ve yanan ışığın miktarı.</summary>
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<KutuDto>>> Listele(CancellationToken ct)
         => Ok(await stok.KutuDurumlariAsync(ct));
 
+    /// <summary>Yeni kutu ekler; MQTT topic'i kutu kimliğinden türetilir (depo/kutu/{id}).</summary>
     [HttpPost]
     [Authorize(Roles = "ADMIN")]
     public async Task<ActionResult<KutuDto>> Ekle(KutuIstek istek, CancellationToken ct)

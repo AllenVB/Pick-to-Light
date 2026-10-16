@@ -1,0 +1,122 @@
+### Pick-to-Light API — örnek istekler
+# VS Code "REST Client" veya JetBrains HTTP Client ile doğrudan çalıştırılabilir.
+# Swagger arayüzü: http://localhost:5080/swagger
+
+@api = http://localhost:5080
+
+### 1) Giriş — token al (yanıttaki token aşağıda otomatik kullanılır)
+# @name giris
+POST {{api}}/api/auth/giris
+Content-Type: application/json
+
+{ "kullaniciAdi": "admin", "parola": "admin123" }
+
+@token = {{giris.response.body.token}}
+
+### 2) Kutuların anlık durumu (stok, renk, bağlantı, yanan ışık)
+GET {{api}}/api/kutular
+Authorization: Bearer {{token}}
+
+### 3) Ürün kataloğu
+GET {{api}}/api/urunler
+Authorization: Bearer {{token}}
+
+### 4) Sipariş oluştur (yeşil senaryo)
+# @name siparis
+POST {{api}}/api/siparisler
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "siparisNo": "ORNEK-001",
+  "kalemler": [
+    { "urunId": 1, "miktar": 3 }
+  ]
+}
+
+@siparisId = {{siparis.response.body.id}}
+
+### 5) Siparişi başlat — ana akış: eşleştir → stoğu atomik düş → LED yak
+POST {{api}}/api/siparisler/{{siparisId}}/baslat
+Authorization: Bearer {{token}}
+
+### 6) Sipariş detayı (ışık renkleri, kalan stok, geri sayım)
+GET {{api}}/api/siparisler/ORNEK-001
+Authorization: Bearer {{token}}
+
+### 7) Manuel teyit (sensör çalışmadığında yedek yol)
+POST {{api}}/api/kalemler/1/teyit?yontem=Manuel
+Authorization: Bearer {{token}}
+
+### 8) Siparişi iptal et — rezerve stok iade edilir
+POST {{api}}/api/siparisler/{{siparisId}}/iptal
+Authorization: Bearer {{token}}
+
+### 9) Kırmızı senaryo — stoktan fazla talep (409 beklenmez: kalem YETERSIZ olur, sipariş kilitlenir)
+POST {{api}}/api/siparisler
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "siparisNo": "ORNEK-KIRMIZI", "kalemler": [ { "urunId": 3, "miktar": 999 } ] }
+
+### 10) Mal kabul (ADMIN) — GIRIS hareketi
+POST {{api}}/api/stok/1/giris
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "miktar": 20, "aciklama": "Tedarikçi teslimatı" }
+
+### 11) Fiziksel sayım (ADMIN) — SAYIM hareketi
+POST {{api}}/api/stok/1/sayim
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "yeniAdet": 25, "aciklama": "Haftalık sayım" }
+
+### 12) Güvenlik stoğunu değiştir (sarı ışık eşiği)
+PUT {{api}}/api/urunler/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "sku": "KBL-2M", "ad": "Kablo 2 m", "birimAgirlikG": 48.5, "guvenlikStogu": 8 }
+
+### 13) Kutu ekle (ADMIN) — MQTT topic'i kimlikten türetilir
+POST {{api}}/api/kutular
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "kod": "K-06", "urunId": 1, "cihazMac": "A0:B1:C2:D3:E4:06", "rafKonumu": "B2-R1", "baslangicStogu": 10 }
+
+### 14) Kutuya ürün ata / düzenle (ADMIN)
+PUT {{api}}/api/kutular/6
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "kod": "K-06", "urunId": 2, "cihazMac": "A0:B1:C2:D3:E4:06", "rafKonumu": "B2-R2", "baslangicStogu": 0 }
+
+### 15) LED testi (ADMIN) — bakım modu
+POST {{api}}/api/kutular/1/led-test?renk=Sari&saniye=5
+Authorization: Bearer {{token}}
+
+### 16) Alarmlar (okunmamışlar)
+GET {{api}}/api/alarmlar?okundu=false
+Authorization: Bearer {{token}}
+
+### 17) Açık tedarik talepleri
+GET {{api}}/api/tedarik-talepleri?durum=Acik
+Authorization: Bearer {{token}}
+
+### 18) Stok hareket defteri
+GET {{api}}/api/hareketler?limit=50
+Authorization: Bearer {{token}}
+
+### 19) Cihazlardan gelen ham MQTT mesajları (hata ayıklama)
+GET {{api}}/api/kutular/olaylar?limit=20
+Authorization: Bearer {{token}}
+
+### 20) Raporlar — toplama performansı
+GET {{api}}/api/raporlar/ozet?gun=30
+Authorization: Bearer {{token}}
+
+### 21) Sağlık kontrolü (veritabanı + MQTT) — token gerekmez
+GET {{api}}/health
