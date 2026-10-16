@@ -116,6 +116,10 @@ RETURNING adet + @miktar AS onceki, adet AS sonraki;
 Üç savunma hattı: koşullu `UPDATE` · `CHECK (adet >= 0)` kısıtı · `versiyon` eşzamanlılık belirteci.
 Hareket kaydı (`stok_hareketi`) aynı transaction'da yazılır — "düştü ama loglanmadı" durumu oluşamaz.
 
+**Kalem bölme:** bir ürün birden çok kutuda olabilir. Tek kutu talebi karşılamıyorsa
+toplam stok yeterliyse kalem bölünür (her pay kendi ışığı ve teyidiyle ayrı satır olur);
+toplam da yetmiyorsa hiç rezervasyon yapılmaz — hep ya da hiç.
+
 **Rezervasyon modeli:** stok, fiziksel teyitte değil **sipariş başlatılırken** düşülür.
 Yanan yeşil ışık "bu ürün sana ayrıldı" garantisidir. İptal ve teyit zaman aşımında stok iade edilir.
 

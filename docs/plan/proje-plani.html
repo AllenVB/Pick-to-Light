@@ -518,7 +518,7 @@ tests/  Domain.UnitTests · Application.UnitTests · Api.IntegrationTests
     <li>Hiçbir kutu tek başına yetmiyorsa: toplam stok yeterliyse kalem <b>bölünür</b> (iki kutudan toplama, iki LED sırayla yanar); yetmiyorsa KIRMIZI.</li>
     <li>Hiç ONLINE kutu yoksa kalem <code>BEKLIYOR</code> kalır, <code>CIHAZ_OFFLINE</code> alarmı üretilir ve arayüz manuel toplama önerir.</li>
   </ol>
-  <p class="note">v1 sadeleştirmesi: kalem bölme (3. madde) opsiyoneldir, 6. haftada zaman kalırsa eklenir. Varsayılan davranış tek kutudan toplamadır.</p>
+  <p class="note">Kalem bölme (3. madde) uygulanmıştır: tek kutu yetmiyorsa talep en dolu kutudan başlanarak bölünür ve her pay ayrı bir sipariş kalemi satırı olur (kendi ışığı ve kendi teyidi ile). Toplam stok yetmiyorsa kısmi rezervasyon yapılmaz — hep ya da hiç.</p>
 </section>
 
 <section>

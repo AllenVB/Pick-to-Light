@@ -231,6 +231,29 @@ public sealed class TestTezgahi : IDisposable
         return (urun, kutu);
     }
 
+    /// <summary>Var olan bir ürüne ikinci (üçüncü…) kutu ekler — kalem bölme senaryoları için.</summary>
+    public Kutu KutuEkle(Urun urun, int stokAdedi, BaglantiDurumu baglanti = BaglantiDurumu.Online)
+    {
+        var kutu = new Kutu
+        {
+            Kod = $"K-{urun.Sku}-{Db.Kutular.Count() + 1}",
+            UrunId = urun.Id,
+            CihazMac = $"AA:BB:CC:DD:EE:{Db.Kutular.Count() + 1:X2}",
+            MqttTopic = string.Empty,
+            BaglantiDurumu = baglanti,
+            RafKonumu = "A1-R2"
+        };
+
+        Db.Kutular.Add(kutu);
+        Db.SaveChanges();
+
+        kutu.MqttTopic = $"depo/kutu/{kutu.Id}";
+        Db.Stoklar.Add(new Stok { KutuId = kutu.Id, Adet = stokAdedi });
+        Db.SaveChanges();
+
+        return kutu;
+    }
+
     public int StokAdedi(long kutuId) => Db.Stoklar.AsNoTracking().First(s => s.KutuId == kutuId).Adet;
 
     public void Dispose() => Db.Dispose();

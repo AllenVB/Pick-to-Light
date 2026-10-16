@@ -76,7 +76,10 @@ public sealed class SiparisServisi(
     // ──────────────────────────────── Başlatma (ana akış) ────────────────────────────────
 
     /// <summary>
-    /// Siparişi toplamaya açar: her kalem için kutu seçer, stoğu atomik düşer ve LED'i yakar.
+    /// Siparişi toplamaya açar. İki aşamalıdır:
+    ///   1) Eşleştirme: her kalem için dağıtım planı çıkarılır; tek kutu yetmiyorsa
+    ///      kalem birden çok kutuya <b>bölünür</b> (Bölüm 6.4) ve yeni satırlar kaydedilir.
+    ///   2) Rezervasyon: her satır için stok atomik düşülür ve LED yakılır.
     /// Stok yetmeyen kalemde ışık <b>yakılmaz</b>; alarm üretilir ve sipariş kilitlenir.
     /// </summary>
     public async Task<SiparisDetayDto> BaslatAsync(long siparisId, CancellationToken ct = default)
@@ -86,71 +89,99 @@ public sealed class SiparisServisi(
         if (siparis.Durum is SiparisDurumu.Tamamlandi or SiparisDurumu.Iptal)
             throw new GecersizDurumGecisiException("Sipariş", siparis.Durum.ToString(), nameof(SiparisDurumu.Hazirlaniyor));
 
-        var yetersizVar = false;
+        // ── 1. Aşama: eşleştirme ve bölme ──
+        // Yeni satırlar önce kaydedilir ki LED komutu geçerli bir kalem kimliği taşısın.
+        var isikPlani = new List<(SiparisKalemi Kalem, Kutu Kutu)>();
+        var yetersizler = new List<(SiparisKalemi Kalem, int Mevcut, string Mesaj, long? KutuId)>();
+        var cevrimdisiler = new List<(SiparisKalemi Kalem, Kutu Kutu, string Mesaj)>();
 
-        foreach (var kalem in siparis.Kalemler.OrderBy(k => k.Sira ?? k.Id))
+        var islenecekler = siparis.Kalemler
+            .Where(k => k.Durum is not (KalemDurumu.Alindi or KalemDurumu.IsikYandi or KalemDurumu.Iptal))
+            .OrderBy(k => k.Sira ?? k.Id)
+            .ToList();
+
+        var sonrakiSira = siparis.Kalemler.Max(k => k.Sira ?? 0);
+
+        foreach (var kalem in islenecekler)
         {
-            // Zaten alınmış veya ışığı yanan kalemi tekrar işlemeyiz (idempotent başlatma).
-            if (kalem.Durum is KalemDurumu.Alindi or KalemDurumu.IsikYandi)
-                continue;
+            var plan = await kutuSecici.PlanlaAsync(kalem.UrunId, kalem.Miktar, ct);
 
+            if (!plan.Karsilanabilir)
+            {
+                // Tüm kutular çevrimdışıysa stok rezerve edilmez; manuel toplama önerilir.
+                if (plan.CevrimdisiKutu is not null && plan.Hata is not null)
+                {
+                    kalem.KutuId = plan.CevrimdisiKutu.Id;
+                    kalem.Durum = KalemDurumu.Bekliyor;
+                    cevrimdisiler.Add((kalem, plan.CevrimdisiKutu, plan.Hata));
+                    continue;
+                }
+
+                var mevcut = plan.CevrimdisiKutu?.Stok?.Adet ?? 0;
+                yetersizler.Add((kalem, mevcut,
+                    plan.Hata ?? $"STOK_YETERSIZ: istenen {kalem.Miktar}, mevcut {kalem.Miktar - plan.KarsilanamayanMiktar}",
+                    plan.CevrimdisiKutu?.Id));
+                continue;
+            }
+
+            // İlk pay mevcut kaleme yazılır.
+            var ilk = plan.Paylar[0];
+            kalem.KutuId = ilk.Kutu.Id;
+            kalem.Miktar = ilk.Miktar;
+            isikPlani.Add((kalem, ilk.Kutu));
+
+            // Kalan paylar yeni kalem satırları olur: operatör iki kutuyu sırayla gezer.
+            foreach (var pay in plan.Paylar.Skip(1))
+            {
+                var ekKalem = new SiparisKalemi
+                {
+                    SiparisId = siparis.Id,
+                    Siparis = siparis,
+                    UrunId = kalem.UrunId,
+                    Urun = kalem.Urun,
+                    KutuId = pay.Kutu.Id,
+                    Miktar = pay.Miktar,
+                    Durum = KalemDurumu.Bekliyor,
+                    Sira = ++sonrakiSira
+                };
+
+                db.SiparisKalemleri.Add(ekKalem);
+                siparis.Kalemler.Add(ekKalem);
+                isikPlani.Add((ekKalem, pay.Kutu));
+            }
+
+            if (plan.Bolundu)
+            {
+                log.LogInformation("Kalem bölündü: {Urun} × {Miktar} → {KutuSayisi} kutu",
+                    kalem.Urun.Ad, plan.ToplamPay, plan.Paylar.Count);
+            }
+        }
+
+        await db.SaveChangesAsync(ct);   // yeni kalemler kimlik alsın
+
+        // ── 2. Aşama: atomik rezervasyon + ışık ──
+        foreach (var (kalem, kutu) in isikPlani)
+        {
             var urun = kalem.Urun;
-            var secim = await kutuSecici.SecAsync(kalem.UrunId, kalem.Miktar, ct);
-
-            if (!secim.Bulundu)
-            {
-                yetersizVar = true;
-                await KalemiYetersizIsaretleAsync(kalem, siparis, urun, 0,
-                    secim.Hata ?? "Uygun kutu bulunamadı.", ct);
-                continue;
-            }
-
-            var kutu = secim.Kutu!;
             var mevcut = kutu.Stok?.Adet ?? 0;
-            var renk = IsikKarari.Belirle(mevcut, kalem.Miktar, urun.GuvenlikStogu);
+            var renk = IsikKarari.Belirle(Math.Max(mevcut, kalem.Miktar), kalem.Miktar, urun.GuvenlikStogu);
 
-            if (renk == LedRengi.Kirmizi)
-            {
-                yetersizVar = true;
-                await KalemiYetersizIsaretleAsync(kalem, siparis, urun, mevcut,
-                    $"STOK_YETERSIZ: istenen {kalem.Miktar}, mevcut {mevcut}", ct, kutu.Id);
-                continue;
-            }
-
-            if (kutu.BaglantiDurumu == BaglantiDurumu.Offline)
-            {
-                // Stok var ama kutu çevrimdışı: rezervasyon yapmayız, ışık yakamayız.
-                kalem.KutuId = kutu.Id;
-                kalem.LedRengi = renk;
-                kalem.Durum = KalemDurumu.Bekliyor;
-                await alarmServisi.UretAsync(AlarmTipi.CihazOffline,
-                    $"{kutu.Kod} çevrimdışı — '{urun.Ad}' için manuel toplama gerekiyor.", kutu.Id, siparis.Id, ct);
-                continue;
-            }
-
-            // ── Çekirdek adım: koşullu atomik düşme. Başarısızsa ışık yanmaz. ──
             var sonuc = await stokDeposu.DusAsync(kutu.Id, kalem.Miktar, kalem.Id, oturum.PersonelId,
                 $"Sipariş {siparis.SiparisNo}", ct);
 
             if (!sonuc.Basarili)
             {
-                // Yarış koşulu: biz okuduktan sonra başka bir sipariş stoğu aldı.
-                yetersizVar = true;
-                await KalemiYetersizIsaretleAsync(kalem, siparis, urun, sonuc.OncekiAdet,
-                    $"STOK_YETERSIZ (eşzamanlı işlem): istenen {kalem.Miktar}, mevcut {sonuc.OncekiAdet}", ct, kutu.Id);
+                // Yarış koşulu: biz planladıktan sonra başka bir sipariş stoğu aldı.
+                yetersizler.Add((kalem, sonuc.OncekiAdet,
+                    $"STOK_YETERSIZ (eşzamanlı işlem): istenen {kalem.Miktar}, mevcut {sonuc.OncekiAdet}", kutu.Id));
                 continue;
             }
 
-            kalem.KutuId = kutu.Id;
             kalem.LedRengi = renk;
             kalem.Durum = KalemDurumu.IsikYandi;
             kalem.MesajId = Guid.NewGuid();
             kalem.IsikYanmaZamani = zaman.Simdi;
             kalem.StokRezerveEdildi = true;
-
-            // Not: kutu.Stok.Adet'e elle yazmıyoruz. Stok yalnızca StokDeposu üzerinden
-            // değişir; izlenen nesne orada tazelenir. Elle yazmak, eşzamanlı isteklerde
-            // bu isteğin eski değerini SaveChanges ile geri yazma riski doğurur.
 
             await mqtt.LedYakAsync(new LedKomutu(
                 kalem.MesajId.Value, kutu.Id, kutu.MqttTopic, renk, kalem.Miktar, kalem.Id,
@@ -168,7 +199,24 @@ public sealed class SiparisServisi(
             }
         }
 
-        var hedef = yetersizVar ? SiparisDurumu.Kilitli : SiparisDurumu.Hazirlaniyor;
+        // ── 3. Aşama: karşılanamayanlar ──
+        foreach (var (kalem, kutu, mesaj) in cevrimdisiler)
+        {
+            await alarmServisi.UretAsync(AlarmTipi.CihazOffline,
+                $"{kutu.Kod}: {mesaj} ('{kalem.Urun.Ad}')", kutu.Id, siparis.Id, ct);
+        }
+
+        foreach (var (kalem, mevcut, mesaj, kutuId) in yetersizler)
+        {
+            kalem.KutuId = kutuId ?? kalem.KutuId;
+            kalem.LedRengi = LedRengi.Kirmizi;
+            kalem.Durum = KalemDurumu.Yetersiz;
+
+            await alarmServisi.UretAsync(AlarmTipi.StokYok, $"{kalem.Urun.Ad}: {mesaj}", kalem.KutuId, siparis.Id, ct);
+            await alarmServisi.TedarikTalebiAcAsync(kalem.Urun, siparis.Id, Math.Max(kalem.Miktar - mevcut, 1), ct);
+        }
+
+        var hedef = yetersizler.Count > 0 ? SiparisDurumu.Kilitli : SiparisDurumu.Hazirlaniyor;
         DurumGecisleri.SiparisGecisiDogrula(siparis.Durum, hedef);
         siparis.Durum = hedef;
 
@@ -177,19 +225,6 @@ public sealed class SiparisServisi(
 
         log.LogInformation("Sipariş başlatıldı: {SiparisNo} → {Durum}", siparis.SiparisNo, siparis.Durum);
         return await DetayAsync(siparis.SiparisNo, ct);
-    }
-
-    private async Task KalemiYetersizIsaretleAsync(SiparisKalemi kalem, Siparis siparis, Urun urun, int mevcut,
-        string mesaj, CancellationToken ct, long? kutuId = null)
-    {
-        kalem.KutuId = kutuId ?? kalem.KutuId;
-        kalem.LedRengi = LedRengi.Kirmizi;
-        kalem.Durum = KalemDurumu.Yetersiz;
-
-        await alarmServisi.UretAsync(AlarmTipi.StokYok,
-            $"{urun.Ad}: {mesaj}", kutuId, siparis.Id, ct);
-
-        await alarmServisi.TedarikTalebiAcAsync(urun, siparis.Id, Math.Max(kalem.Miktar - mevcut, 1), ct);
     }
 
     // ──────────────────────────────── Teyit ────────────────────────────────
