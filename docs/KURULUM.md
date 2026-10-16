@@ -100,7 +100,25 @@ curl -s -X POST localhost:5080/api/siparisler/$SIP/baslat -H "Authorization: Bea
 
 Simülatör ekranında `🟢 kutu 1 YESIL yandı` satırını görmeniz gerekir.
 
-## 6. Sık karşılaşılan sorunlar
+## 6. Testler
+
+```bash
+dotnet test                                   # tümü (birim + entegrasyon)
+dotnet test tests/PickToLight.Domain.UnitTests        # ışık kararı, durum makineleri
+dotnet test tests/PickToLight.Application.UnitTests   # sipariş akışı (bellek içi veritabanı)
+dotnet test tests/PickToLight.Api.IntegrationTests    # gerçek PostgreSQL + HTTP
+```
+
+Entegrasyon testleri için PostgreSQL kullanıcısının veritabanı oluşturabilmesi gerekir:
+
+```bash
+sudo -u postgres psql -c 'ALTER ROLE ptl CREATEDB;'
+```
+
+Farklı bir sunucu için: `export PTL_TEST_POSTGRES="Host=...;Database=postgres;Username=...;Password=..."`
+PostgreSQL yoksa bu testler atlanır.
+
+## 7. Sık karşılaşılan sorunlar
 
 | Belirti | Sebep / çözüm |
 |---|---|

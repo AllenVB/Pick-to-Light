@@ -143,15 +143,28 @@ Yanan yeşil ışık "bu ürün sana ayrıldı" garantisidir. İptal ve teyit za
 ## Testler
 
 ```bash
-dotnet test                     # 58 test: ışık kararı, durum makineleri, sipariş akışı
+dotnet test                     # 70 test: birim (58) + entegrasyon (12)
 ```
+
+Entegrasyon testleri **gerçek PostgreSQL** üzerinde çalışır: her test sınıfı kendi geçici
+veritabanını kurar, migration'ları uygular ve sonunda siler. Bağlantı `PTL_TEST_POSTGRES`
+ortam değişkeninden alınır (varsayılan: yerel sunucu, `ptl` kullanıcısı).
+Kullanıcının veritabanı oluşturma yetkisi olmalıdır:
+
+```bash
+sudo -u postgres psql -c 'ALTER ROLE ptl CREATEDB;'    # Docker kullanıyorsanız gerekmez
+PTL_TEST_POSTGRES="Host=localhost;Port=5432;Database=postgres;Username=ptl;Password=ptl_parola" dotnet test
+```
+
+PostgreSQL erişilemezse entegrasyon testleri **atlanır** (sessizce geçmez).
 
 Kapsanan senaryolar: yeşil/sarı/kırmızı kararları ve sınır değerleri, atomik rezervasyon,
 çift teyidin yok sayılması (idempotenlik), teyit zaman aşımı ve iade, sipariş iptali,
 çevrimdışı kutu, ağırlık uyuşmazlığı, mükerrer sipariş numarası, eşzamanlı rezervasyon.
 
-Gerçek PostgreSQL üzerinde doğrulanan eşzamanlılık senaryosu: 20 paralel sipariş başlatma,
-stok 7 → 1, fazla verme yok, negatif stok yok, hatasız yanıt.
+Gerçek PostgreSQL üzerindeki eşzamanlılık testleri (otomatik): 20 paralel sipariş başlatma
+(stok 7 → 1, tam 3 rezervasyon), 50 paralel düşme denemesi (tam 20 başarılı, stok 0),
+CHECK kısıtının negatif stoğu reddetmesi, paralel tedarik talebinin tek kayıt bırakması.
 
 ---
 
