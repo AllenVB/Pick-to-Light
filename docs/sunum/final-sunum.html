@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>Pick-to-Light — Final Sunum</title>
+<style>
+  @page { size: 338.67mm 190.5mm; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { font-family: "Inter", "DejaVu Sans", sans-serif; }
+
+  .slide { width: 338.67mm; height: 190.5mm; padding: 15mm 18mm; position: relative; page-break-after: always; overflow: hidden; display: flex; flex-direction: column; }
+  .slide:last-child { page-break-after: auto; }
+  .dark  { background: #0d1520; color: #eef3f8; }
+  .light { background: #ffffff; color: #1b2430; }
+
+  .badge { display: inline-block; align-self: flex-start; border-radius: 999px; padding: 4px 14px; font-size: 9pt; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #fff; background: #0f766e; }
+  .badge.amber { background: #d97706; } .badge.green { background: #15803d; } .badge.red { background: #dc2626; } .badge.slate { background: #334155; }
+  h1 { font-size: 27pt; font-weight: 800; letter-spacing: -.02em; margin: 6mm 0 2mm; line-height: 1.12; }
+  .sub { font-size: 12pt; line-height: 1.45; }
+  .dark .sub { color: #9fb2c4; } .light .sub { color: #5b6b7c; }
+  .lights { position: absolute; top: 15mm; right: 18mm; display: flex; gap: 7px; }
+  .lights i { width: 13px; height: 13px; border-radius: 50%; display: block; }
+  .pg { position: absolute; bottom: 9mm; right: 18mm; font-size: 8.5pt; letter-spacing: .1em; }
+  .dark .pg { color: #4d6b84; } .light .pg { color: #9aa8b5; }
+  .body { flex: 1; display: flex; gap: 7mm; margin-top: 7mm; align-items: center; }
+  .body.fill { align-items: stretch; }
+  .body.top { align-items: flex-start; }
+  .col { flex: 1; display: flex; flex-direction: column; gap: 5mm; }
+
+  .card { border-radius: 8px; padding: 6mm 6mm; }
+  .light .card { background: #f5f8fa; border: 1px solid #e3eaef; }
+  .dark  .card { background: #16212e; border: 1px solid #27384a; }
+  .card h3 { font-size: 13.5pt; font-weight: 700; margin-bottom: 2.5mm; }
+  .card p { font-size: 10.5pt; line-height: 1.5; }
+  .light .card p { color: #51616f; } .dark .card p { color: #9fb2c4; }
+  .big { font-size: 24pt; font-weight: 800; color: #0f766e; line-height: 1.1; }
+  .hr { height: 1px; background: #dde5eb; margin: 4mm 0 3mm; }
+  .dark .hr { background: #27384a; }
+  .tiny { font-size: 9pt; } .light .tiny { color: #7b8a98; } .dark .tiny { color: #6b8299; }
+
+  .step { display: flex; align-items: center; gap: 4mm; border-radius: 7px; padding: 3.6mm 5mm; }
+  .light .step { background: #f5f8fa; border: 1px solid #e3eaef; }
+  .dark .step { background: #16212e; border: 1px solid #27384a; }
+  .step .n { width: 9mm; height: 9mm; min-width: 9mm; border-radius: 50%; background: #0f766e; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 11pt; }
+  .dark .step .n { background: #14b8a6; color: #06231f; }
+  .step .tx b { font-size: 11pt; display: block; }
+  .step .tx span { font-size: 9.4pt; }
+  .light .step .tx span { color: #5b6b7c; } .dark .step .tx span { color: #9fb2c4; }
+
+  .lamp { width: 17mm; height: 17mm; border-radius: 50%; margin: 0 auto 3mm; }
+  .l-g { background: #22c55e; box-shadow: 0 0 0 5mm rgba(34,197,94,.17); }
+  .l-y { background: #f59e0b; box-shadow: 0 0 0 5mm rgba(245,158,11,.17); }
+  .l-r { background: #ef4444; box-shadow: 0 0 0 5mm rgba(239,68,68,.17); }
+  .formula { font-family: "DejaVu Sans Mono", monospace; font-size: 13pt; font-weight: 700; text-align: center; padding: 3.5mm; border-radius: 6px; background: #0d1520; color: #d7e3ee; margin: 3mm 0; }
+  .ccard { border-radius: 9px; padding: 6mm; text-align: center; flex: 1; }
+  .ccard.g { border: 2px solid #22c55e; } .ccard.y { border: 2px solid #f59e0b; } .ccard.r { border: 2px solid #ef4444; }
+  .light .ccard { background: #f7fafb; }
+  .ccard .t { font-size: 15pt; font-weight: 800; letter-spacing: .04em; }
+  .ccard .s { font-size: 10pt; font-weight: 600; margin-top: 1mm; }
+  .light .ccard .s { color: #5b6b7c; }
+  .ccard .d { font-size: 9.6pt; line-height: 1.45; margin-top: 3mm; }
+  .light .ccard .d { color: #51616f; }
+
+  pre { font-family: "DejaVu Sans Mono", monospace; font-size: 9.6pt; line-height: 1.55; background: #0d1520; color: #d7e3ee; border-radius: 7px; padding: 5mm 6mm; white-space: pre-wrap; }
+  .dark pre { background: #0a1119; border: 1px solid #27384a; }
+  pre .k { color: #7fd8ce; } pre .c { color: #6b8299; } pre .s { color: #f0b67f; } pre .r { color: #fda4a4; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 10pt; }
+  th { background: #0f766e; color: #fff; text-align: left; padding: 3mm 4mm; font-size: 9.4pt; font-weight: 600; }
+  td { padding: 2.8mm 4mm; border-bottom: 1px solid #e3eaef; }
+  .dark td { border-bottom: 1px solid #27384a; }
+  .light tr:nth-child(even) td { background: #f7fafb; }
+  .dark tr:nth-child(even) td { background: #16212e; }
+  .mono { font-family: "DejaVu Sans Mono", monospace; font-size: 9.4pt; }
+
+  ul.chk { list-style: none; }
+  ul.chk li { font-size: 10.6pt; line-height: 1.5; padding: 2mm 0 2mm 7mm; position: relative; }
+  ul.chk li:before { content: "●"; position: absolute; left: 1mm; color: #0f766e; font-size: 9pt; }
+  .dark ul.chk li:before { color: #2dd4bf; }
+  ul.chk.amber li:before { color: #d97706; }
+
+  .chips span { display: inline-block; border-radius: 999px; padding: 3px 12px; font-size: 9pt; font-weight: 600; margin: 0 4px 5px 0; }
+  .light .chips span { background: #e8f1f0; color: #0f766e; }
+  .dark .chips span { border: 1px solid #2b4455; color: #7fd8ce; }
+
+  .flowbox { border-radius: 8px; padding: 4.5mm 5mm; text-align: center; font-size: 10.4pt; font-weight: 600; }
+  .light .flowbox { background: #f5f8fa; border: 1px solid #e3eaef; }
+  .dark .flowbox { background: #16212e; border: 1px solid #27384a; }
+  .flowbox small { display: block; font-weight: 400; font-size: 9pt; margin-top: 1.5mm; }
+  .light .flowbox small { color: #5b6b7c; } .dark .flowbox small { color: #9fb2c4; }
+  .arrow { text-align: center; color: #0f766e; font-size: 14pt; line-height: 1; margin: 1.5mm 0; }
+  .dark .arrow { color: #2dd4bf; }
+  .tl { display: flex; gap: 3mm; margin-top: 6mm; }
+  .tl .it { flex: 1; border-radius: 8px; padding: 4.5mm; }
+  .light .tl .it { background: #f5f8fa; border: 1px solid #e3eaef; }
+  .dark .tl .it { background: #16212e; border: 1px solid #27384a; }
+  .tl .it.now { border: 2px solid #14b8a6; }
+  .tl .it b { display: block; font-size: 12pt; color: #0f766e; margin-bottom: 2mm; }
+  .dark .tl .it b { color: #2dd4bf; }
+  .tl .it p { font-size: 9.4pt; line-height: 1.45; }
+  .light .tl .it p { color: #51616f; } .dark .tl .it p { color: #9fb2c4; }
+</style>
+<style>
+  .ss { max-width: 100%; max-height: 112mm; width: auto; margin: 0 auto;
+        border-radius: 8px; border: 1px solid #27384a; display: block; }
+  .light .ss { border-color: #dfe6ec; }
+  .sayi { font-size: 30pt; font-weight: 800; color: #0f766e; line-height: 1; }
+  .dark .sayi { color: #2dd4bf; }
+  .sayi-alt { font-size: 9pt; margin-top: 2mm; }
+  .light .sayi-alt { color: #5b6b7c; } .dark .sayi-alt { color: #9fb2c4; }
+  .kutucuk { flex: 1; border-radius: 8px; padding: 5mm; text-align: center; }
+  .light .kutucuk { background: #f5f8fa; border: 1px solid #e3eaef; }
+  .dark .kutucuk { background: #16212e; border: 1px solid #27384a; }
+  .onay { color: #22c55e; font-weight: 700; }
+  .acik { color: #f59e0b; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<!-- 1 KAPAK -->
+<div class="slide dark">
+  <div class="lights"><i style="background:#22c55e"></i><i style="background:#f59e0b"></i><i style="background:#ef4444"></i></div>
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;max-width:74%">
+    <div style="color:#2dd4bf;letter-spacing:.22em;font-size:9.5pt;font-weight:700;text-transform:uppercase">Final Sunum · Uygulama Sonuçları</div>
+    <h1>Akıllı Depo<br>Pick-to-Light Sistemi</h1>
+    <div class="sub" style="margin-top:3mm">Planlanan sistem kuruldu: ışıkla yönlendirme, atomik stok düşme,<br>alarm ve tedarik akışı uçtan uca çalışıyor</div>
+    <div class="chips" style="margin-top:9mm">
+      <span>C# · ASP.NET Core</span><span>PostgreSQL</span><span>MQTT</span><span>Next.js</span><span>ESP32</span><span>SignalR</span>
+    </div>
+    <div style="margin-top:9mm;font-size:10.5pt;color:#9fb2c4;border-top:1px solid #27384a;padding-top:5mm">
+      <b style="color:#eef3f8">Elektrik Mühendisliği</b> &nbsp;×&nbsp; <b style="color:#eef3f8">Yazılım Mühendisliği</b>
+    </div>
+  </div>
+  <div class="pg">01 / 10</div>
+</div>
+
+<!-- 2 NE YAPTIK -->
+<div class="slide light">
+  <div class="lights"><i style="background:#22c55e"></i><i style="background:#f59e0b"></i><i style="background:#ef4444"></i></div>
+  <div class="badge green">Özet</div>
+  <h1>Plandan çalışan sisteme</h1>
+  <div class="body">
+    <div class="kutucuk"><div class="sayi">26</div><div class="sayi-alt">gereksinimin tamamı karşılandı<br>(16 fonksiyonel + 10 NFR)</div></div>
+    <div class="kutucuk"><div class="sayi">91</div><div class="sayi-alt">otomatik test geçiyor<br>74 birim + 17 entegrasyon</div></div>
+    <div class="kutucuk"><div class="sayi">24 ms</div><div class="sayi-alt">sipariş → LED (p95)<br>hedef 1000 ms</div></div>
+    <div class="kutucuk"><div class="sayi">0</div><div class="sayi-alt">negatif stok / fazla verme<br>20 paralel istekte</div></div>
+  </div>
+  <div class="body" style="flex:0;margin-top:0">
+    <div class="card" style="flex:1">
+      <div class="h">Yazılım tarafı — tamamlandı</div>
+      <ul class="chk" style="margin-bottom:0;font-size:9.6pt">
+        <li>Backend (C# · ASP.NET Core · EF Core · PostgreSQL · MQTT · SignalR)</li>
+        <li>Next.js arayüzü: pano, sipariş, toplama, stok, ürün, kutu, alarm, rapor, kiosk</li>
+        <li>Kutu simülatörü, demo betiği, gecikme ölçüm aracı, CI iş akışı</li>
+      </ul>
+    </div>
+    <div class="card" style="flex:1">
+      <div class="h">Donanım tarafı — devam ediyor</div>
+      <ul class="chk amber" style="margin-bottom:0;font-size:9.6pt">
+        <li>ESP32 firmware'i yazıldı (MQTT sözleşmesine uyumlu)</li>
+        <li>Karta yükleme ve gerçek kutu testi yapılacak</li>
+        <li>Yazılım, simülatörle uçtan uca doğrulandı — donanımı beklemedi</li>
+      </ul>
+    </div>
+  </div>
+  <div class="pg">02 / 10</div>
+</div>
+
+<!-- 3 CANLI PANO -->
+<div class="slide light">
+  <div class="lights"><i style="background:#22c55e"></i><i style="background:#f59e0b"></i><i style="background:#ef4444"></i></div>
+  <div class="badge">Arayüz</div>
+  <h1>Canlı pano</h1>
+  <div class="sub">Kutuların stoğu, rengi ve bağlantısı anlık; sipariş başlatılınca ışık yanan kutu vurgulanır.</div>
+  <div class="body" style="align-items:flex-start">
+    <img class="ss" src="gorseller/canli-pano.png" alt="Canlı pano">
+  </div>
+  <div class="pg">03 / 10</div>
+</div>
+
+<!-- 4 TOPLAMA EKRANI -->
+<div class="slide light">
+  <div class="lights"><i style="background:#22c55e"></i><i style="background:#f59e0b"></i><i style="background:#ef4444"></i></div>
+  <div class="badge">Arayüz</div>
+  <h1>Toplama ekranı — üç senaryo bir arada</h1>
+  <div class="sub">Yeşil kalem ışık yandı; kırmızı kalem yetersiz işaretlendi, ışığı hiç yanmadı ve alarm üretildi.</div>
+  <div class="body" style="align-items:flex-start">
+    <img class="ss" src="gorseller/toplama-ekrani.png" alt="Toplama ekranı">
+  </div>
+  <div class="pg">04 / 10</div>
+</div>
+
+<!-- 5 OPERATÖR EKRANI -->
+<div class="slide light">
+  <div class="lights"><i style="background:#22c55e"></i><i style="background:#f59e0b"></i><i style="background:#ef4444"></i></div>
+  <div class="badge amber">Operatör</div>
+  <h1>Kiosk ekranı — 3 metreden okunur</h1>
+  <div class="sub">Operatör ekran taramaz: hangi kutudan kaç adet alacağını tek bakışta görür; sensör arızalanırsa "ALDIM" ile onaylar.</div>
+  <div class="body" style="align-items:flex-start">
+    <img class="ss" src="gorseller/operator-ekrani.png" alt="Operatör kiosk ekranı">
+  </div>
+  <div class="pg">05 / 10</div>
+</div>
+
+<!-- 6 ÇEKİRDEK MANTIK -->
+<div class="slide light">
+  <div class="lights"><i style="background:#22c55e"></i><i style="background:#f59e0b"></i><i style="background:#ef4444"></i></div>
+  <div class="badge">Çekirdek</div>
+  <h1>En kritik yer: atomik stok düşme</h1>
+  <div class="body fill">
+    <div class="col">
+      <div class="sub" style="margin-bottom:0">Kontrol ve düşme tek ifadede yapılır; iki operatör aynı kutudan eşzamanlı toplasa bile "ışık yeşil ama ürün yok" durumu oluşamaz.</div>
+      <pre><span class="k">UPDATE</span> stok
+   <span class="k">SET</span> adet = adet - @miktar, versiyon = versiyon + 1
+ <span class="k">WHERE</span> kutu_id = @kutuId <span class="k">AND</span> adet &gt;= @miktar
+<span class="k">RETURNING</span> adet + @miktar <span class="k">AS</span> onceki, adet <span class="k">AS</span> sonraki;
+<span class="c">-- etkilenen satır yok → stok yetersiz, hiçbir şey değişmedi</span></pre>
+      <div class="card">
+        <div class="h">Üç savunma hattı</div>
+        <p>Koşullu UPDATE · <span class="mono">CHECK (adet ≥ 0)</span> kısıtı · <span class="mono">versiyon</span> eşzamanlılık belirteci.
+        Hareket kaydı aynı transaction'da yazılır — "düştü ama loglanmadı" olamaz.</p>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card" style="border:2px solid #22c55e;background:#f3fbf5">
+        <div class="h" style="color:#15803d">Gerçek veritabanında kanıt</div>
+        <table style="font-size:9.4pt">
+          <tr><th>Senaryo</th><th>Sonuç</th></tr>
+          <tr><td>20 paralel sipariş · stok 7 · 2'şer adet</td><td><b>tam 3 rezervasyon</b>, stok 1</td></tr>
+          <tr><td>50 paralel düşme · stok 20 · 1'er adet</td><td><b>tam 20 başarılı</b>, stok 0</td></tr>
+          <tr><td>SQL ile negatife düşürme denemesi</td><td>kısıt <b>reddetti</b> (23514)</td></tr>
+          <tr><td>15 paralel tedarik talebi</td><td><b>tek kayıt</b> açıldı</td></tr>
+        </table>
+        <p style="font-size:9.4pt;margin-top:2mm">Hareket defteri zinciri eşzamanlılıkta bile kopmuyor: her satırın "önceki"si bir öncekinin "sonraki"si.</p>
+      </div>
+      <div class="card">
+        <div class="h">Geliştirme sırasında yakalanan 5 gerçek hata</div>
+        <p style="font-size:9.4pt">Yeniden deneme stratejisinin transaction'ı kırması · defterdeki önceki adedin yanlış yazılması ·
+        tedarik talebinde yarış koşulu · EF'in eski stok değerini geri yazması · durum makinesinde eksik geçiş.
+        Hepsi testlerle bulundu ve düzeltildi.</p>
+      </div>
+    </div>
+  </div>
+  <div class="pg">06 / 10</div>
+</div>
+
+<!-- 7 TEST VE ÖLÇÜM -->
+<div class="slide dark">
+  <div class="lights"><i style="background:#22c55e"></i><i style="background:#f59e0b"></i><i style="background:#ef4444"></i></div>
+  <div class="badge slate">Doğrulama</div>
+  <h1>Test ve ölçüm sonuçları</h1>
+  <div class="body">
+    <div class="col">
+      <table>
+        <tr><th>Test katmanı</th><th style="width:20%">Adet</th><th>Kapsam</th></tr>
+        <tr><td>Domain birim</td><td><b>34</b></td><td>Işık kararı sınır değerleri, durum makineleri</td></tr>
+        <tr><td>Servis birim</td><td><b>40</b></td><td>Sipariş akışı, kalem bölme, kutu seçimi, stok servisi</td></tr>
+        <tr><td>Entegrasyon</td><td><b>17</b></td><td>Gerçek PostgreSQL + HTTP: akış, eşzamanlılık, güvenlik, zaman aşımı</td></tr>
+        <tr><td><b>Toplam</b></td><td><b>91</b></td><td>CI'da her push'ta koşuyor</td></tr>
+      </table>
+      <ul class="chk">
+        <li>Entegrasyon testleri her sınıf için geçici veritabanı kurup siliyor</li>
+        <li>Donanımsız doğrulama: kutu simülatörü (kalp atışı, otomatik/manuel teyit)</li>
+      </ul>
+    </div>
+    <div class="col">
+      <div class="card">
+        <div class="h">Uçtan uca gecikme (15 ölçüm)</div>
+        <table style="font-size:9.6pt">
+          <tr><th>Ölçüm</th><th>p50</th><th>p95</th><th>Hedef</th></tr>
+          <tr><td>Sipariş → LED komutu</td><td><b>11,5 ms</b></td><td><b>24,4 ms</b></td><td>1000 ms ✔</td></tr>
+          <tr><td>API yanıtı (başlatma)</td><td>18,6 ms</td><td>33,3 ms</td><td>200 ms ✔</td></tr>
+        </table>
+        <p style="font-size:9.4pt;margin-top:2mm">
+          <span class="mono">tools/olcum.py</span> ile ölçüldü. Gerçek ESP32'nin ışığı yakma süresi dahil değil;
+          depo ağında tekrarlanacak.
+        </p>
+      </div>
+      <div class="card">
+        <div class="h">Dayanıklılık</div>
+        <p>Broker durdurulduğunda <span class="mono">/health</span> <b>Degraded</b> döndü, komutlar kuyruğa alındı;
+        broker geri gelince <b>Healthy</b>'ye dönüp kuyruk boşaldı. Kutu sessiz kalınca 60 sn içinde çevrimdışı işaretlendi.</p>
+      </div>
+    </div>
+  </div>
+  <div class="pg">07 / 10</div>
+</div>
+
+<!-- 8 RAPORLAR -->
+<div class="slide light">
+  <div class="lights"><i style="background:#22c55e"></i><i style="background:#f59e0b"></i><i style="background:#ef4444"></i></div>
+  <div class="badge">Yönetim</div>
+  <h1>Raporlar: toplama performansı</h1>
+  <div class="sub">Ortalama toplama süresi, kırmızı oranı, ürün ve kutu yoğunluğu — hepsi değişmez hareket defterinden.</div>
+  <div class="body" style="align-items:flex-start">
+    <img class="ss" src="gorseller/raporlar.png" alt="Raporlar ekranı">
+  </div>
+  <div class="pg">08 / 10</div>
+</div>
+
+<!-- 9 DEMO -->
+<div class="slide light">
+  <div class="lights"><i style="background:#22c55e"></i><i style="background:#f59e0b"></i><i style="background:#ef4444"></i></div>
+  <div class="badge green">Demo</div>
+  <h1>Canlı demo akışı</h1>
+  <div class="body fill">
+    <div class="col">
+      <div class="step"><div class="n">1</div><div class="tx"><b>Kurulum</b><span>Kutular çevrimiçi, panoda stok ve renkler görünüyor</span></div></div>
+      <div class="step"><div class="n">2</div><div class="tx"><b>Yeşil senaryo</b><span>Sipariş girilir → ışık yanar → ürün alınır → stok otomatik düşer</span></div></div>
+      <div class="step"><div class="n">3</div><div class="tx"><b>Sarı senaryo</b><span>Kritik seviyeye inilir → uyarı + tedarik talebi açılır</span></div></div>
+      <div class="step"><div class="n">4</div><div class="tx"><b>Kırmızı senaryo</b><span>Işık yanmaz, alarm verilir, sipariş kilitlenir, stok değişmez</span></div></div>
+    </div>
+    <div class="col">
+      <div class="step"><div class="n">5</div><div class="tx"><b>Dayanıklılık</b><span>Kutunun fişi çekilir → 60 sn içinde çevrimdışı; geri takılınca döner</span></div></div>
+      <div class="step"><div class="n">6</div><div class="tx"><b>Eşzamanlılık</b><span>İki sipariş aynı kutudan aynı anda → negatif stok yok</span></div></div>
+      <div class="step"><div class="n">7</div><div class="tx"><b>İzlenebilirlik</b><span>Hareket defteri, alarmlar ve ham cihaz olayları gösterilir</span></div></div>
+      <div class="card" style="margin-top:2mm">
+        <div class="h">Tek komutla</div>
+        <pre style="margin:2mm 0 0"><span class="c"># hazırlık + dört senaryo + özet</span>
+bash tools/demo.sh hepsi</pre>
+      </div>
+    </div>
+  </div>
+  <div class="pg">09 / 10</div>
+</div>
+
+<!-- 10 SONRAKİ ADIMLAR -->
+<div class="slide dark">
+  <div class="lights"><i style="background:#22c55e"></i><i style="background:#f59e0b"></i><i style="background:#ef4444"></i></div>
+  <div class="badge">Kapanış</div>
+  <h1>Durum ve sonraki adımlar</h1>
+  <div class="body">
+    <div class="col">
+      <div class="card">
+        <div class="h" style="color:#22c55e">Tamamlandı</div>
+        <ul class="chk" style="margin-bottom:0;font-size:9.8pt">
+          <li>Işık kararı, atomik rezervasyon, teyit ve iade akışı</li>
+          <li>Kalem bölme: tek kutu yetmezse birden çok kutudan toplama</li>
+          <li>Alarm, tedarik talebi, hareket defteri, raporlar</li>
+          <li>Arayüz (9 ekran) · kiosk ekranı · canlı akış</li>
+          <li>Güvenlik: JWT, roller, hız sınırı, MQTT kimlik + ACL</li>
+          <li>91 test, CI, demo betiği, ölçüm aracı, kurulum rehberi</li>
+        </ul>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card">
+        <div class="h" style="color:#f59e0b">Sıradaki iş (donanım)</div>
+        <ul class="chk amber" style="margin-bottom:0;font-size:9.8pt">
+          <li>Firmware'in ESP32'ye yüklenmesi ve ilk gerçek LED testi</li>
+          <li>4 kutunun montajı, güç dağıtımı ve kablolama</li>
+          <li>Onay sensörü yükseltmesi (IR / HX711) ve kalibrasyon</li>
+          <li>Depo ağında gecikme ölçümünün tekrarı</li>
+          <li>100 döngü dayanıklılık testi</li>
+        </ul>
+      </div>
+      <div class="card" style="border:1px solid #14b8a6;background:#0f1d26">
+        <p style="color:#eef3f8;font-size:11pt"><b style="color:#2dd4bf">Not:</b> Yazılım, donanımı beklemeden
+        simülatörle uçtan uca doğrulandı — planın 1 numaralı riski (donanım gecikmesi) böylece karşılandı.</p>
+      </div>
+    </div>
+  </div>
+  <div class="pg">10 / 10</div>
+</div>
+
+</body>
+</html>
