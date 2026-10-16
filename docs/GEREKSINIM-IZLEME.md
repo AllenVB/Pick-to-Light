@@ -4,14 +4,14 @@ Planlama dokümanındaki (Bölüm 3) her gereksinimin **kodda nerede karşıland
 **hangi testin doğruladığı**. Durum sütunu: ✅ uygulandı ve test edildi ·
 🟡 uygulandı, otomatik testi yok · ⬜ kapsam dışı.
 
-_Son güncelleme: kodlama fazı · 79 otomatik test (34 domain + 30 servis + 15 entegrasyon)_
+_Son güncelleme: kodlama fazı · 89 otomatik test (34 domain + 40 servis + 15 entegrasyon)_
 
 ## Fonksiyonel gereksinimler
 
 | No | Gereksinim | Uygulama | Doğrulayan test | Durum |
 |---|---|---|---|---|
 | FR-01 | Sipariş numarası ve kalemleriyle sipariş girişi | `SiparisServisi.OlusturAsync` · `POST /api/siparisler` · `/siparis/yeni` | `Mukerrer_siparis_numarasi_reddedilir`, `Mukerrer_siparis_numarasi_409_doner…` | ✅ |
-| FR-02 | Kalemlerin kutuyla eşleştirilmesi | `KutuSecici.PlanlaAsync` · `SiparisServisi.BaslatAsync` (1. aşama) | `KalemBolmeTestleri` (6 test), `Tanimli_kutusu_olmayan_urun_yetersiz_isaretlenir` | ✅ |
+| FR-02 | Kalemlerin kutuyla eşleştirilmesi | `KutuSecici.PlanlaAsync` · `SiparisServisi.BaslatAsync` (1. aşama) | `KutuSeciciTestleri` (10 test), `KalemBolmeTestleri` (6 test) | ✅ |
 | FR-03 | Üç renkli stok durumu kararı | `IsikKarari.Belirle` (Domain) | `IsikKarariTestleri` — 10 sınır değer vakası | ✅ |
 | FR-04 | Kutunun LED'inin yakılması | `MqttIstemciServisi.LedYakAsync` (QoS 1) | `Yesil_senaryo_stogu_dusurur_LED_komutu_yayinlar…` | ✅ |
 | FR-05 | Alım sonrası otomatik stok düşme | `StokDeposu.DusAsync` (rezervasyon) · `SiparisServisi.TeyitEtAsync` | `Yesil_senaryoda_stok_dusulur…`, `Teyit_kalemi_alindi_yapar_ve_stogu_ikinci_kez_dusurmez` | ✅ |
