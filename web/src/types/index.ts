@@ -167,3 +167,12 @@ export interface GunlukHareket {
   cikisAdedi: number;
   girisAdedi: number;
 }
+
+export interface CihazOlay {
+  id: number;
+  kutuId?: number;
+  kutuKod?: string;
+  topic: string;
+  payload: string;
+  zaman: string;
+}

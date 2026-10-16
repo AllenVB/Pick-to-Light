@@ -104,6 +104,25 @@ public sealed class CihazServisi(
         await bildirim.KutuIsikDegistiAsync(kutu.Id, renk, 0, null, ct);
     }
 
+    /// <summary>
+    /// Cihazlardan gelen ham MQTT mesajları (Bölüm 12.2). "Işık neden yanmadı?",
+    /// "teyit neden işlenmedi?" sorularının cevabı burada aranır.
+    /// </summary>
+    public async Task<IReadOnlyList<CihazOlayDto>> HamOlaylarAsync(long? kutuId, int limit = 100,
+        CancellationToken ct = default)
+    {
+        var sorgu = db.CihazOlaylari.AsNoTracking().Include(o => o.Kutu).AsQueryable();
+
+        if (kutuId.HasValue)
+            sorgu = sorgu.Where(o => o.KutuId == kutuId.Value);
+
+        return await sorgu
+            .OrderByDescending(o => o.Id)
+            .Take(Math.Clamp(limit, 1, 500))
+            .Select(o => new CihazOlayDto(o.Id, o.KutuId, o.Kutu!.Kod, o.Topic, o.Payload, o.Zaman))
+            .ToListAsync(ct);
+    }
+
     public async Task HamOlayKaydetAsync(long? kutuId, string topic, string payload, CancellationToken ct = default)
     {
         db.CihazOlaylari.Add(new CihazOlayi

@@ -20,6 +20,12 @@ public sealed class KutularController(CihazServisi cihaz, StokServisi stok) : Co
     public async Task<ActionResult<KutuDto>> Ekle(KutuIstek istek, CancellationToken ct)
         => Ok(await cihaz.KutuEkleAsync(istek, ct));
 
+    /// <summary>Cihazlardan gelen ham MQTT mesajları — hata ayıklama kaynağı (Bölüm 12.2).</summary>
+    [HttpGet("olaylar")]
+    public async Task<ActionResult<IReadOnlyList<CihazOlayDto>>> Olaylar(
+        [FromQuery] long? kutuId, [FromQuery] int limit = 100, CancellationToken ct = default)
+        => Ok(await cihaz.HamOlaylarAsync(kutuId, limit, ct));
+
     /// <summary>Bakım modu: seçilen kutuda test ışığı yakar (FR-16).</summary>
     [HttpPost("{id:long}/led-test")]
     [Authorize(Roles = "ADMIN")]

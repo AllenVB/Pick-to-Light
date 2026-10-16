@@ -201,6 +201,7 @@ CHECK kısıtının negatif stoğu reddetmesi, paralel tedarik talebinin tek kay
 | GET | `/api/hareketler` | Stok hareket defteri |
 | GET | `/api/raporlar/ozet` · `/urunler` · `/kutular` · `/gunluk` | Toplama performansı raporları |
 | WS | `/hubs/depo` | Canlı olaylar (SignalR) |
+| GET | `/api/kutular/olaylar` | Cihazlardan gelen ham MQTT mesajları (hata ayıklama) |
 | GET | `/health` | Veritabanı ve MQTT broker durumu (JSON) |
 
 Her isteğe bir korelasyon kimliği verilir (`X-Correlation-Id`); kimlik log kayıtlarına

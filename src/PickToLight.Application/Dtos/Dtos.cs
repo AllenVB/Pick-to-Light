@@ -105,6 +105,14 @@ public sealed record TedarikTalebiDto(
     TedarikDurumu Durum,
     DateTimeOffset Olusturma);
 
+public sealed record CihazOlayDto(
+    long Id,
+    long? KutuId,
+    string? KutuKod,
+    string Topic,
+    string Payload,
+    DateTimeOffset Zaman);
+
 // ───────────────────────── Kimlik ─────────────────────────
 
 public sealed record GirisIstek(string KullaniciAdi, string Parola);
