@@ -160,7 +160,7 @@ her kutuya ayrı kullanıcı/parola ve ACL üretir (kutu yalnızca kendi topic'l
 ## Testler
 
 ```bash
-dotnet test                     # 70 test: birim (58) + entegrasyon (12)
+dotnet test                     # 91 test: birim (74) + entegrasyon (17)
 ```
 
 Entegrasyon testleri **gerçek PostgreSQL** üzerinde çalışır: her test sınıfı kendi geçici

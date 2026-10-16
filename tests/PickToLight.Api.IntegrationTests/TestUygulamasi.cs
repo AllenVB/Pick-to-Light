@@ -31,6 +31,9 @@ public class TestUygulamasi : WebApplicationFactory<Program>, IAsyncLifetime
     /// hız sınırını sınayan test bunu düşürür.</summary>
     protected virtual int GirisDenemeLimiti => 1000;
 
+    /// <summary>Teyit zaman aşımı; varsayılanı yüksektir ki testler etkilenmesin.</summary>
+    protected virtual int TeyitZamanAsimiSaniye => 3600;
+
     public string? AtlamaSebebi { get; private set; }
     public bool Hazir => AtlamaSebebi is null;
 
@@ -72,7 +75,7 @@ public class TestUygulamasi : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("ConnectionStrings:Postgres", TestBaglantisi);
         builder.UseSetting("Mqtt:Etkin", "false");                       // broker bağımlılığı yok
         builder.UseSetting("Veritabani:BaslangictaGuncelle", "true");    // migrate + tohum verisi
-        builder.UseSetting("PickToLight:TeyitZamanAsimiSaniye", "3600"); // arka plan servisi testleri bozmasın
+        builder.UseSetting("PickToLight:TeyitZamanAsimiSaniye", TeyitZamanAsimiSaniye.ToString());
         builder.UseSetting("PickToLight:ZamanAsimiTaramaPeriyoduSaniye", "3600");
         builder.UseSetting("PickToLight:CihazOfflineEsigiSaniye", "3600");
         builder.UseSetting("Jwt:Anahtar", "entegrasyon-testleri-icin-en-az-32-karakterlik-anahtar!!");
