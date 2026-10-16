@@ -13,3 +13,8 @@ out/
 
 # PlatformIO
 .pio/
+
+# MQTT kimlikleri (tools/mqtt-kimlik-olustur.sh üretir)
+docker/mosquitto/parolalar
+docker/mosquitto/acl
+docker/mosquitto/kimlikler.txt

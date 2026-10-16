@@ -102,7 +102,36 @@ curl -s -X POST localhost:5080/api/siparisler/$SIP/baslat -H "Authorization: Bea
 
 Simülatör ekranında `🟢 kutu 1 YESIL yandı` satırını görmeniz gerekir.
 
-## 6. Testler
+## 6. MQTT güvenliği (üretim / demo)
+
+Geliştirmede broker anonim erişime açıktır. Kimlik doğrulamalı moda geçmek için
+cihaz başına kullanıcı ve ACL üretin (planlama dokümanı Bölüm 12.1):
+
+```bash
+bash tools/mqtt-kimlik-olustur.sh 5      # api + kutu1..kutu5 kullanıcıları
+docker compose --profile guvenli up -d mosquitto-guvenli
+```
+
+Üretilen dosyalar (depoya commit edilmez):
+
+| Dosya | İçerik |
+|---|---|
+| `docker/mosquitto/parolalar` | mosquitto_passwd biçiminde hash'ler |
+| `docker/mosquitto/acl` | kutu başına topic izinleri |
+| `docker/mosquitto/kimlikler.txt` | düz parolalar — cihazlara girdikten sonra **silin** |
+
+Kurallar: her kutu yalnızca `depo/kutu/{kendi-id}/…` altına yazabilir, yalnızca kendi
+`komut` topic'ini okuyabilir; `api` kullanıcısı tüm `depo/#` ağacını okur/yazar.
+
+Bağlamak için:
+
+```bash
+export Mqtt__KullaniciAdi=api
+export Mqtt__Parola='<api parolası>'                       # backend
+# firmware: platformio.ini → -DMQTT_KULLANICI='"kutu1"' -DMQTT_PAROLA='"..."'
+```
+
+## 7. Testler
 
 ```bash
 dotnet test                                   # tümü (birim + entegrasyon)
@@ -120,7 +149,7 @@ sudo -u postgres psql -c 'ALTER ROLE ptl CREATEDB;'
 Farklı bir sunucu için: `export PTL_TEST_POSTGRES="Host=...;Database=postgres;Username=...;Password=..."`
 PostgreSQL yoksa bu testler atlanır.
 
-## 7. Sık karşılaşılan sorunlar
+## 8. Sık karşılaşılan sorunlar
 
 | Belirti | Sebep / çözüm |
 |---|---|

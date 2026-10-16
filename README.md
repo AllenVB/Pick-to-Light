@@ -134,6 +134,9 @@ Yanan yeşil ışık "bu ürün sana ayrıldı" garantisidir. İptal ve teyit za
 | `depo/kutu/{id}/durum` | Cihaz → Sunucu | 1 · retained (+ LWT) |
 | `depo/kutu/{id}/telemetri` | Cihaz → Sunucu | 0 |
 
+Üretimde broker kimlik doğrulamalı çalışır: `bash tools/mqtt-kimlik-olustur.sh 5`
+her kutuya ayrı kullanıcı/parola ve ACL üretir (kutu yalnızca kendi topic'lerine yazabilir).
+
 ```jsonc
 // LED yak (sunucu → cihaz)
 { "mesajId": "uuid", "tip": "LED_YAK", "renk": "YESIL", "miktar": 3, "kalemId": 101, "ttlSn": 300 }

@@ -427,6 +427,12 @@ void setup() {
 
   mqtt.setServer(MQTT_SUNUCU, MQTT_PORT);
   mqtt.setClientId(istemciId);
+
+#if defined(MQTT_KULLANICI) && defined(MQTT_PAROLA)
+  // Broker'da kimlik doğrulama açıkken her kutu kendi kullanıcısıyla bağlanır;
+  // ACL sayesinde yalnızca kendi topic'lerine yazabilir (Bölüm 12.1).
+  mqtt.setCredentials(MQTT_KULLANICI, MQTT_PAROLA);
+#endif
   mqtt.setWill(topicDurum, 1, true, willPayload);
   mqtt.setKeepAlive(20);
   mqtt.onConnect(mqttBaglandi);
