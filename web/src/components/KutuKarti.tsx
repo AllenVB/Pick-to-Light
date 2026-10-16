@@ -50,7 +50,9 @@ export function KutuKarti({ kutu }: { kutu: Kutu }) {
             <span className="font-bold text-durum-gri">⚡ BAĞLANTI YOK</span>
           ) : (
             <span className="font-bold text-slate-300">
-              {kutu.isikYaniyor ? "🔆 IŞIK YANIYOR" : METIN[renk]}
+              {kutu.isikYaniyor
+                ? `🔆 ${kutu.alinacakMiktar ?? ""} ADET AL`.trim()
+                : METIN[renk]}
             </span>
           )}
         </div>

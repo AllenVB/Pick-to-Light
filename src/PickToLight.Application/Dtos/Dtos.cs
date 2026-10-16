@@ -67,7 +67,11 @@ public sealed record KutuDto(
     int Adet,
     int GuvenlikStogu,
     LedRengi? AnlikRenk,
-    bool IsikYaniyor);
+    bool IsikYaniyor,
+    /// <summary>Işık yanıyorsa bu kutudan alınacak adet (operatör ekranının ana bilgisi).</summary>
+    int? AlinacakMiktar = null,
+    /// <summary>Işığın hangi sipariş için yandığı.</summary>
+    string? SiparisNo = null);
 
 public sealed record KutuIstek(string Kod, long? UrunId, string CihazMac, string? RafKonumu, int BaslangicStogu);
 

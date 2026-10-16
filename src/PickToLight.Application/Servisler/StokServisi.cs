@@ -27,7 +27,8 @@ public sealed class StokServisi(
         var yananKalemler = await db.SiparisKalemleri
             .AsNoTracking()
             .Where(k => k.Durum == KalemDurumu.IsikYandi && k.KutuId != null)
-            .Select(k => new { k.KutuId, k.LedRengi })
+            .OrderBy(k => k.IsikYanmaZamani)
+            .Select(k => new { k.KutuId, k.LedRengi, k.Miktar, SiparisNo = k.Siparis.SiparisNo })
             .ToListAsync(ct);
 
         return kutular.Select(k =>
@@ -44,7 +45,8 @@ public sealed class StokServisi(
                 renk = LedRengi.Kirmizi;
 
             return new KutuDto(k.Id, k.Kod, k.UrunId, k.Urun?.Ad, k.CihazMac, k.MqttTopic, k.RafKonumu,
-                k.BaglantiDurumu, k.SonGorulme, adet, guvenlik, renk, yanan is not null);
+                k.BaglantiDurumu, k.SonGorulme, adet, guvenlik, renk, yanan is not null,
+                yanan?.Miktar, yanan?.SiparisNo);
         }).ToList();
     }
 

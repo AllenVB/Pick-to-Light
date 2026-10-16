@@ -10,6 +10,7 @@ const BAGLANTILAR = [
   { yol: "/", ad: "Canlı Pano", ikon: "▦" },
   { yol: "/siparis/yeni", ad: "Sipariş Girişi", ikon: "＋" },
   { yol: "/siparisler", ad: "Siparişler", ikon: "☰" },
+  { yol: "/operator", ad: "Operatör Ekranı", ikon: "◎" },
   { yol: "/stok", ad: "Stok Yönetimi", ikon: "▤" },
   { yol: "/kutular", ad: "Kutu & Cihaz", ikon: "▣" },
   { yol: "/alarmlar", ad: "Alarmlar", ikon: "⚠" },
@@ -35,7 +36,8 @@ export function Kenar() {
 
   useCanliOlaylar({ AlarmOlustu: () => alarmlariSay() });
 
-  if (yol === "/giris") return null;
+  // Giriş ve operatör (kiosk) ekranında kenar çubuğu gösterilmez.
+  if (yol === "/giris" || yol === "/operator") return null;
 
   return (
     <aside className="flex w-60 shrink-0 flex-col border-r border-zemin-cizgi bg-zemin-kart/40 p-4">

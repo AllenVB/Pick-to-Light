@@ -26,6 +26,8 @@ export interface Kutu {
   guvenlikStogu: number;
   anlikRenk?: LedRengi;
   isikYaniyor: boolean;
+  alinacakMiktar?: number;
+  siparisNo?: string;
 }
 
 export interface Kalem {
