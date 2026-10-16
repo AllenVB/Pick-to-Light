@@ -2,7 +2,7 @@
 
 import type {
   Alarm, ApiHatasi, CihazOlay, GunlukHareket, Kutu, KutuPerformans, Oturum, RaporOzet,
-  SiparisDetay, SiparisOzet, StokHareket, TedarikTalebi, Urun, UrunHareket,
+  Personel, SiparisDetay, SiparisOzet, StokHareket, TedarikTalebi, Urun, UrunHareket,
 } from "@/types";
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5080";
@@ -126,6 +126,14 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ yeniAdet, aciklama }),
     }),
+  personeller: () => istek<Personel[]>("/api/personeller"),
+  personelEkle: (p: { adSoyad: string; kullaniciAdi: string; parola: string; rol: string }) =>
+    istek<Personel>("/api/personeller", { method: "POST", body: JSON.stringify(p) }),
+  personelGuncelle: (id: number, p: { adSoyad: string; rol: string; aktif: boolean }) =>
+    istek<void>(`/api/personeller/${id}`, { method: "PUT", body: JSON.stringify(p) }),
+  personelParola: (id: number, yeniParola: string) =>
+    istek<void>(`/api/personeller/${id}/parola`, { method: "POST", body: JSON.stringify({ yeniParola }) }),
+
   urunEkle: (urun: { sku: string; ad: string; birimAgirlikG?: number; guvenlikStogu: number }) =>
     istek<Urun>("/api/urunler", { method: "POST", body: JSON.stringify(urun) }),
   urunGuncelle: (id: number, urun: { sku: string; ad: string; birimAgirlikG?: number; guvenlikStogu: number }) =>

@@ -16,6 +16,7 @@ public static class ServisKayitlari
         services.AddScoped<KimlikServisi>();
         services.AddScoped<KutuSecici>();
         services.AddScoped<RaporServisi>();
+        services.AddScoped<PersonelServisi>();
 
         services.AddValidatorsFromAssemblyContaining<SiparisOlusturIstekDogrulayici>();
 

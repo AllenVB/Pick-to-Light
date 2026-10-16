@@ -160,7 +160,7 @@ her kutuya ayrı kullanıcı/parola ve ACL üretir (kutu yalnızca kendi topic'l
 ## Testler
 
 ```bash
-dotnet test                     # 91 test: birim (74) + entegrasyon (17)
+dotnet test                     # 98 test: birim (74) + entegrasyon (24)
 ```
 
 Entegrasyon testleri **gerçek PostgreSQL** üzerinde çalışır: her test sınıfı kendi geçici
@@ -215,6 +215,7 @@ NFR-01 hedefi 1000 ms. Sipariş başlatma API yanıtı: p95 33 ms (hedef 200 ms)
 | GET | `/api/raporlar/ozet` · `/urunler` · `/kutular` · `/gunluk` | Toplama performansı raporları |
 | WS | `/hubs/depo` | Canlı olaylar (SignalR) |
 | GET | `/api/kutular/olaylar` | Cihazlardan gelen ham MQTT mesajları (hata ayıklama) |
+| GET · POST · PUT | `/api/personeller` | Personel yönetimi: ekleme, rol/aktiflik, parola sıfırlama (ADMIN) |
 | GET | `/health` | Veritabanı ve MQTT broker durumu (JSON) |
 
 Her isteğe bir korelasyon kimliği verilir (`X-Correlation-Id`); kimlik log kayıtlarına

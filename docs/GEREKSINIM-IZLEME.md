@@ -4,7 +4,7 @@ Planlama dokümanındaki (Bölüm 3) her gereksinimin **kodda nerede karşıland
 **hangi testin doğruladığı**. Durum sütunu: ✅ uygulandı ve test edildi ·
 🟡 uygulandı, otomatik testi yok · ⬜ kapsam dışı.
 
-_Son güncelleme: kodlama fazı · 91 otomatik test (34 domain + 40 servis + 17 entegrasyon) · gecikme ölçümü yapıldı_
+_Son güncelleme: kodlama fazı · 98 otomatik test (34 domain + 40 servis + 24 entegrasyon) · gecikme ölçümü yapıldı_
 
 ## Fonksiyonel gereksinimler
 
@@ -24,7 +24,7 @@ _Son güncelleme: kodlama fazı · 91 otomatik test (34 domain + 40 servis + 17 
 | FR-12 | Cihaz bağlantı durumunun izlenmesi | LWT + retained durum + kalp atışı + `SessizCihazlariIsaretleAsync` | `Kutu_cevrimdisiysa_isik_yakilmaz_ve_stok_rezerve_edilmez` | ✅ |
 | FR-13 | Sipariş iptali ve rezerve stok iadesi | `SiparisServisi.IptalAsync` · `StokDeposu.ArtirAsync` | `Iptal_rezerve_stogu_iade_eder…` (birim + entegrasyon) | ✅ |
 | FR-14 | Stok sayımı (düzeltme) | `StokDeposu.SayimAsync` (FOR UPDATE ile eski değer) | `Sayim_adeti_yeni_degere_ceker_ve_farki_loglar` | ✅ |
-| FR-15 | Rol bazlı yetkilendirme | `[Authorize(Roles = "ADMIN")]` · arayüzde yönetici kontrolleri | `Yetkisiz_istek_401_rol_yetersizligi_403_doner` | ✅ |
+| FR-15 | Rol bazlı yetkilendirme | `[Authorize(Roles = "ADMIN")]` · `PersonelServisi` (rol/aktiflik yönetimi) | `Yetkisiz_istek_401_rol_yetersizligi_403_doner`, `PersonelTestleri` (7 test) | ✅ |
 | FR-16 | Kutu LED'inin test edilebilmesi | `CihazServisi.LedTestAsync` · `/kutular` renk butonları | Tarayıcı testi | 🟡 |
 
 ## Fonksiyonel olmayan gereksinimler

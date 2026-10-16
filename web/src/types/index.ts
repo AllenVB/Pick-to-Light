@@ -181,3 +181,11 @@ export interface CihazOlay {
   payload: string;
   zaman: string;
 }
+
+export interface Personel {
+  id: number;
+  adSoyad: string;
+  kullaniciAdi: string;
+  rol: PersonelRolu;
+  aktif: boolean;
+}

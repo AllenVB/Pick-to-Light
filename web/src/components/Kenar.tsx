@@ -18,6 +18,7 @@ const BAGLANTILAR = [
   { yol: "/hareketler", ad: "Hareket Defteri", kisa: "Defter", ikon: "⇅" },
   { yol: "/raporlar", ad: "Raporlar", kisa: "Rapor", ikon: "◴" },
   { yol: "/cihaz-olaylari", ad: "Cihaz Olayları", kisa: "Cihaz", ikon: "⟳" },
+  { yol: "/personeller", ad: "Personel", kisa: "Personel", ikon: "☺" },
 ];
 
 export function Kenar() {

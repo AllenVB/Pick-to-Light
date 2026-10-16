@@ -127,6 +127,19 @@ public sealed record CihazOlayDto(
 
 public sealed record GirisIstek(string KullaniciAdi, string Parola);
 
+public sealed record PersonelDto(
+    long Id,
+    string AdSoyad,
+    string KullaniciAdi,
+    PersonelRolu Rol,
+    bool Aktif);
+
+public sealed record PersonelEkleIstek(string AdSoyad, string KullaniciAdi, string Parola, PersonelRolu Rol);
+
+public sealed record PersonelGuncelleIstek(string AdSoyad, PersonelRolu Rol, bool Aktif);
+
+public sealed record ParolaSifirlaIstek(string YeniParola);
+
 public sealed record TokenYanit(string Token, DateTimeOffset GecerlilikSonu, string AdSoyad, PersonelRolu Rol);
 
 // ───────────────────────── Cihaz olayı (MQTT) ─────────────────────────
