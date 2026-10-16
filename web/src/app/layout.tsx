@@ -11,9 +11,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="tr">
       <body>
-        <div className="flex min-h-screen">
+        {/* Küçük ekranda gezinme üstte yatay şerit, büyük ekranda sol kenar çubuğu olur. */}
+        <div className="flex min-h-screen flex-col lg:flex-row">
           <Kenar />
-          <main className="flex-1 overflow-x-hidden p-6">{children}</main>
+          <main className="min-w-0 flex-1 overflow-x-hidden p-4 lg:p-6">{children}</main>
         </div>
       </body>
     </html>

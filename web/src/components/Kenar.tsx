@@ -7,17 +7,17 @@ import { api, oturumOku, oturumSil } from "@/lib/api";
 import { useCanliOlaylar } from "@/hooks/useCanliOlaylar";
 
 const BAGLANTILAR = [
-  { yol: "/", ad: "Canlı Pano", ikon: "▦" },
-  { yol: "/siparis/yeni", ad: "Sipariş Girişi", ikon: "＋" },
-  { yol: "/siparisler", ad: "Siparişler", ikon: "☰" },
-  { yol: "/operator", ad: "Operatör Ekranı", ikon: "◎" },
-  { yol: "/stok", ad: "Stok Yönetimi", ikon: "▤" },
-  { yol: "/urunler", ad: "Ürünler", ikon: "◫" },
-  { yol: "/kutular", ad: "Kutu & Cihaz", ikon: "▣" },
-  { yol: "/alarmlar", ad: "Alarmlar", ikon: "⚠" },
-  { yol: "/hareketler", ad: "Hareket Defteri", ikon: "⇅" },
-  { yol: "/raporlar", ad: "Raporlar", ikon: "◴" },
-  { yol: "/cihaz-olaylari", ad: "Cihaz Olayları", ikon: "⟳" },
+  { yol: "/", ad: "Canlı Pano", kisa: "Pano", ikon: "▦" },
+  { yol: "/siparis/yeni", ad: "Sipariş Girişi", kisa: "Yeni", ikon: "＋" },
+  { yol: "/siparisler", ad: "Siparişler", kisa: "Siparişler", ikon: "☰" },
+  { yol: "/operator", ad: "Operatör Ekranı", kisa: "Operatör", ikon: "◎" },
+  { yol: "/stok", ad: "Stok Yönetimi", kisa: "Stok", ikon: "▤" },
+  { yol: "/urunler", ad: "Ürünler", kisa: "Ürün", ikon: "◫" },
+  { yol: "/kutular", ad: "Kutu & Cihaz", kisa: "Kutu", ikon: "▣" },
+  { yol: "/alarmlar", ad: "Alarmlar", kisa: "Alarm", ikon: "⚠" },
+  { yol: "/hareketler", ad: "Hareket Defteri", kisa: "Defter", ikon: "⇅" },
+  { yol: "/raporlar", ad: "Raporlar", kisa: "Rapor", ikon: "◴" },
+  { yol: "/cihaz-olaylari", ad: "Cihaz Olayları", kisa: "Cihaz", ikon: "⟳" },
 ];
 
 export function Kenar() {
@@ -41,31 +41,43 @@ export function Kenar() {
   if (yol === "/giris" || yol === "/operator") return null;
 
   return (
-    <aside className="flex w-60 shrink-0 flex-col border-r border-zemin-cizgi bg-zemin-kart/40 p-4">
-      <div className="mb-6">
+    <aside className="flex shrink-0 flex-col border-b border-zemin-cizgi bg-zemin-kart/40 p-4
+                      lg:w-60 lg:border-b-0 lg:border-r">
+      <div className="mb-3 flex items-center justify-between lg:mb-6 lg:block">
         <div className="flex items-center gap-2">
           <span className="h-3 w-3 rounded-full bg-durum-yesil" />
           <span className="h-3 w-3 rounded-full bg-durum-sari" />
           <span className="h-3 w-3 rounded-full bg-durum-kirmizi" />
         </div>
-        <h1 className="mt-3 text-lg font-extrabold leading-tight">Pick-to-Light</h1>
-        <p className="text-xs text-slate-400">Akıllı Depo Yönetimi</p>
+        <div className="lg:mt-3">
+          <h1 className="text-lg font-extrabold leading-tight">Pick-to-Light</h1>
+          <p className="hidden text-xs text-slate-400 lg:block">Akıllı Depo Yönetimi</p>
+        </div>
+
+        {/* Küçük ekranda oturum bilgisi başlıkta durur */}
+        <div className="text-right text-[11px] text-slate-400 lg:hidden">
+          <p className="font-semibold text-slate-200">{adSoyad ?? "—"}</p>
+          <button onClick={() => { oturumSil(); router.replace("/giris"); }} className="underline">
+            Çıkış
+          </button>
+        </div>
       </div>
 
-      <nav className="flex-1 space-y-1">
+      <nav className="flex gap-1 overflow-x-auto pb-1 lg:flex-1 lg:flex-col lg:gap-0 lg:space-y-1 lg:overflow-visible lg:pb-0">
         {BAGLANTILAR.map((b) => {
           const aktif = yol === b.yol || (b.yol !== "/" && yol.startsWith(b.yol));
           return (
             <Link
               key={b.yol}
               href={b.yol}
-              className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm transition ${
+              className={`flex shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm transition lg:shrink ${
                 aktif ? "bg-marka/20 font-semibold text-marka-acik" : "text-slate-300 hover:bg-zemin-kart"
               }`}
             >
               <span>
                 <span className="mr-2 opacity-70">{b.ikon}</span>
-                {b.ad}
+                <span className="hidden sm:inline lg:inline">{b.ad}</span>
+                <span className="sm:hidden">{b.kisa}</span>
               </span>
               {b.yol === "/alarmlar" && okunmamis > 0 && (
                 <span className="rounded-full bg-durum-kirmizi px-2 py-0.5 text-[10px] font-bold">
@@ -77,7 +89,7 @@ export function Kenar() {
         })}
       </nav>
 
-      <div className="mt-4 border-t border-zemin-cizgi pt-4 text-xs">
+      <div className="mt-4 hidden border-t border-zemin-cizgi pt-4 text-xs lg:block">
         <p className="text-slate-400">Oturum</p>
         <p className="font-semibold">{adSoyad ?? "—"}</p>
         <button
