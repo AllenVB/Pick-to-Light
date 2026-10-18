@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>Pick-to-Light — Operatör El Kitabı</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm 16mm; }
+  body { font-family: Inter, "DejaVu Sans", sans-serif; font-size: 10.5pt; color: #1b2430; line-height: 1.55; }
+  h1 { font-size: 24pt; margin: 0 0 2mm; letter-spacing: -0.4pt; }
+  h2 { font-size: 14pt; color: #0f766e; margin: 9mm 0 3mm; page-break-after: avoid;
+       border-bottom: 2px solid #0f766e; padding-bottom: 1.5mm; }
+  h3 { font-size: 11.5pt; margin: 5mm 0 2mm; page-break-after: avoid; }
+  p { margin: 0 0 3mm; }
+  ul, ol { margin: 0 0 3mm; padding-left: 5mm; }
+  li { margin-bottom: 1.5mm; }
+  .kapak { text-align: left; padding-top: 42mm; page-break-after: always; }
+  .kapak .ust { color: #0f766e; letter-spacing: .2em; font-size: 9pt; font-weight: 700; text-transform: uppercase; }
+  .kapak .alt { color: #5b6b7c; font-size: 12pt; margin-top: 4mm; }
+  .kapak .kutu { margin-top: 16mm; border-left: 4px solid #0f766e; padding: 4mm 0 4mm 6mm; background: #f5f9f9; }
+  table { width: 100%; border-collapse: collapse; margin: 3mm 0 5mm; font-size: 9.6pt; }
+  th { background: #0f766e; color: #fff; text-align: left; padding: 2.5mm 3mm; }
+  td { border-bottom: 1px solid #dfe6ec; padding: 2.5mm 3mm; vertical-align: top; }
+  tr:nth-child(even) td { background: #f7fafb; }
+  .renk { display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
+  .yesil { background: #22c55e; } .sari { background: #f59e0b; } .kirmizi { background: #ef4444; }
+  .adim { display: flex; gap: 4mm; margin-bottom: 4mm; page-break-inside: avoid; }
+  .adim .n { flex: none; width: 9mm; height: 9mm; border-radius: 50%; background: #0f766e; color: #fff;
+             font-weight: 800; display: flex; align-items: center; justify-content: center; font-size: 11pt; }
+  .adim .m { flex: 1; }
+  .adim .m b.basl { display: block; margin-bottom: 1mm; font-size: 11pt; }
+  .uyari { border-left: 4px solid #f59e0b; background: #fffbeb; padding: 3mm 4mm; margin: 4mm 0; }
+  .tehlike { border-left: 4px solid #ef4444; background: #fef2f2; padding: 3mm 4mm; margin: 4mm 0; }
+  .bilgi { border-left: 4px solid #0f766e; background: #f0fdfa; padding: 3mm 4mm; margin: 4mm 0; }
+  img { max-width: 100%; border: 1px solid #dfe6ec; border-radius: 5px; display: block; margin: 3mm auto; }
+  .ss-kucuk { max-width: 78%; }
+  code { font-family: "DejaVu Sans Mono", monospace; font-size: 9pt; background: #eef2f6; padding: 0.5mm 1.5mm; border-radius: 2px; }
+  .ayrac { page-break-before: always; }
+  footer { margin-top: 10mm; border-top: 1px solid #dfe6ec; padding-top: 3mm; font-size: 8.5pt; color: #5b6b7c; }
+</style>
+</head>
+<body>
+
+<div class="kapak">
+  <div class="ust">Akıllı Depo Yönetim Sistemi</div>
+  <h1>Operatör El Kitabı</h1>
+  <div class="alt">Pick-to-Light ile sipariş toplama · Sürüm 1.0</div>
+  <div class="kutu">
+    <p style="margin:0"><b>Bu kitapçık kimin için?</b><br>
+    Depoda sipariş toplayan operatörler ve vardiya sorumluları için hazırlanmıştır.
+    Sistemi ilk kez kullanacaklar baştan sona okumalı; deneyimli kullanıcılar
+    <b>"Işık renkleri"</b> ve <b>"Sorun giderme"</b> bölümlerini el altında tutmalıdır.</p>
+  </div>
+  <p style="margin-top:14mm;font-size:9.5pt;color:#5b6b7c">
+    Sorun yaşadığınızda önce bu kitapçıktaki "Sorun giderme" bölümüne bakın.
+    Çözülmezse vardiya sorumlusuna bildirin — sistemdeki her işlem kayıt altındadır,
+    hata yapmaktan çekinmeyin.
+  </p>
+</div>
+
+<h2>1. Sistem ne yapar?</h2>
+<p>
+  Her ürünün kendi <b>kutusu</b> vardır ve her kutunun üzerinde bir <b>ışık</b> ile bir
+  <b>onay butonu</b> bulunur. Bir sipariş başlatıldığında, o siparişte geçen ürünlerin
+  kutuları yanar. Operatör ışığı yanan kutuya gider, ekranda yazan adedi alır ve butona basar.
+  Buton basıldığı anda stok otomatik düşer; kağıt liste, elle sayım ve ayrı stok girişi yoktur.
+</p>
+
+<div class="bilgi">
+  <b>Neden böyle?</b> Kağıt listeyle toplamada iki şey sık yaşanır: yanlış raftan ürün alınır
+  ve stok kaydı günlerce gerçeği yansıtmaz. Işıkla yönlendirmede doğru kutu zaten yanar,
+  stok da alındığı anda düşer.
+</div>
+
+<h2>2. Işık renkleri — en önemli bölüm</h2>
+<table>
+  <tr><th style="width:22%">Renk</th><th style="width:30%">Anlamı</th><th>Ne yapmalısınız?</th></tr>
+  <tr>
+    <td><span class="renk yesil"></span><b>YEŞİL</b></td>
+    <td>Stok yeterli</td>
+    <td>Ekranda yazan adedi alın, kutunun butonuna basın. Normal akış budur.</td>
+  </tr>
+  <tr>
+    <td><span class="renk sari"></span><b>SARI</b></td>
+    <td>Stok yeterli ama azaldı</td>
+    <td>Ürünü normal şekilde alın ve butona basın. <b>Ek olarak</b> sistem otomatik tedarik
+        talebi açar; siz ayrıca bir şey yapmazsınız, yalnızca kutunun yakında boşalacağını bilin.</td>
+  </tr>
+  <tr>
+    <td><span class="renk kirmizi"></span><b>KIRMIZI</b></td>
+    <td>Stok yetersiz</td>
+    <td><b>Hiçbir şey almayın.</b> O kutunun ışığı zaten yanmaz; sipariş "kilitli" duruma geçer
+        ve alarm üretilir. Vardiya sorumlusuna bildirin.</td>
+  </tr>
+</table>
+
+<div class="uyari">
+  <b>Kural:</b> Işığı yanmayan kutudan ürün almayın. Aldığınızda stok kaydı ile raftaki gerçek
+  adet birbirinden ayrışır; sistem bunu fark edemez. Yanlış kutunun butonuna basarsanız
+  sistem bunu "beklenmeyen teyit" olarak kaydeder ve alarm üretir.
+</div>
+
+<h2>3. Toplama adımları</h2>
+
+<div class="adim"><div class="n">1</div><div class="m">
+  <b class="basl">Giriş yapın</b>
+  Ekranda kullanıcı adınızı ve parolanızı girin. Her işlem sizin adınıza kaydedildiği için
+  başkasının hesabıyla çalışmayın.
+</div></div>
+
+<div class="adim"><div class="n">2</div><div class="m">
+  <b class="basl">Operatör ekranını açın</b>
+  Sol menüden <b>Operatör Ekranı</b>'nı seçin. Bu ekran büyük puntoludur, birkaç metre
+  uzaktan okunur ve yalnızca ışığı yanan kutuları gösterir.
+</div></div>
+
+<div class="adim"><div class="n">3</div><div class="m">
+  <b class="basl">Işığı yanan kutuya gidin</b>
+  Ekranda kutu kodu (örneğin <code>K-01</code>), raf konumu (<code>A1-R1</code>) ve
+  <b>alınacak adet</b> yazar. Kutunun üzerindeki ışık da aynı anda yanar.
+</div></div>
+
+<div class="adim"><div class="n">4</div><div class="m">
+  <b class="basl">Ürünü alın ve butona basın</b>
+  Yazan adedi alın, kutunun üzerindeki onay butonuna basın. Işık söner, ekrandaki kart
+  kaybolur, stok düşer. Birden fazla kutu yanıyorsa hepsini sırayla tamamlayın.
+</div></div>
+
+<div class="adim"><div class="n">5</div><div class="m">
+  <b class="basl">Sipariş tamamlanır</b>
+  Siparişin bütün kalemleri teyit edildiğinde sipariş otomatik olarak "tamamlandı" olur.
+  Ayrıca bir onay vermeniz gerekmez.
+</div></div>
+
+<img class="ss-kucuk" src="../sunum/gorseller/operator-ekrani.png" alt="Operatör ekranı">
+<p style="text-align:center;font-size:9pt;color:#5b6b7c;margin-top:-1mm">
+  Operatör ekranı: alınacak adet en büyük yazıdır; sağ alttaki <b>ALDIM</b> düğmesi
+  buton çalışmadığında kullanılır.
+</p>
+
+<h2 class="ayrac">4. Özel durumlar</h2>
+
+<h3>Buton çalışmıyor veya ışık yanıyor ama ürün alındı</h3>
+<p>
+  Operatör ekranındaki <b>ALDIM ✓</b> düğmesine basın. Bu, kutudaki butona basmakla aynı
+  işi yapar: stok düşer, ışık söner. Sistem bu teyidin ekrandan verildiğini kaydeder,
+  böylece arızalı buton sonradan tespit edilebilir.
+</p>
+
+<h3>Kutu "çevrimdışı" görünüyor</h3>
+<p>
+  Kutunun elektroniği sistemle konuşamıyor demektir (fiş çıkmış, Wi-Fi gitmiş olabilir).
+  Çevrimdışı kutudaki stok yeni siparişlere dağıtılmaz. Önce kutunun fişini kontrol edin;
+  60 saniye içinde kendiliğinden geri dönmezse vardiya sorumlusuna bildirin.
+</p>
+
+<h3>Işık yandı ama bir süre sonra kendiliğinden söndü</h3>
+<p>
+  Her ışık için teyit süresi vardır (varsayılan 5 dakika; toplama ekranında geri sayım
+  görünür). Süre dolduğunda sistem o kalemi "beklemede"ye alır ve rezerve edilen stoğu
+  iade eder — <b>yani stok kaybolmaz</b>. Siparişi yeniden başlatmak için vardiya
+  sorumlusuna söyleyin.
+</p>
+
+<h3>Yanlış kutunun butonuna bastım</h3>
+<p>
+  Panik yapmayın. Sistem o butonu bekleyen bir kalem olmadığı için teyidi işlemez;
+  "beklenmeyen teyit" alarmı üretilir ve stok değişmez. Yine de vardiya sorumlusuna
+  söyleyin: raftaki gerçek adet değişmiş olabilir.
+</p>
+
+<h3>Aynı butona iki kez bastım</h3>
+<p>
+  Sorun değil. Sistem aynı kalem için ikinci teyidi yok sayar; stok iki kez düşmez.
+</p>
+
+<h2>5. Sorun giderme</h2>
+<table>
+  <tr><th style="width:38%">Belirti</th><th>Yapılacak</th></tr>
+  <tr><td>Sipariş başlattım, hiçbir ışık yanmadı</td>
+      <td>Kutular çevrimdışı olabilir veya stok yetersizdir (kırmızı). Toplama ekranında
+          kalemin durumuna ve alarm satırına bakın.</td></tr>
+  <tr><td>Işık yanıyor ama kutu boş</td>
+      <td>Ürünü almayın, butona basmayın. Vardiya sorumlusuna bildirin: fiziksel sayım
+          gerekir (<b>Stok Yönetimi → Sayım</b>).</td></tr>
+  <tr><td>Ekran güncellenmiyor</td>
+      <td>Sayfayı yenileyin (F5). Sorun sürerse bilgisayarın ağ bağlantısını kontrol edin.</td></tr>
+  <tr><td>Giriş yapamıyorum</td>
+      <td>Parolanızı kontrol edin. Art arda çok sayıda hatalı denemede sistem bir dakika
+          bekletir. Hesabınız pasifleştirilmiş olabilir — sorumlunuza danışın.</td></tr>
+  <tr><td>Butona bastım, stok düşmedi</td>
+      <td>Ekranda kalem hâlâ "ışık yandı" görünüyorsa <b>ALDIM ✓</b> düğmesini kullanın.
+          Tekrarlanıyorsa kutunun butonu arızalıdır; bildirin.</td></tr>
+</table>
+
+<h2>6. Vardiya sorumlusu için ek notlar</h2>
+<ul>
+  <li><b>Mal kabul:</b> Stok Yönetimi ekranından "Mal kabul" ile gelen ürün adedi eklenir.
+      Her giriş kim tarafından yapıldığıyla birlikte kaydedilir.</li>
+  <li><b>Sayım:</b> Raftaki gerçek adet sistemdekinden farklıysa "Sayım" ile düzeltin;
+      fark otomatik olarak düzeltme hareketi şeklinde loglanır.</li>
+  <li><b>Alarmlar:</b> Alarm panelinde tip filtresi ve "tümünü okundu işaretle" vardır.
+      Stok yok ve cihaz çevrimdışı alarmları öncelikli ele alınmalıdır.</li>
+  <li><b>Tedarik talepleri:</b> Sarı ışık otomatik talep açar; ürün depoya girdiğinde
+      talep kendiliğinden kapanır.</li>
+  <li><b>Raporlar:</b> Ortalama toplama süresi, kırmızı oranı ve kutu yoğunluğu
+      Raporlar ekranındadır; vardiya sonunda bakılması önerilir.</li>
+  <li><b>Hareket defteri:</b> Her stok değişikliğinin öncesi-sonrası adediyle kaydı
+      buradadır. "Stok neden böyle?" sorusunun cevabı her zaman bu ekrandadır.</li>
+</ul>
+
+<div class="tehlike">
+  <b>Asla yapılmaması gerekenler</b>
+  <ul style="margin-bottom:0">
+    <li>Işığı yanmayan kutudan ürün almak</li>
+    <li>Ürünü almadan butona basmak ("sonra alırım" diye)</li>
+    <li>Başka birinin hesabıyla giriş yapmak</li>
+    <li>Kırmızı ışıklı kalemi "idare eder" diyerek tamamlamaya çalışmak</li>
+  </ul>
+</div>
+
+<footer>
+  Pick-to-Light Akıllı Depo Sistemi · Operatör El Kitabı v1.0 ·
+  Teknik ayrıntılar için depo içindeki <code>README.md</code> ve <code>docs/KURULUM.md</code>
+</footer>
+
+</body>
+</html>
