@@ -71,3 +71,105 @@ jobs:
 
       - name: Derle (Next.js tip kontrolünü de yapar)
         run: npm run build
+
+  e2e:
+    name: Uçtan uca (tarayıcı)
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: picktolight
+          POSTGRES_USER: ptl
+          POSTGRES_PASSWORD: ptl_parola
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U ptl"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: 1
+      DOTNET_NOLOGO: 1
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Postgres: "Host=localhost;Port=5432;Database=picktolight;Username=ptl;Password=ptl_parola"
+      Mqtt__Sunucu: localhost
+      Mqtt__Port: "1883"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      # eclipse-mosquitto:2 varsayılan yapılandırması yalnızca kendi konteynerinden
+      # bağlantı kabul eder; iş akışı anonim erişime açık bir yapılandırmayla başlatır.
+      - name: MQTT broker'ı başlat
+        run: |
+          printf 'listener 1883\nallow_anonymous true\n' > mosquitto-ci.conf
+          docker run -d --name mosquitto-ci -p 1883:1883 \
+            -v "$PWD/mosquitto-ci.conf:/mosquitto/config/mosquitto.conf:ro" eclipse-mosquitto:2
+          for i in $(seq 1 20); do
+            if timeout 1 bash -c "cat < /dev/null > /dev/tcp/127.0.0.1/1883"; then echo "broker hazır"; break; fi
+            sleep 1
+          done
+
+      - name: Arayüzü derle
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
+
+      - name: API'yi başlat
+        run: |
+          dotnet run --project src/PickToLight.Api --no-launch-profile > api.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:5080/health > /dev/null; then echo "API hazır"; exit 0; fi
+            sleep 2
+          done
+          echo "API açılmadı"; tail -40 api.log; exit 1
+
+      - name: Kutu simülatörünü başlat
+        run: |
+          dotnet run --project tools/KutuSimulatoru -- --kutu 1,2,3,4,5 > simulator.log 2>&1 &
+          sleep 15
+
+      - name: Arayüzü başlat
+        working-directory: web
+        run: |
+          npm start > ../web.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:3000/giris > /dev/null; then echo "Arayüz hazır"; exit 0; fi
+            sleep 2
+          done
+          echo "Arayüz açılmadı"; tail -40 ../web.log; exit 1
+
+      - name: Tarayıcıyı kur
+        working-directory: web
+        run: npx playwright install --with-deps chromium
+
+      - name: Uçtan uca testler
+        working-directory: web
+        run: npm run test:e2e
+
+      - name: Hata durumunda günlükleri ve izleri yükle
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-hata-ciktilari
+          path: |
+            api.log
+            web.log
+            simulator.log
+            web/test-results/
+          retention-days: 7
