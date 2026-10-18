@@ -176,6 +176,18 @@ PTL_TEST_POSTGRES="Host=localhost;Port=5432;Database=postgres;Username=ptl;Passw
 
 PostgreSQL erişilemezse entegrasyon testleri **atlanır** (sessizce geçmez).
 
+### Sürekli entegrasyon (CI)
+
+`.github/workflows/ci.yml` üç iş tanımlar: backend (derleme + 98 test), arayüz
+(tip kontrolü + derleme) ve uçtan uca (API + simülatör + arayüz + Playwright).
+
+> **Dikkat — iş akışı GitHub'da henüz hiç çalışmadı.** Depodaki tüm koşular
+> (22/22) runner atanmadan, 2–5 saniyede ve günlük üretmeden başarısız oluyor.
+> Bu bir iş akışı hatası değil, hesap düzeyinde bir GitHub Actions sorunudur
+> (Actions'ın devre dışı olması veya faturalama/kullanım kısıtı). Depo sahibinin
+> **Settings → Billing and plans → Actions** ve **Settings → Actions → General**
+> ayarlarını kontrol etmesi gerekir. Testler bu nedenle yerelde doğrulanmaktadır.
+
 Kapsanan senaryolar: yeşil/sarı/kırmızı kararları ve sınır değerleri, atomik rezervasyon,
 çift teyidin yok sayılması (idempotenlik), teyit zaman aşımı ve iade, sipariş iptali,
 çevrimdışı kutu, ağırlık uyuşmazlığı, mükerrer sipariş numarası, eşzamanlı rezervasyon.
