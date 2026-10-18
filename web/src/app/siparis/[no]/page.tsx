@@ -52,7 +52,7 @@ export default function SiparisDetaySayfasi() {
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="etiket">Toplama ekranı</p>
-          <h1 className="baslik mt-1 flex items-center gap-3">
+          <h1 className="baslik mt-1 flex items-center gap-3" data-test="siparis-basligi">
             {detay.siparisNo} <SiparisRozeti durum={detay.durum} />
           </h1>
           <p className="mt-1 text-sm text-slate-400">
@@ -98,7 +98,8 @@ export default function SiparisDetaySayfasi() {
           </thead>
           <tbody>
             {detay.kalemler.map((k, i) => (
-              <tr key={k.kalemId} className={k.durum === "IsikYandi" ? "bg-marka/5" : ""}>
+              <tr key={k.kalemId} data-test="kalem-satiri" data-durum={k.durum}
+                className={k.durum === "IsikYandi" ? "bg-marka/5" : ""}>
                 <td className="text-slate-500">{k.sira ?? i + 1}</td>
                 <td>
                   <span className="font-semibold">{k.urunAdi}</span>
@@ -132,7 +133,7 @@ export default function SiparisDetaySayfasi() {
       </section>
 
       {detay.alarmlar.length > 0 && (
-        <section className="kart">
+        <section className="kart" data-test="siparis-alarmlari">
           <h2 className="etiket mb-3">Bu siparişin alarmları</h2>
           <ul className="space-y-2">
             {detay.alarmlar.map((a) => (

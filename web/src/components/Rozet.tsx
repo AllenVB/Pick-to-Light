@@ -16,7 +16,8 @@ const RENK_METIN: Record<LedRengi, string> = {
 export function RenkRozeti({ renk }: { renk?: LedRengi }) {
   if (!renk) return <span className="text-xs text-slate-500">—</span>;
   return (
-    <span className={`inline-block rounded-full border px-2 py-0.5 text-[11px] font-bold ${RENK_SINIF[renk]}`}>
+    <span data-test="led-rengi" data-renk={renk}
+      className={`inline-block rounded-full border px-2 py-0.5 text-[11px] font-bold ${RENK_SINIF[renk]}`}>
       {RENK_METIN[renk]}
     </span>
   );
@@ -42,7 +43,8 @@ const SIPARIS_METIN: Record<SiparisDurumu, string> = {
 
 export function SiparisRozeti({ durum }: { durum: SiparisDurumu }) {
   return (
-    <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${SIPARIS_SINIF[durum]}`}>
+    <span data-test="siparis-durumu" data-durum={durum}
+      className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${SIPARIS_SINIF[durum]}`}>
       {SIPARIS_METIN[durum]}
     </span>
   );
@@ -66,7 +68,8 @@ const KALEM_METIN: Record<KalemDurumu, string> = {
 
 export function KalemRozeti({ durum }: { durum: KalemDurumu }) {
   return (
-    <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${KALEM_SINIF[durum]}`}>
+    <span data-test="kalem-durumu" data-durum={durum}
+      className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${KALEM_SINIF[durum]}`}>
       {KALEM_METIN[durum]}
     </span>
   );

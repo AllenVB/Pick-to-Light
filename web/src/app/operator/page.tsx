@@ -114,7 +114,8 @@ export default function OperatorEkrani() {
             {yananlar.map((k) => {
               const r = RENK[k.anlikRenk ?? "Yesil"];
               return (
-                <div key={k.id} className={`rounded-2xl border-4 ${r.cerceve} bg-zemin-kart p-8`}>
+                <div key={k.id} data-test="kiosk-karti" data-kutu={k.kod}
+                  className={`rounded-2xl border-4 ${r.cerceve} bg-zemin-kart p-8`}>
                   <div className="flex items-start justify-between">
                     <div>
                       <p className="text-6xl font-black leading-none">{k.kod}</p>

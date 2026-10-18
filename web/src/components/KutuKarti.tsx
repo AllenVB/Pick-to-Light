@@ -24,6 +24,8 @@ export function KutuKarti({ kutu }: { kutu: Kutu }) {
 
   return (
     <div
+      data-test="kutu-karti"
+      data-kutu={kutu.kod}
       className={`kart relative transition ${cevrimdisi ? "opacity-50" : CERCEVE[renk]} ${
         kutu.isikYaniyor ? "ring-2 ring-marka-acik" : ""
       }`}

@@ -52,7 +52,7 @@ export default function StokSayfasi() {
           </thead>
           <tbody>
             {kutular.map((k) => (
-              <tr key={k.id}>
+              <tr key={k.id} data-test="stok-satiri" data-kutu={k.kod}>
                 <td className="font-mono text-xs">{k.kod}</td>
                 <td>{k.urunAdi ?? "—"}</td>
                 <td className="text-xs text-slate-400">{k.rafKonumu ?? "—"}</td>

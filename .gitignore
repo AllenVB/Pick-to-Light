@@ -18,3 +18,8 @@ out/
 docker/mosquitto/parolalar
 docker/mosquitto/acl
 docker/mosquitto/kimlikler.txt
+
+# Playwright
+web/test-results/
+web/playwright-report/
+web/.playwright/
