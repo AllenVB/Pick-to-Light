@@ -77,6 +77,28 @@ public sealed class SahteBildirim : IBildirimYayinci
 /// Bellek içi sürümde ON CONFLICT yoktur; kontrol-ekle davranışı taklit edilir.
 /// Gerçek atomik sürüm (INSERT ... ON CONFLICT DO NOTHING) Infrastructure'dadır.
 /// </summary>
+/// <summary>
+/// Işık sahiplenmenin bellek içi karşılığı: gerçek uygulama kutu başına veritabanı
+/// kilidi kullanır, burada aynı kural (bir kutu = bir yanan kalem) doğrudan uygulanır.
+/// Birim testleri tek iş parçacığında koştuğu için yarış koşulu söz konusu değildir.
+/// </summary>
+public sealed class SahteIsikKuyrugu(AppDbContext db) : IIsikKuyrugu
+{
+    public async Task<bool> SahiplenAsync(long kutuId, long kalemId, CancellationToken ct = default)
+    {
+        var mesgul = await db.SiparisKalemleri
+            .AnyAsync(k => k.KutuId == kutuId && k.Durum == KalemDurumu.IsikYandi && k.Id != kalemId, ct);
+
+        if (mesgul) return false;
+
+        var kalem = await db.SiparisKalemleri.FirstOrDefaultAsync(k => k.Id == kalemId, ct);
+        if (kalem is null) return false;
+
+        kalem.Durum = KalemDurumu.IsikYandi;
+        return true;
+    }
+}
+
 public sealed class SahteTedarikDeposu(AppDbContext db, IZamanSaglayici zaman) : ITedarikDeposu
 {
     public async Task<bool> AcikTalepOlusturAsync(long urunId, long? siparisId, int talepMiktari,
@@ -198,8 +220,8 @@ public sealed class TestTezgahi : IDisposable
         Alarmlar = new AlarmServisi(Db, Bildirim, Zaman, new SahteTedarikDeposu(Db, Zaman), ayarlar);
         var kutuSecici = new KutuSecici(Db);
 
-        Siparisler = new SiparisServisi(Db, stokDeposu, Mqtt, Bildirim, Alarmlar, kutuSecici, Zaman, Oturum,
-            ayarlar, NullLogger<SiparisServisi>.Instance);
+        Siparisler = new SiparisServisi(Db, stokDeposu, new SahteIsikKuyrugu(Db), Mqtt, Bildirim, Alarmlar,
+            kutuSecici, Zaman, Oturum, ayarlar, NullLogger<SiparisServisi>.Instance);
 
         Stoklar = new StokServisi(Db, stokDeposu, Bildirim, Oturum);
     }

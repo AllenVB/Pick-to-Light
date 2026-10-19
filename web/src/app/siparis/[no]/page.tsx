@@ -114,6 +114,11 @@ export default function SiparisDetaySayfasi() {
                 <td><RenkRozeti renk={k.ledRengi} /></td>
                 <td>
                   <KalemRozeti durum={k.durum} />
+                  {k.durum === "Sirada" && (
+                    <p className="mt-1 text-[11px] text-durum-sari">
+                      Kutu başka bir sipariş için yanıyor; sırası gelince otomatik yanacak.
+                    </p>
+                  )}
                   {k.durum === "IsikYandi" && (
                     <span className="mt-1 block"><GeriSayim sonTarih={k.teyitSonTarihi} /></span>
                   )}

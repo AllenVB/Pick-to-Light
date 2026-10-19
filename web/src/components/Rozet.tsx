@@ -56,6 +56,7 @@ const KALEM_SINIF: Record<KalemDurumu, string> = {
   Alindi: "bg-durum-yesil/20 text-durum-yesil",
   Yetersiz: "bg-durum-kirmizi/20 text-durum-kirmizi",
   Iptal: "bg-slate-700/40 text-slate-400",
+  Sirada: "bg-durum-sari/20 text-durum-sari",
 };
 
 const KALEM_METIN: Record<KalemDurumu, string> = {
@@ -64,6 +65,7 @@ const KALEM_METIN: Record<KalemDurumu, string> = {
   Alindi: "ALINDI",
   Yetersiz: "YETERSİZ",
   Iptal: "İPTAL",
+  Sirada: "SIRADA",
 };
 
 export function KalemRozeti({ durum }: { durum: KalemDurumu }) {

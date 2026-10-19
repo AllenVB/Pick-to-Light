@@ -46,11 +46,20 @@ public class StokEszamanlilikTestleri(TestUygulamasi uygulama) : IClassFixture<T
             return (await yanit.Content.ReadFromJsonAsync<SiparisDetayDto>(TestUygulamasi.JsonAyar))!;
         }));
 
-        var rezerveEdilen = sonuclar.Count(s => s.Kalemler[0].Durum == "IsikYandi");
+        // Rezervasyon = ışığı yanan + kutu meşgul olduğu için sıraya alınan kalemler.
+        var rezerveEdilen = sonuclar.Count(s => s.Kalemler[0].Durum is "IsikYandi" or "Sirada");
         var yetersiz = sonuclar.Count(s => s.Kalemler[0].Durum == "Yetersiz");
 
         rezerveEdilen.Should().Be(3, "7 adetten 2'şerlik en fazla 3 rezervasyon yapılabilir");
         yetersiz.Should().Be(siparisSayisi - 3);
+
+        // Aynı kutu aynı anda yalnızca tek kalem için yanar; diğerleri sırada bekler.
+        sonuclar.Count(s => s.Kalemler[0].Durum == "IsikYandi")
+            .Should().Be(1, "bir kutunun ışığı aynı anda tek sipariş için yanabilir");
+
+        (await uygulama.SorguAsync<int>(
+            "SELECT COUNT(*) FROM siparis_kalemi WHERE kutu_id = 5 AND durum = 'IsikYandi'"))
+            .Should().Be(1);
 
         var kalan = await uygulama.SorguAsync<int>("SELECT adet FROM stok WHERE kutu_id = 5");
         kalan.Should().Be(1);

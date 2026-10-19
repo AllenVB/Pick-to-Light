@@ -19,6 +19,7 @@ namespace PickToLight.Application.Servisler;
 public sealed class SiparisServisi(
     IAppDbContext db,
     IStokDeposu stokDeposu,
+    IIsikKuyrugu isikKuyrugu,
     IMqttYayinci mqtt,
     IBildirimYayinci bildirim,
     AlarmServisi alarmServisi,
@@ -178,18 +179,27 @@ public sealed class SiparisServisi(
             }
 
             kalem.LedRengi = renk;
-            kalem.Durum = KalemDurumu.IsikYandi;
-            kalem.MesajId = Guid.NewGuid();
-            kalem.IsikYanmaZamani = zaman.Simdi;
             kalem.StokRezerveEdildi = true;
 
-            await mqtt.LedYakAsync(new LedKomutu(
-                kalem.MesajId.Value, kutu.Id, kutu.MqttTopic, renk, kalem.Miktar, kalem.Id,
-                _ayar.TeyitZamanAsimiSaniye, oturum.KorelasyonId), ct);
+            // Bir kutu aynı anda yalnızca tek kalem için yanabilir: aksi halde operatör
+            // ekranda son komutun adedini görür ama buton en eski kalemi teyit eder —
+            // raftan alınanla stoktan düşen birbirini tutmaz. Sahiplenme atomiktir
+            // (kutu başına kilit); alınamazsa kalem sıraya girer, stoğu yine rezervedir.
+            var isikBizde = await isikKuyrugu.SahiplenAsync(kutu.Id, kalem.Id, ct);
 
-            await bildirim.KutuIsikDegistiAsync(kutu.Id, renk, kalem.Miktar, kalem.Id, ct);
-            await bildirim.StokGuncellendiAsync(kutu.Id, sonuc.SonrakiAdet, renk, ct);
+            if (!isikBizde)
+            {
+                kalem.Durum = KalemDurumu.Sirada;
+                await bildirim.StokGuncellendiAsync(kutu.Id, sonuc.SonrakiAdet, null, ct);
+            }
+            else
+            {
+                await KalemiYakAsync(kalem, kutu, renk, sonuc.SonrakiAdet, ct);
+            }
 
+            // Stoğun azalması ışığın yanıp yanmamasından bağımsızdır: stok zaten
+            // rezerve edildiği için uyarı ve tedarik talebi sırada bekleyen kalem
+            // için de üretilir.
             if (renk == LedRengi.Sari)
             {
                 await alarmServisi.UretAsync(AlarmTipi.StokAzaldi,
@@ -288,6 +298,10 @@ public sealed class SiparisServisi(
         await SiparisDurumunuYenileAsync(kalem.Siparis, ct);
         await db.SaveChangesAsync(ct);
 
+        // Kutu serbest kaldı: aynı kutuyu bekleyen başka bir sipariş varsa onun ışığı yanar.
+        if (kalem.KutuId.HasValue)
+            await SiradakiniYakAsync(kalem.KutuId.Value, ct);
+
         log.LogInformation("Kalem teyit edildi: {KalemId} ({Yontem})", kalem.Id, yontem);
         return new TeyitSonucu(true, "Teyit alındı, stok güncel.", kalem.Id);
     }
@@ -327,7 +341,9 @@ public sealed class SiparisServisi(
         var siparis = await SiparisiYukleAsync(siparisId, ct);
         DurumGecisleri.SiparisGecisiDogrula(siparis.Durum, SiparisDurumu.Iptal);
 
-        foreach (var kalem in siparis.Kalemler.Where(k => k.StokRezerveEdildi && k.Durum == KalemDurumu.IsikYandi))
+        // Sırada bekleyen kalemlerin de stoğu rezerve edilmiştir; onlar da iade edilir.
+        foreach (var kalem in siparis.Kalemler
+                     .Where(k => k.StokRezerveEdildi && k.Durum is KalemDurumu.IsikYandi or KalemDurumu.Sirada))
         {
             await RezervasyonuIadeEtAsync(kalem, $"Sipariş {siparis.SiparisNo} iptal edildi", ct);
             kalem.Durum = KalemDurumu.Iptal;
@@ -339,6 +355,13 @@ public sealed class SiparisServisi(
         siparis.Durum = SiparisDurumu.Iptal;
         await db.SaveChangesAsync(ct);
         await bildirim.SiparisDurumDegistiAsync(siparis.Id, siparis.SiparisNo, siparis.Durum, ct);
+
+        // Serbest kalan kutuları bekleyen siparişler varsa devam etsinler.
+        foreach (var kutuId in siparis.Kalemler.Where(k => k.KutuId.HasValue)
+                     .Select(k => k.KutuId!.Value).Distinct())
+        {
+            await SiradakiniYakAsync(kutuId, ct);
+        }
 
         return await DetayAsync(siparis.SiparisNo, ct);
     }
@@ -375,6 +398,13 @@ public sealed class SiparisServisi(
         {
             await db.SaveChangesAsync(ct);
             log.LogWarning("{Sayi} kalem teyit zaman aşımına uğradı, stok iade edildi.", kalemler.Count);
+
+            // Zaman aşımıyla sönen kutuları bekleyen kalemler varsa sıradakiler yanar.
+            foreach (var kutuId in kalemler.Where(k => k.KutuId.HasValue)
+                         .Select(k => k.KutuId!.Value).Distinct())
+            {
+                await SiradakiniYakAsync(kutuId, ct);
+            }
         }
 
         return kalemler.Count;
@@ -397,12 +427,62 @@ public sealed class SiparisServisi(
         await bildirim.KutuIsikDegistiAsync(kalem.KutuId.Value, null, 0, kalem.Id, ct);
     }
 
+
+    /// <summary>LED komutunu gönderir ve kalemi IŞIK YANDI durumuna alır (teyit saati burada başlar).</summary>
+    private async Task KalemiYakAsync(SiparisKalemi kalem, Kutu kutu, LedRengi renk, int kalanStok,
+        CancellationToken ct)
+    {
+        kalem.Durum = KalemDurumu.IsikYandi;
+        kalem.MesajId = Guid.NewGuid();
+        kalem.IsikYanmaZamani = zaman.Simdi;
+
+        await mqtt.LedYakAsync(new LedKomutu(
+            kalem.MesajId.Value, kutu.Id, kutu.MqttTopic, renk, kalem.Miktar, kalem.Id,
+            _ayar.TeyitZamanAsimiSaniye, oturum.KorelasyonId), ct);
+
+        await bildirim.KutuIsikDegistiAsync(kutu.Id, renk, kalem.Miktar, kalem.Id, ct);
+        await bildirim.StokGuncellendiAsync(kutu.Id, kalanStok, renk, ct);
+    }
+
+    /// <summary>
+    /// Kutunun ışığı söndüğünde (teyit, iptal veya zaman aşımı) sıradaki kalemi yakar.
+    /// Böylece ikinci sipariş operatörün ayrıca bir şey yapmasına gerek kalmadan devam eder.
+    /// </summary>
+    private async Task SiradakiniYakAsync(long kutuId, CancellationToken ct)
+    {
+        var siradaki = await db.SiparisKalemleri
+            .Include(k => k.Kutu)
+            .Include(k => k.Siparis)
+            .Where(k => k.KutuId == kutuId && k.Durum == KalemDurumu.Sirada)
+            .OrderBy(k => k.Id)                       // ilk giren ilk çıkar
+            .FirstOrDefaultAsync(ct);
+
+        if (siradaki?.Kutu is null) return;
+
+        // Sırada beklerken siparişi iptal edilmiş olabilir.
+        if (siradaki.Siparis.Durum is SiparisDurumu.Iptal or SiparisDurumu.Tamamlandi)
+            return;
+
+        // Kutuyu bu kalem adına sahiplen; başka bir işlem önce davrandıysa dokunma.
+        if (!await isikKuyrugu.SahiplenAsync(kutuId, siradaki.Id, ct))
+            return;
+
+        var kalanStok = await db.Stoklar
+            .Where(st => st.KutuId == kutuId)
+            .Select(st => st.Adet)
+            .FirstOrDefaultAsync(ct);
+
+        await KalemiYakAsync(siradaki, siradaki.Kutu, siradaki.LedRengi ?? LedRengi.Yesil, kalanStok, ct);
+        await db.SaveChangesAsync(ct);
+    }
+
     private async Task SiparisDurumunuYenileAsync(Siparis siparis, CancellationToken ct)
     {
         var kalemler = siparis.Kalemler;
         var hepsiAlindi = kalemler.All(k => k.Durum == KalemDurumu.Alindi);
         var yetersizVar = kalemler.Any(k => k.Durum == KalemDurumu.Yetersiz);
-        var bekleyenVar = kalemler.Any(k => k.Durum is KalemDurumu.Bekliyor or KalemDurumu.IsikYandi);
+        var bekleyenVar = kalemler.Any(k =>
+            k.Durum is KalemDurumu.Bekliyor or KalemDurumu.IsikYandi or KalemDurumu.Sirada);
 
         var hedef = hepsiAlindi ? SiparisDurumu.Tamamlandi
             : yetersizVar && !bekleyenVar ? SiparisDurumu.KismiTamamlandi

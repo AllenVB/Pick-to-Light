@@ -27,7 +27,13 @@ public enum KalemDurumu
     IsikYandi = 2,
     Alindi = 3,
     Yetersiz = 4,
-    Iptal = 5
+    Iptal = 5,
+
+    /// <summary>
+    /// Stok rezerve edildi ama kutunun ışığı başka bir siparişe ait olduğu için
+    /// komut henüz gönderilmedi. Kutu serbest kalınca otomatik yanar (kutu kuyruğu).
+    /// </summary>
+    Sirada = 6
 }
 
 public enum HareketTipi

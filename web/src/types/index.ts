@@ -3,7 +3,7 @@
 export type LedRengi = "Yesil" | "Sari" | "Kirmizi";
 export type SiparisDurumu =
   | "Bekliyor" | "Hazirlaniyor" | "Tamamlandi" | "KismiTamamlandi" | "Kilitli" | "Iptal";
-export type KalemDurumu = "Bekliyor" | "IsikYandi" | "Alindi" | "Yetersiz" | "Iptal";
+export type KalemDurumu = "Bekliyor" | "IsikYandi" | "Alindi" | "Yetersiz" | "Iptal" | "Sirada";
 export type TeyitYontemi = "Buton" | "Ir" | "Agirlik" | "Manuel";
 export type BaglantiDurumu = "Online" | "Offline";
 export type AlarmTipi =

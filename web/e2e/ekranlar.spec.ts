@@ -64,6 +64,7 @@ test.describe("Ürün seçici (barkod okuyucu dostu)", () => {
     await secici.fill("ESP-32");
     await secici.press("Enter");
     await expect(secici).toHaveValue(/ESP-32/);
-    await expect(page.getByTestId("urun-sonuclari")).toHaveCount(0, "seçimden sonra liste kapanır");
+    // Seçimden sonra liste kapanır
+    await expect(page.getByTestId("urun-sonuclari")).toHaveCount(0);
   });
 });

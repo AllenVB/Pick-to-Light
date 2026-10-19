@@ -33,6 +33,7 @@ public static class ServisKayitlari
 
         services.AddScoped<IAppDbContext>(sp => sp.GetRequiredService<AppDbContext>());
         services.AddScoped<IStokDeposu, StokDeposu>();
+        services.AddScoped<IIsikKuyrugu, IsikKuyrugu>();
         services.AddScoped<ITedarikDeposu, TedarikDeposu>();
 
         services.AddSingleton<IZamanSaglayici, SistemZamani>();
