@@ -9,7 +9,7 @@ namespace PickToLight.Api.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/siparisler")]
-public sealed class SiparislerController(SiparisServisi siparisler) : ControllerBase
+public sealed class SiparislerController(SiparisServisi siparisler, SiparisIceAktarma iceAktarma) : ControllerBase
 {
     /// <summary>Sipariş ve kalemlerini oluşturur (durum: BEKLIYOR).</summary>
     [HttpPost]
@@ -49,4 +49,12 @@ public sealed class SiparislerController(SiparisServisi siparisler) : Controller
     [HttpPost("{id:long}/iptal")]
     public async Task<ActionResult<SiparisDetayDto>> Iptal(long id, CancellationToken ct)
         => Ok(await siparisler.IptalAsync(id, ct));
+
+    /// <summary>
+    /// CSV ile toplu sipariş aktarır (ERP/Excel çıktısı).
+    /// Biçim: <c>siparisNo;sku;miktar</c> — hatalı sipariş atlanır, kalanlar oluşturulur.
+    /// </summary>
+    [HttpPost("ice-aktar")]
+    public async Task<ActionResult<IceAktarSonucu>> IceAktar(SiparisIceAktarIstek istek, CancellationToken ct)
+        => Ok(await iceAktarma.AktarAsync(istek, ct));
 }

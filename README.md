@@ -173,7 +173,7 @@ her kutuya ayrı kullanıcı/parola ve ACL üretir (kutu yalnızca kendi topic'l
 ## Testler
 
 ```bash
-dotnet test                     # 117 test: birim (74) + entegrasyon (43)
+dotnet test                     # 125 test: birim (74) + entegrasyon (51)
 cd web && npm run test:e2e      # 9 uçtan uca tarayıcı testi (Playwright)
 ```
 
@@ -228,6 +228,7 @@ NFR-01 hedefi 1000 ms. Sipariş başlatma API yanıtı: p95 33 ms (hedef 200 ms)
 | Metot | Yol | Açıklama |
 |---|---|---|
 | POST | `/api/auth/giris` | JWT alır |
+| POST | `/api/siparisler/ice-aktar` | CSV ile toplu sipariş aktarma (ERP/Excel çıktısı) |
 | POST | `/api/siparisler` | Sipariş oluşturur |
 | POST | `/api/siparisler/{id}/baslat` | **Ana akış:** eşleştir → stok düş → LED yak |
 | POST | `/api/siparisler/{id}/iptal` | İptal eder, rezerve stoğu iade eder |

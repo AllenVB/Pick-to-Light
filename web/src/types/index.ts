@@ -189,3 +189,18 @@ export interface Personel {
   rol: PersonelRolu;
   aktif: boolean;
 }
+
+export interface IceAktarSatirSonucu {
+  siparisNo: string;
+  basarili: boolean;
+  kalemSayisi: number;
+  hata: string | null;
+  satirNumaralari: number[];
+}
+
+export interface IceAktarSonucu {
+  toplamSiparis: number;
+  olusturulan: number;
+  basarisiz: number;
+  sonuclar: IceAktarSatirSonucu[];
+}

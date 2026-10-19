@@ -2,7 +2,7 @@
 
 import type {
   Alarm, ApiHatasi, CihazOlay, GunlukHareket, Kutu, KutuPerformans, Oturum, RaporOzet,
-  Personel, SiparisDetay, SiparisOzet, StokHareket, TedarikTalebi, Urun, UrunHareket,
+  IceAktarSonucu, Personel, SiparisDetay, SiparisOzet, StokHareket, TedarikTalebi, Urun, UrunHareket,
 } from "@/types";
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5080";
@@ -118,6 +118,11 @@ export const api = {
     p.set("boyut", String(secenek.boyut ?? 25));
     return sayfaliIstek<SiparisOzet>(`/api/siparisler?${p}`);
   },
+  siparisIceAktar: (csv: string, hemenBaslat: boolean) =>
+    istek<IceAktarSonucu>("/api/siparisler/ice-aktar", {
+      method: "POST",
+      body: JSON.stringify({ csv, hemenBaslat }),
+    }),
   siparisDetay: (siparisNo: string) =>
     istek<SiparisDetay>(`/api/siparisler/${encodeURIComponent(siparisNo)}`),
   siparisOlustur: (siparisNo: string, kalemler: { urunId: number; miktar: number }[]) =>

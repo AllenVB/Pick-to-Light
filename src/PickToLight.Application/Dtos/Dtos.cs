@@ -8,6 +8,24 @@ public sealed record SiparisKalemIstek(long UrunId, int Miktar);
 
 public sealed record SiparisOlusturIstek(string SiparisNo, IReadOnlyList<SiparisKalemIstek> Kalemler);
 
+/// <summary>CSV içeriğiyle toplu sipariş aktarma isteği.</summary>
+public sealed record SiparisIceAktarIstek(string Csv, bool HemenBaslat = false);
+
+/// <summary>Bir siparişin aktarım sonucu.</summary>
+public sealed record IceAktarSatirSonucu(
+    string SiparisNo,
+    bool Basarili,
+    int KalemSayisi,
+    string? Hata,
+    IReadOnlyList<int> SatirNumaralari);
+
+/// <summary>Toplu aktarmanın özeti; hatalı satırlar diğerlerini engellemez.</summary>
+public sealed record IceAktarSonucu(
+    int ToplamSiparis,
+    int Olusturulan,
+    int Basarisiz,
+    IReadOnlyList<IceAktarSatirSonucu> Sonuclar);
+
 public sealed record KalemDto(
     long KalemId,
     long UrunId,

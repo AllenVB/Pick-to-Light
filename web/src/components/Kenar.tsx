@@ -9,6 +9,7 @@ import { useCanliOlaylar } from "@/hooks/useCanliOlaylar";
 const BAGLANTILAR = [
   { yol: "/", ad: "Canlı Pano", kisa: "Pano", ikon: "▦" },
   { yol: "/siparis/yeni", ad: "Sipariş Girişi", kisa: "Yeni", ikon: "＋" },
+  { yol: "/siparis/ice-aktar", ad: "Toplu Aktarma", kisa: "Aktar", ikon: "⇪" },
   { yol: "/siparisler", ad: "Siparişler", kisa: "Siparişler", ikon: "☰" },
   { yol: "/operator", ad: "Operatör Ekranı", kisa: "Operatör", ikon: "◎" },
   { yol: "/stok", ad: "Stok Yönetimi", kisa: "Stok", ikon: "▤" },
