@@ -99,6 +99,24 @@ async function sayfaliIstek<T>(yol: string): Promise<SayfaliSonuc<T>> {
   return { liste, toplam: Number.isFinite(basliktakiToplam) && basliktakiToplam > 0 ? basliktakiToplam : liste.length };
 }
 
+/** Rapor dönemi: ya hazır gün sayısı ya da açık tarih aralığı. */
+export interface RaporDonemi {
+  gun?: number;
+  baslangic?: string;
+  bitis?: string;
+}
+
+function raporSorgusu({ gun = 30, baslangic, bitis }: RaporDonemi) {
+  const p = new URLSearchParams();
+  if (baslangic && bitis) {
+    p.set("baslangic", new Date(baslangic).toISOString());
+    p.set("bitis", new Date(bitis).toISOString());
+  } else {
+    p.set("gun", String(gun));
+  }
+  return p.toString();
+}
+
 export const api = {
   giris: (kullaniciAdi: string, parola: string) =>
     istek<Oturum>("/api/auth/giris", {
@@ -150,11 +168,11 @@ export const api = {
   alarmOkundu: (id: number) => istek<void>(`/api/alarmlar/${id}/okundu`, { method: "POST" }),
   tedarikTalepleri: () => istek<TedarikTalebi[]>("/api/tedarik-talepleri"),
 
-  raporOzet: (gun = 30) => istek<RaporOzet>(`/api/raporlar/ozet?gun=${gun}`),
-  raporUrunler: (gun = 30, limit = 10) =>
-    istek<UrunHareket[]>(`/api/raporlar/urunler?gun=${gun}&limit=${limit}`),
-  raporKutular: (gun = 30) => istek<KutuPerformans[]>(`/api/raporlar/kutular?gun=${gun}`),
-  raporGunluk: (gun = 14) => istek<GunlukHareket[]>(`/api/raporlar/gunluk?gun=${gun}`),
+  raporOzet: (d: RaporDonemi = {}) => istek<RaporOzet>(`/api/raporlar/ozet?${raporSorgusu(d)}`),
+  raporUrunler: (d: RaporDonemi = {}, limit = 10) =>
+    istek<UrunHareket[]>(`/api/raporlar/urunler?${raporSorgusu(d)}&limit=${limit}`),
+  raporKutular: (d: RaporDonemi = {}) => istek<KutuPerformans[]>(`/api/raporlar/kutular?${raporSorgusu(d)}`),
+  raporGunluk: (d: RaporDonemi = {}) => istek<GunlukHareket[]>(`/api/raporlar/gunluk?${raporSorgusu(d)}`),
 
   hareketler: (secenek: {
     kutuId?: number; tip?: string; baslangic?: string; bitis?: string; sayfa?: number; boyut?: number;

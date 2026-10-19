@@ -173,7 +173,7 @@ her kutuya ayrı kullanıcı/parola ve ACL üretir (kutu yalnızca kendi topic'l
 ## Testler
 
 ```bash
-dotnet test                     # 125 test: birim (74) + entegrasyon (51)
+dotnet test                     # 129 test: birim (74) + entegrasyon (55)
 cd web && npm run test:e2e      # 9 uçtan uca tarayıcı testi (Playwright)
 ```
 

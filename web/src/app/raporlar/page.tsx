@@ -7,9 +7,27 @@ import type { GunlukHareket, KutuPerformans, RaporOzet, UrunHareket } from "@/ty
 
 const DONEMLER = [7, 30, 90];
 
+/** Bugünün ve geçen ayın sınırlarını yerel saatle "yyyy-aa-gg" verir. */
+function tarihMetni(t: Date) {
+  return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
+}
+
+function gecenAy() {
+  const simdi = new Date();
+  const ilk = new Date(simdi.getFullYear(), simdi.getMonth() - 1, 1);
+  const son = new Date(simdi.getFullYear(), simdi.getMonth(), 0);
+  return { baslangic: tarihMetni(ilk), bitis: tarihMetni(son) };
+}
+
 export default function RaporlarSayfasi() {
   const oturum = useKorumaliSayfa();
   const [gun, setGun] = useState(30);
+  const [baslangic, setBaslangic] = useState("");
+  const [bitis, setBitis] = useState("");
+
+  // Her iki tarih de doluysa aralık, değilse "son N gün" geçerlidir.
+  const aralikAcik = Boolean(baslangic && bitis);
+  const donem = aralikAcik ? { baslangic, bitis } : { gun };
   const [ozet, setOzet] = useState<RaporOzet | null>(null);
   const [urunler, setUrunler] = useState<UrunHareket[]>([]);
   const [kutular, setKutular] = useState<KutuPerformans[]>([]);
@@ -19,13 +37,17 @@ export default function RaporlarSayfasi() {
   const yenile = useCallback(async () => {
     try {
       const [o, u, k, g] = await Promise.all([
-        api.raporOzet(gun), api.raporUrunler(gun), api.raporKutular(gun), api.raporGunluk(Math.min(gun, 30)),
+        api.raporOzet(donem),
+        api.raporUrunler(donem),
+        api.raporKutular(donem),
+        api.raporGunluk(aralikAcik ? donem : { gun: Math.min(gun, 30) }),
       ]);
       setOzet(o); setUrunler(u); setKutular(k); setGunluk(g); setHata(null);
     } catch {
       setHata("Rapor verileri alınamadı.");
     }
-  }, [gun]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gun, baslangic, bitis]);
 
   useEffect(() => { if (oturum) yenile(); }, [oturum, yenile]);
 
@@ -42,16 +64,45 @@ export default function RaporlarSayfasi() {
           <h1 className="baslik mt-1">Toplama performansı</h1>
           <p className="mt-1 text-sm text-slate-400">
             Tüm değerler değişmez hareket defterinden hesaplanır.
+            {aralikAcik
+              ? ` Dönem: ${new Date(baslangic).toLocaleDateString("tr-TR")} – ${new Date(bitis).toLocaleDateString("tr-TR")}`
+              : ` Dönem: son ${gun} gün`}
           </p>
         </div>
-        <div className="flex gap-1">
-          {DONEMLER.map((d) => (
-            <button key={d}
-              className={d === gun ? "dugme px-3 py-1.5 text-xs" : "dugme-ikincil px-3 py-1.5 text-xs"}
-              onClick={() => setGun(d)}>
-              Son {d} gün
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="flex gap-1">
+            {DONEMLER.map((d) => (
+              <button key={d}
+                className={!aralikAcik && d === gun ? "dugme px-3 py-1.5 text-xs" : "dugme-ikincil px-3 py-1.5 text-xs"}
+                onClick={() => { setBaslangic(""); setBitis(""); setGun(d); }}>
+                Son {d} gün
+              </button>
+            ))}
+            <button className={aralikAcik ? "dugme px-3 py-1.5 text-xs" : "dugme-ikincil px-3 py-1.5 text-xs"}
+              data-test="rapor-gecen-ay"
+              onClick={() => { const a = gecenAy(); setBaslangic(a.baslangic); setBitis(a.bitis); }}>
+              Geçen ay
             </button>
-          ))}
+          </div>
+
+          <div className="flex items-end gap-2">
+            <div>
+              <label className="etiket">Başlangıç</label>
+              <input type="date" className="girdi mt-1 w-36" value={baslangic} max={bitis || undefined}
+                data-test="rapor-baslangic" onChange={(e) => setBaslangic(e.target.value)} />
+            </div>
+            <div>
+              <label className="etiket">Bitiş</label>
+              <input type="date" className="girdi mt-1 w-36" value={bitis} min={baslangic || undefined}
+                data-test="rapor-bitis" onChange={(e) => setBitis(e.target.value)} />
+            </div>
+            {aralikAcik && (
+              <button className="dugme-ikincil px-3 py-1.5 text-xs"
+                onClick={() => { setBaslangic(""); setBitis(""); }}>
+                Aralığı temizle
+              </button>
+            )}
+          </div>
         </div>
       </header>
 

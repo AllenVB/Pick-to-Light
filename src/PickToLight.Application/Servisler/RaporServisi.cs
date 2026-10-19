@@ -11,19 +11,40 @@ namespace PickToLight.Application.Servisler;
 /// </summary>
 public sealed class RaporServisi(IAppDbContext db, IZamanSaglayici zaman)
 {
-    public async Task<RaporOzetDto> OzetAsync(int gun = 30, CancellationToken ct = default)
+
+    /// <summary>
+    /// Rapor dönemini belirler. Açık tarih verilmezse "son N gün" kullanılır;
+    /// böylece hem hızlı seçim hem de "geçen ay" gibi kesin aralıklar desteklenir.
+    /// Bitiş tarihi dahildir (günün sonuna kadar).
+    /// </summary>
+    private (DateTimeOffset Baslangic, DateTimeOffset Bitis, int GunSayisi) Donem(
+        int gun, DateTimeOffset? baslangic, DateTimeOffset? bitis)
     {
-        var baslangic = zaman.Simdi.AddDays(-Math.Max(gun, 1));
+        var son = bitis?.Date.AddDays(1).AddTicks(-1) is { } b
+            ? new DateTimeOffset(b, bitis!.Value.Offset)
+            : zaman.Simdi;
+
+        var ilk = baslangic ?? son.AddDays(-Math.Max(gun, 1));
+
+        if (ilk > son) (ilk, son) = (son, ilk);
+
+        return (ilk, son, Math.Max(1, (int)Math.Ceiling((son - ilk).TotalDays)));
+    }
+
+    public async Task<RaporOzetDto> OzetAsync(int gun = 30, DateTimeOffset? baslangicTarihi = null,
+        DateTimeOffset? bitisTarihi = null, CancellationToken ct = default)
+    {
+        var (baslangic, bitis, gunSayisi) = Donem(gun, baslangicTarihi, bitisTarihi);
 
         var siparisler = await db.Siparisler
             .AsNoTracking()
-            .Where(s => s.Olusturma >= baslangic)
+            .Where(s => s.Olusturma >= baslangic && s.Olusturma <= bitis)
             .Select(s => s.Durum)
             .ToListAsync(ct);
 
         var kalemler = await db.SiparisKalemleri
             .AsNoTracking()
-            .Where(k => k.Siparis.Olusturma >= baslangic)
+            .Where(k => k.Siparis.Olusturma >= baslangic && k.Siparis.Olusturma <= bitis)
             .Select(k => new
             {
                 k.Durum,
@@ -45,7 +66,7 @@ public sealed class RaporServisi(IAppDbContext db, IZamanSaglayici zaman)
         var kirmizi = kalemler.Count(k => k.LedRengi == LedRengi.Kirmizi);
 
         return new RaporOzetDto(
-            GunSayisi: gun,
+            GunSayisi: gunSayisi,
             ToplamSiparis: siparisler.Count,
             TamamlananSiparis: siparisler.Count(d => d == SiparisDurumu.Tamamlandi),
             KilitliSiparis: siparisler.Count(d => d == SiparisDurumu.Kilitli),
@@ -59,15 +80,16 @@ public sealed class RaporServisi(IAppDbContext db, IZamanSaglayici zaman)
     }
 
     public async Task<IReadOnlyList<UrunHareketDto>> EnCokToplananUrunlerAsync(int gun = 30, int limit = 10,
+        DateTimeOffset? baslangicTarihi = null, DateTimeOffset? bitisTarihi = null,
         CancellationToken ct = default)
     {
-        var baslangic = zaman.Simdi.AddDays(-Math.Max(gun, 1));
+        var (baslangic, bitis, _) = Donem(gun, baslangicTarihi, bitisTarihi);
 
         // Not: gruplama anahtarı ilişkili tablodan geldiğinde EF Core bu sorguyu
         // çeviremiyor; önce ürün kimliğine göre gruplayıp adları ayrı sorguyla ekliyoruz.
         var toplamlar = await db.StokHareketleri
             .AsNoTracking()
-            .Where(h => h.Tip == HareketTipi.Cikis && h.Zaman >= baslangic && h.Kutu.UrunId != null)
+            .Where(h => h.Tip == HareketTipi.Cikis && h.Zaman >= baslangic && h.Zaman <= bitis && h.Kutu.UrunId != null)
             .GroupBy(h => h.Kutu.UrunId!.Value)
             .Select(g => new
             {
@@ -95,9 +117,10 @@ public sealed class RaporServisi(IAppDbContext db, IZamanSaglayici zaman)
     }
 
     public async Task<IReadOnlyList<KutuPerformansDto>> KutuPerformansiAsync(int gun = 30,
+        DateTimeOffset? baslangicTarihi = null, DateTimeOffset? bitisTarihi = null,
         CancellationToken ct = default)
     {
-        var baslangic = zaman.Simdi.AddDays(-Math.Max(gun, 1));
+        var (baslangic, bitis, _) = Donem(gun, baslangicTarihi, bitisTarihi);
 
         var kutular = await db.Kutular
             .AsNoTracking()
@@ -107,7 +130,7 @@ public sealed class RaporServisi(IAppDbContext db, IZamanSaglayici zaman)
 
         var hareketler = await db.StokHareketleri
             .AsNoTracking()
-            .Where(h => h.Tip == HareketTipi.Cikis && h.Zaman >= baslangic)
+            .Where(h => h.Tip == HareketTipi.Cikis && h.Zaman >= baslangic && h.Zaman <= bitis)
             .GroupBy(h => h.KutuId)
             .Select(g => new { KutuId = g.Key, Sayi = g.Count(), Adet = g.Sum(h => h.Miktar) })
             .ToListAsync(ct);
@@ -116,7 +139,7 @@ public sealed class RaporServisi(IAppDbContext db, IZamanSaglayici zaman)
             .AsNoTracking()
             .Where(k => k.Durum == KalemDurumu.Alindi && k.KutuId != null
                         && k.IsikYanmaZamani != null && k.AlinmaZamani != null
-                        && k.AlinmaZamani >= baslangic)
+                        && k.AlinmaZamani >= baslangic && k.AlinmaZamani <= bitis)
             .Select(k => new { k.KutuId, k.IsikYanmaZamani, k.AlinmaZamani })
             .ToListAsync(ct);
 
@@ -142,9 +165,10 @@ public sealed class RaporServisi(IAppDbContext db, IZamanSaglayici zaman)
     }
 
     public async Task<IReadOnlyList<GunlukHareketDto>> GunlukHareketAsync(int gun = 14,
+        DateTimeOffset? baslangicTarihi = null, DateTimeOffset? bitisTarihi = null,
         CancellationToken ct = default)
     {
-        var baslangic = zaman.Simdi.AddDays(-Math.Max(gun, 1));
+        var (baslangic, bitis, _) = Donem(gun, baslangicTarihi, bitisTarihi);
 
         var satirlar = await db.StokHareketleri
             .AsNoTracking()
