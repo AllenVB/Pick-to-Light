@@ -78,8 +78,13 @@ public sealed class StokServisi(
         return sonuc.SonrakiAdet;
     }
 
-    public async Task<IReadOnlyList<StokHareketDto>> HareketlerAsync(long? kutuId, DateTimeOffset? baslangic,
-        int limit = 200, CancellationToken ct = default)
+    /// <summary>
+    /// Hareket defteri. Kutu, hareket tipi ve tarih aralığına göre süzülebilir;
+    /// toplam kayıt sayısı da döner (arayüz sayfalamayı buna göre çizer).
+    /// </summary>
+    public async Task<(IReadOnlyList<StokHareketDto> Liste, int Toplam)> HareketlerAsync(
+        long? kutuId, DateTimeOffset? baslangic, HareketTipi? tip = null, DateTimeOffset? bitis = null,
+        int sayfa = 1, int boyut = 50, CancellationToken ct = default)
     {
         var sorgu = db.StokHareketleri
             .AsNoTracking()
@@ -90,15 +95,26 @@ public sealed class StokServisi(
         if (kutuId.HasValue)
             sorgu = sorgu.Where(h => h.KutuId == kutuId.Value);
 
+        if (tip.HasValue)
+            sorgu = sorgu.Where(h => h.Tip == tip.Value);
+
         if (baslangic.HasValue)
             sorgu = sorgu.Where(h => h.Zaman >= baslangic.Value);
 
-        return await sorgu
+        if (bitis.HasValue)
+            sorgu = sorgu.Where(h => h.Zaman < bitis.Value);
+
+        var toplam = await sorgu.CountAsync(ct);
+
+        var liste = await sorgu
             .OrderByDescending(h => h.Zaman)
-            .Take(limit)
+            .Skip((Math.Max(sayfa, 1) - 1) * boyut)
+            .Take(boyut)
             .Select(h => new StokHareketDto(h.Id, h.KutuId, h.Kutu.Kod, h.Kutu.Urun!.Ad, h.Tip, h.Miktar,
                 h.OncekiAdet, h.SonrakiAdet, h.Personel!.AdSoyad, h.Aciklama, h.Zaman))
             .ToListAsync(ct);
+
+        return (liste, toplam);
     }
 
     // ───────────────────────── Ürün yönetimi ─────────────────────────

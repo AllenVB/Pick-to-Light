@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PickToLight.Application.Dtos;
 using PickToLight.Application.Servisler;
+using PickToLight.Domain.Enums;
 
 namespace PickToLight.Api.Controllers;
 
@@ -10,10 +11,20 @@ namespace PickToLight.Api.Controllers;
 [Route("api/hareketler")]
 public sealed class HareketlerController(StokServisi stok) : ControllerBase
 {
-    /// <summary>Stok hareket defteri — izlenebilirliğin tek kaynağı (FR-11).</summary>
+    /// <summary>
+    /// Stok hareket defteri — izlenebilirliğin tek kaynağı (FR-11).
+    /// Kutu, hareket tipi (Cikis/Giris/Sayim) ve tarih aralığına göre süzülebilir.
+    /// </summary>
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<StokHareketDto>>> Listele(
-        [FromQuery] long? kutuId, [FromQuery] DateTimeOffset? baslangic, [FromQuery] int limit = 200,
+        [FromQuery] long? kutuId, [FromQuery] DateTimeOffset? baslangic, [FromQuery] HareketTipi? tip = null,
+        [FromQuery] DateTimeOffset? bitis = null, [FromQuery] int sayfa = 1, [FromQuery] int boyut = 50,
         CancellationToken ct = default)
-        => Ok(await stok.HareketlerAsync(kutuId, baslangic, limit, ct));
+    {
+        var (liste, toplam) = await stok.HareketlerAsync(
+            kutuId, baslangic, tip, bitis, sayfa, Math.Clamp(boyut, 1, 500), ct);
+
+        Response.Headers["X-Toplam-Kayit"] = toplam.ToString();
+        return Ok(liste);
+    }
 }

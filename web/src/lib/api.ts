@@ -151,8 +151,18 @@ export const api = {
   raporKutular: (gun = 30) => istek<KutuPerformans[]>(`/api/raporlar/kutular?gun=${gun}`),
   raporGunluk: (gun = 14) => istek<GunlukHareket[]>(`/api/raporlar/gunluk?gun=${gun}`),
 
-  hareketler: (kutuId?: number) =>
-    istek<StokHareket[]>(`/api/hareketler${kutuId ? `?kutuId=${kutuId}` : ""}`),
+  hareketler: (secenek: {
+    kutuId?: number; tip?: string; baslangic?: string; bitis?: string; sayfa?: number; boyut?: number;
+  } = {}) => {
+    const p = new URLSearchParams();
+    if (secenek.kutuId) p.set("kutuId", String(secenek.kutuId));
+    if (secenek.tip) p.set("tip", secenek.tip);
+    if (secenek.baslangic) p.set("baslangic", secenek.baslangic);
+    if (secenek.bitis) p.set("bitis", secenek.bitis);
+    p.set("sayfa", String(secenek.sayfa ?? 1));
+    p.set("boyut", String(secenek.boyut ?? 50));
+    return sayfaliIstek<StokHareket>(`/api/hareketler?${p}`);
+  },
   stokGiris: (kutuId: number, miktar: number, aciklama?: string) =>
     istek<{ kutuId: number; yeniAdet: number }>(`/api/stok/${kutuId}/giris`, {
       method: "POST",
