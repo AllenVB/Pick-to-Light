@@ -22,9 +22,15 @@ public sealed class SiparislerController(SiparisServisi siparisler) : Controller
     /// <summary>Siparişleri duruma göre sayfalı listeler.</summary>
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<SiparisDto>>> Listele(
-        [FromQuery] SiparisDurumu? durum, [FromQuery] int sayfa = 1, [FromQuery] int boyut = 25,
-        CancellationToken ct = default)
-        => Ok(await siparisler.ListeleAsync(durum, sayfa, boyut, ct));
+        [FromQuery] SiparisDurumu? durum, [FromQuery] string? ara = null,
+        [FromQuery] int sayfa = 1, [FromQuery] int boyut = 25, CancellationToken ct = default)
+    {
+        var (liste, toplam) = await siparisler.ListeleAsync(durum, ara, sayfa, Math.Clamp(boyut, 1, 200), ct);
+
+        // Arayüz sayfalamayı toplam kayıt sayısına göre çizer.
+        Response.Headers["X-Toplam-Kayit"] = toplam.ToString();
+        return Ok(liste);
+    }
 
     /// <summary>Sipariş detayı: kalemler, ışık renkleri, kalan stok ve siparişin alarmları.</summary>
     [HttpGet("{siparisNo}")]

@@ -11,14 +11,26 @@ import type { SiparisOzet } from "@/types";
 export default function SiparislerSayfasi() {
   const oturum = useKorumaliSayfa();
   const [siparisler, setSiparisler] = useState<SiparisOzet[]>([]);
+  const [toplam, setToplam] = useState(0);
   const [filtre, setFiltre] = useState<string>("");
+  const [arama, setArama] = useState("");
+  const [sayfa, setSayfa] = useState(1);
+
+  const BOYUT = 25;
 
   const yenile = useCallback(() => {
-    api.siparisler(filtre || undefined).then(setSiparisler).catch(() => setSiparisler([]));
-  }, [filtre]);
+    api.siparisler({ durum: filtre || undefined, ara: arama.trim() || undefined, sayfa, boyut: BOYUT })
+      .then((s) => { setSiparisler(s.liste); setToplam(s.toplam); })
+      .catch(() => { setSiparisler([]); setToplam(0); });
+  }, [filtre, arama, sayfa]);
+
+  // Filtre veya arama değişince ilk sayfaya dön (boş sayfada kalmamak için)
+  useEffect(() => { setSayfa(1); }, [filtre, arama]);
 
   useEffect(() => { if (oturum) yenile(); }, [oturum, yenile]);
-  useCanliOlaylar({ SiparisDurumDegisti: yenile }, [filtre]);
+  useCanliOlaylar({ SiparisDurumDegisti: yenile }, [filtre, arama, sayfa]);
+
+  const sonSayfa = Math.max(1, Math.ceil(toplam / BOYUT));
 
   if (!oturum) return null;
 
@@ -29,15 +41,23 @@ export default function SiparislerSayfasi() {
           <p className="etiket">Siparişler</p>
           <h1 className="baslik mt-1">Sipariş listesi</h1>
         </div>
-        <select className="girdi w-48" value={filtre} onChange={(e) => setFiltre(e.target.value)}>
-          <option value="">Tüm durumlar</option>
-          <option value="Bekliyor">Bekliyor</option>
-          <option value="Hazirlaniyor">Hazırlanıyor</option>
-          <option value="Kilitli">Kilitli</option>
-          <option value="KismiTamamlandi">Kısmi tamamlandı</option>
-          <option value="Tamamlandi">Tamamlandı</option>
-          <option value="Iptal">İptal</option>
-        </select>
+        <div className="flex flex-wrap items-center gap-3">
+          <input
+            className="girdi w-64"
+            placeholder="Sipariş no ara…"
+            value={arama}
+            onChange={(e) => setArama(e.target.value)}
+            data-test="siparis-arama" />
+          <select className="girdi w-48" value={filtre} onChange={(e) => setFiltre(e.target.value)}>
+            <option value="">Tüm durumlar</option>
+            <option value="Bekliyor">Bekliyor</option>
+            <option value="Hazirlaniyor">Hazırlanıyor</option>
+            <option value="Kilitli">Kilitli</option>
+            <option value="KismiTamamlandi">Kısmi tamamlandı</option>
+            <option value="Tamamlandi">Tamamlandı</option>
+              <option value="Iptal">İptal</option>
+          </select>
+        </div>
       </header>
 
       <section className="kart overflow-x-auto">
@@ -61,10 +81,35 @@ export default function SiparislerSayfasi() {
               </tr>
             ))}
             {siparisler.length === 0 && (
-              <tr><td colSpan={5} className="text-slate-500">Kayıt yok.</td></tr>
+              <tr><td colSpan={5} className="text-slate-500">
+                {arama ? `"${arama}" ile eşleşen sipariş yok.` : "Kayıt yok."}
+              </td></tr>
             )}
           </tbody>
         </table>
+      </section>
+
+      {/* Sayfalama — liste sessizce kesilmesin */}
+      <section className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-400">
+        <span data-test="siparis-sayaci">
+          {toplam === 0
+            ? "0 kayıt"
+            : `${(sayfa - 1) * BOYUT + 1}–${Math.min(sayfa * BOYUT, toplam)} / ${toplam} sipariş`}
+        </span>
+
+        {sonSayfa > 1 && (
+          <div className="flex items-center gap-2">
+            <button className="dugme-ikincil px-3 py-1 text-xs disabled:opacity-40"
+              disabled={sayfa <= 1} onClick={() => setSayfa((n) => n - 1)}>
+              ‹ Önceki
+            </button>
+            <span className="tabular-nums">sayfa {sayfa} / {sonSayfa}</span>
+            <button className="dugme-ikincil px-3 py-1 text-xs disabled:opacity-40"
+              disabled={sayfa >= sonSayfa} onClick={() => setSayfa((n) => n + 1)}>
+              Sonraki ›
+            </button>
+          </div>
+        )}
       </section>
     </div>
   );

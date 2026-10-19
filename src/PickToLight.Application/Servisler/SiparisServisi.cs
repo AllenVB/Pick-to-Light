@@ -424,15 +424,29 @@ public sealed class SiparisServisi(
 
     // ──────────────────────────────── Okuma ────────────────────────────────
 
-    public async Task<IReadOnlyList<SiparisDto>> ListeleAsync(SiparisDurumu? durum, int sayfa = 1, int boyut = 25,
-        CancellationToken ct = default)
+    /// <summary>
+    /// Sipariş listesi. <paramref name="ara"/> verilirse sipariş numarasında büyük/küçük
+    /// harf duyarsız arama yapılır. Toplam kayıt sayısı da döner; arayüz sayfalamayı
+    /// buna göre gösterir (liste sessizce kesilmesin).
+    /// </summary>
+    public async Task<(IReadOnlyList<SiparisDto> Liste, int Toplam)> ListeleAsync(SiparisDurumu? durum,
+        string? ara = null, int sayfa = 1, int boyut = 25, CancellationToken ct = default)
     {
         var sorgu = db.Siparisler.AsNoTracking().AsQueryable();
 
         if (durum.HasValue)
             sorgu = sorgu.Where(s => s.Durum == durum.Value);
 
-        return await sorgu
+        if (!string.IsNullOrWhiteSpace(ara))
+        {
+            // Sağlayıcıdan bağımsız büyük/küçük harf duyarsız arama (SQL'de UPPER ... LIKE).
+            var desen = ara.Trim().ToUpperInvariant();
+            sorgu = sorgu.Where(s => s.SiparisNo.ToUpper().Contains(desen));
+        }
+
+        var toplam = await sorgu.CountAsync(ct);
+
+        var liste = await sorgu
             .OrderByDescending(s => s.Olusturma)
             .Skip((Math.Max(sayfa, 1) - 1) * boyut)
             .Take(boyut)
@@ -441,6 +455,8 @@ public sealed class SiparisServisi(
                 s.Kalemler.Count,
                 s.Kalemler.Count(k => k.Durum == KalemDurumu.Alindi)))
             .ToListAsync(ct);
+
+        return (liste, toplam);
     }
 
     public async Task<SiparisDetayDto> DetayAsync(string siparisNo, CancellationToken ct = default)

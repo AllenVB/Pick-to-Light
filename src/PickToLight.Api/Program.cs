@@ -90,7 +90,10 @@ builder.Services.AddCors(o => o.AddPolicy("web", p => p
     .WithOrigins(izinliKaynaklar)
     .AllowAnyHeader()
     .AllowAnyMethod()
-    .AllowCredentials()));
+    .AllowCredentials()
+    // Özel yanıt başlıkları tarayıcıya açıkça açılmazsa JavaScript'ten okunamaz;
+    // sayfalı listeler toplam kayıt sayısını bu başlıkta taşıyor.
+    .WithExposedHeaders("X-Toplam-Kayit", "X-Correlation-Id")));
 
 // ───────────────────────── Hız sınırlama (Bölüm 12.1) ─────────────────────────
 // Giriş uç noktası kaba kuvvet denemelerine karşı IP başına sınırlanır.

@@ -18,9 +18,9 @@ export default function PanoSayfasi() {
 
   const yenile = useCallback(async () => {
     try {
-      const [k, s, a] = await Promise.all([api.kutular(), api.siparisler(), api.alarmlar(false)]);
+      const [k, s, a] = await Promise.all([api.kutular(), api.siparisler({ boyut: 5 }), api.alarmlar(false)]);
       setKutular(k);
-      setSiparisler(s.slice(0, 6));
+      setSiparisler(s.liste.slice(0, 6));
       setAlarmlar(a.slice(0, 6));
       setHata(null);
     } catch {

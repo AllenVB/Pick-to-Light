@@ -68,6 +68,37 @@ async function istek<T>(yol: string, secenek: RequestInit = {}): Promise<T> {
   return yanit.status === 204 ? (undefined as T) : ((await yanit.json()) as T);
 }
 
+/** Sayfalı listeler için: gövdeyle birlikte toplam kayıt sayısını da döndürür. */
+export interface SayfaliSonuc<T> {
+  liste: T[];
+  toplam: number;
+}
+
+async function sayfaliIstek<T>(yol: string): Promise<SayfaliSonuc<T>> {
+  const oturum = oturumOku();
+
+  const yanit = await fetch(`${API_URL}${yol}`, {
+    headers: {
+      "Content-Type": "application/json",
+      ...(oturum ? { Authorization: `Bearer ${oturum.token}` } : {}),
+    },
+    cache: "no-store",
+  });
+
+  if (yanit.status === 401) {
+    oturumSil();
+    if (typeof window !== "undefined") window.location.href = "/giris";
+    throw new ApiHata(401, { title: "Oturum sona erdi" });
+  }
+
+  if (!yanit.ok) throw new ApiHata(yanit.status, { title: yanit.statusText });
+
+  const liste = (await yanit.json()) as T[];
+  const basliktakiToplam = Number(yanit.headers.get("X-Toplam-Kayit"));
+
+  return { liste, toplam: Number.isFinite(basliktakiToplam) && basliktakiToplam > 0 ? basliktakiToplam : liste.length };
+}
+
 export const api = {
   giris: (kullaniciAdi: string, parola: string) =>
     istek<Oturum>("/api/auth/giris", {
@@ -79,8 +110,14 @@ export const api = {
   stokDurumu: () => istek<Kutu[]>("/api/stok"),
   urunler: () => istek<Urun[]>("/api/urunler"),
 
-  siparisler: (durum?: string) =>
-    istek<SiparisOzet[]>(`/api/siparisler${durum ? `?durum=${durum}` : ""}`),
+  siparisler: (secenek: { durum?: string; ara?: string; sayfa?: number; boyut?: number } = {}) => {
+    const p = new URLSearchParams();
+    if (secenek.durum) p.set("durum", secenek.durum);
+    if (secenek.ara) p.set("ara", secenek.ara);
+    p.set("sayfa", String(secenek.sayfa ?? 1));
+    p.set("boyut", String(secenek.boyut ?? 25));
+    return sayfaliIstek<SiparisOzet>(`/api/siparisler?${p}`);
+  },
   siparisDetay: (siparisNo: string) =>
     istek<SiparisDetay>(`/api/siparisler/${encodeURIComponent(siparisNo)}`),
   siparisOlustur: (siparisNo: string, kalemler: { urunId: number; miktar: number }[]) =>
