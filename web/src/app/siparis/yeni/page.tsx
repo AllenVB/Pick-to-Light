@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ApiHata, api } from "@/lib/api";
 import { useKorumaliSayfa } from "@/hooks/useKorumaliSayfa";
+import { UrunSecici } from "@/components/UrunSecici";
 import type { Urun } from "@/types";
 
 interface Satir { urunId: number; miktar: number }
@@ -67,14 +68,8 @@ export default function YeniSiparisSayfasi() {
             const urun = urunler.find((u) => u.id === s.urunId);
             return (
               <div key={i} className="flex items-center gap-2">
-                <select className="girdi flex-1" value={s.urunId}
-                  onChange={(e) => satirDegistir(i, "urunId", Number(e.target.value))}>
-                  {urunler.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.ad} ({u.sku}) · toplam stok {u.toplamStok}
-                    </option>
-                  ))}
-                </select>
+                <UrunSecici urunler={urunler} secili={s.urunId}
+                  onSec={(urunId) => satirDegistir(i, "urunId", urunId)} />
                 <input className="girdi w-24" type="number" min={1} value={s.miktar}
                   onChange={(e) => satirDegistir(i, "miktar", Math.max(1, Number(e.target.value)))} />
                 <button className="dugme-ikincil px-3" title="Kalemi sil"

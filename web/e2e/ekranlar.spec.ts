@@ -43,3 +43,27 @@ test.describe("Ekranlar", () => {
     await expect(page.locator('button:has-text("Giriş yap")')).toBeVisible();
   });
 });
+
+test.describe("Ürün seçici (barkod okuyucu dostu)", () => {
+  test("SKU yazıp Enter ile ürün seçilir, eşleşmeyen arama uyarı verir", async ({ page }) => {
+    await girisYap(page);
+    await page.goto("/siparis/yeni");
+
+    const secici = page.getByTestId("urun-secici").first();
+
+    // Ada göre arama
+    await secici.click();
+    await secici.fill("sensör");
+    await expect(page.getByTestId("urun-sonuclari").locator("li")).toHaveCount(1);
+
+    // Eşleşmeyen arama
+    await secici.fill("zzzz-olmayan-urun");
+    await expect(page.getByTestId("urun-sonuclari")).toContainText("eşleşen ürün yok");
+
+    // Barkod okuyucu: tam SKU + Enter
+    await secici.fill("ESP-32");
+    await secici.press("Enter");
+    await expect(secici).toHaveValue(/ESP-32/);
+    await expect(page.getByTestId("urun-sonuclari")).toHaveCount(0, "seçimden sonra liste kapanır");
+  });
+});

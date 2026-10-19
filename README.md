@@ -174,7 +174,7 @@ her kutuya ayrı kullanıcı/parola ve ACL üretir (kutu yalnızca kendi topic'l
 
 ```bash
 dotnet test                     # 111 test: birim (74) + entegrasyon (37)
-cd web && npm run test:e2e      # 8 uçtan uca tarayıcı testi (Playwright)
+cd web && npm run test:e2e      # 9 uçtan uca tarayıcı testi (Playwright)
 ```
 
 Entegrasyon testleri **gerçek PostgreSQL** üzerinde çalışır: her test sınıfı kendi geçici

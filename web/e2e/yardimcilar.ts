@@ -4,10 +4,21 @@ export const API = process.env.PTL_API ?? "http://localhost:5080";
 
 export async function girisYap(page: Page, kullanici = "admin", parola = "admin123") {
   await page.goto("/giris");
-  await page.fill('input[autocomplete="username"]', kullanici);
-  await page.fill('input[type="password"]', parola);
+
+  const kullaniciKutusu = page.locator('input[autocomplete="username"]');
+  const parolaKutusu = page.locator('input[type="password"]');
+
+  // React hydration tamamlanmadan yazılan değerler sıfırlanabiliyor; yazdığımızın
+  // alanda kaldığını doğrulayana kadar tekrar denenir.
+  await expect(async () => {
+    await kullaniciKutusu.fill(kullanici);
+    await parolaKutusu.fill(parola);
+    await expect(kullaniciKutusu).toHaveValue(kullanici, { timeout: 2000 });
+    await expect(parolaKutusu).toHaveValue(parola, { timeout: 2000 });
+  }).toPass({ timeout: 30_000 });
+
   await page.click('button:has-text("Giriş yap")');
-  await page.waitForURL("**/");
+  await page.waitForURL("**/", { timeout: 30_000 });
 }
 
 /** Testlerin envanteri bilinen bir duruma getirmesi için doğrudan API kullanılır. */
@@ -66,6 +77,18 @@ export async function urunIdBul(token: string, sku: string) {
 
   if (!urun) throw new Error(`Ürün bulunamadı: ${sku}`);
   return String(urun.id);
+}
+
+/**
+ * Sipariş girişindeki aranabilir seçiciden ürün seçer.
+ * Barkod okuyucu da aynı yolu izler: SKU yazılır, Enter'a basılır.
+ */
+export async function urunSec(page: Page, sku: string, satir = 0) {
+  const secici = page.getByTestId("urun-secici").nth(satir);
+  await secici.click();
+  await secici.fill(sku);
+  await secici.press("Enter");
+  await expect(secici).toHaveValue(new RegExp(sku.replace(/[-]/g, "\\-")));
 }
 
 export function benzersizNo(onek: string) {

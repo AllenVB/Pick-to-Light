@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { benzersizNo, girisYap, kutulariCevrimiciBekle, stokAyarla, tokenAl, urunIdBul } from "./yardimcilar";
+import { benzersizNo, girisYap, kutulariCevrimiciBekle, stokAyarla, tokenAl, urunSec } from "./yardimcilar";
 
 test.describe("Toplama akışı", () => {
   let token: string;
@@ -16,7 +16,7 @@ test.describe("Toplama akışı", () => {
     const no = benzersizNo("E2E-YESIL");
     await page.goto("/siparis/yeni");
     await page.fill("input.girdi >> nth=0", no);
-    await page.locator("select.girdi").first().selectOption(await urunIdBul(token, "KBL-2M"));
+    await urunSec(page, "KBL-2M");
     await page.fill('input[type="number"] >> nth=0', "3");
     await page.click('button:has-text("Oluştur ve başlat")');
 
@@ -41,7 +41,7 @@ test.describe("Toplama akışı", () => {
     const no = benzersizNo("E2E-KIRMIZI");
     await page.goto("/siparis/yeni");
     await page.fill("input.girdi >> nth=0", no);
-    await page.locator("select.girdi").first().selectOption(await urunIdBul(token, "SNS-IR"));
+    await urunSec(page, "SNS-IR");
     await page.fill('input[type="number"] >> nth=0', "99");
     await page.click('button:has-text("Oluştur ve başlat")');
 
@@ -63,7 +63,7 @@ test.describe("Toplama akışı", () => {
     const no = benzersizNo("E2E-IPTAL");
     await page.goto("/siparis/yeni");
     await page.fill("input.girdi >> nth=0", no);
-    await page.locator("select.girdi").first().selectOption(await urunIdBul(token, "ESP-32"));
+    await urunSec(page, "ESP-32");
     await page.fill('input[type="number"] >> nth=0', "5");
     await page.click('button:has-text("Sadece oluştur")');
     await page.waitForURL((u) => /\/siparis\/[^/]+$/.test(u.pathname) && !u.pathname.endsWith("/yeni"));
