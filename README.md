@@ -34,6 +34,19 @@ Sipariş no  →  kutu eşleştirme  →  atomik stok rezervasyonu  →  LED yan
 
 ---
 
+## Tek komutla çalıştırma
+
+```bash
+./baslat.sh                      # Linux / macOS
+baslat.cmd                       # Windows (çift tıkla da olur)
+```
+
+Altyapıyı (PostgreSQL + Mosquitto, Docker varsa), API'yi, arayüzü ve kutu
+simülatörünü başlatır; API hazır olunca tarayıcıyı açar. Zaten çalışan servisleri
+tekrar başlatmaz. Durdurmak için `./baslat.sh durdur` veya `durdur.cmd`.
+
+Giriş: `admin / admin123` (yönetici) · `operator / operator123` (operatör)
+
 ## Hızlı başlangıç
 
 ### 1. Altyapı (PostgreSQL + MQTT broker)

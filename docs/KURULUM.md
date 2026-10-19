@@ -10,6 +10,17 @@
 | Mosquitto | 2.x | MQTT broker |
 | Docker (opsiyonel) | — | altyapıyı tek komutla ayağa kaldırır |
 
+## 0. Tek komutla (en kolay yol)
+
+```bash
+./baslat.sh        # Linux / macOS
+baslat.cmd         # Windows
+```
+
+Betik eksik araçları söyler, altyapıyı Docker ile kaldırır, bağımlılıkları ilk
+çalıştırmada yükler ve üç servisi ayrı pencerelerde başlatır. Adımları elle
+yapmak isterseniz aşağıdaki bölümler geçerlidir.
+
 ## 1. Altyapı
 
 ### Docker ile
