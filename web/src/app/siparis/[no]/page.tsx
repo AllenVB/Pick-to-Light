@@ -6,7 +6,7 @@ import { ApiHata, api } from "@/lib/api";
 import { useCanliOlaylar } from "@/hooks/useCanliOlaylar";
 import { useKorumaliSayfa } from "@/hooks/useKorumaliSayfa";
 import { GeriSayim } from "@/components/GeriSayim";
-import { KalemRozeti, RenkRozeti, SiparisRozeti } from "@/components/Rozet";
+import { KalemRozeti, OncelikRozeti, RenkRozeti, SiparisRozeti } from "@/components/Rozet";
 import type { SiparisDetay } from "@/types";
 
 export default function SiparisDetaySayfasi() {

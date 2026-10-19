@@ -256,6 +256,12 @@ namespace PickToLight.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("olusturma");
 
+                    b.Property<string>("Oncelik")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("oncelik");
+
                     b.Property<long?>("PersonelId")
                         .HasColumnType("bigint")
                         .HasColumnName("personel_id");

@@ -8,6 +8,9 @@ public class Siparis
     public string SiparisNo { get; set; } = null!;
     public SiparisDurumu Durum { get; set; } = SiparisDurumu.Bekliyor;
 
+    /// <summary>Acil siparişler kutu kuyruğunda normal siparişlerin önüne geçer.</summary>
+    public SiparisOnceligi Oncelik { get; set; } = SiparisOnceligi.Normal;
+
     public long? PersonelId { get; set; }
     public Personel? Personel { get; set; }
 

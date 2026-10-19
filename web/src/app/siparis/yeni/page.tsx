@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { ApiHata, api } from "@/lib/api";
 import { useKorumaliSayfa } from "@/hooks/useKorumaliSayfa";
 import { UrunSecici } from "@/components/UrunSecici";
-import type { Urun } from "@/types";
+import type { SiparisOnceligi, Urun } from "@/types";
 
 interface Satir { urunId: number; miktar: number }
 
@@ -14,6 +14,7 @@ export default function YeniSiparisSayfasi() {
   const router = useRouter();
   const [urunler, setUrunler] = useState<Urun[]>([]);
   const [siparisNo, setSiparisNo] = useState(onerilenNo());
+  const [oncelik, setOncelik] = useState<SiparisOnceligi>("Normal");
   const [satirlar, setSatirlar] = useState<Satir[]>([]);
   const [hata, setHata] = useState<string | null>(null);
   const [yukleniyor, setYukleniyor] = useState(false);
@@ -34,7 +35,7 @@ export default function YeniSiparisSayfasi() {
     setHata(null);
     setYukleniyor(true);
     try {
-      const detay = await api.siparisOlustur(siparisNo.trim(), satirlar);
+      const detay = await api.siparisOlustur(siparisNo.trim(), satirlar, oncelik);
       if (baslat) await api.siparisBaslat(detay.id);
       router.push(`/siparis/${encodeURIComponent(detay.siparisNo)}`);
     } catch (h) {
@@ -57,9 +58,19 @@ export default function YeniSiparisSayfasi() {
       </header>
 
       <div className="kart space-y-4">
-        <div>
-          <label className="etiket">Sipariş numarası</label>
-          <input className="girdi mt-1" value={siparisNo} onChange={(e) => setSiparisNo(e.target.value)} />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label className="etiket">Sipariş numarası</label>
+            <input className="girdi mt-1" value={siparisNo} onChange={(e) => setSiparisNo(e.target.value)} />
+          </div>
+          <div>
+            <label className="etiket">Öncelik</label>
+            <select className="girdi mt-1" value={oncelik} data-test="siparis-oncelik"
+              onChange={(e) => setOncelik(e.target.value as SiparisOnceligi)}>
+              <option value="Normal">Normal</option>
+              <option value="Acil">Acil — kutu sırasında öne geçer</option>
+            </select>
+          </div>
         </div>
 
         <div className="space-y-2">

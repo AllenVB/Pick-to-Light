@@ -6,10 +6,12 @@ namespace PickToLight.Application.Dtos;
 
 public sealed record SiparisKalemIstek(long UrunId, int Miktar);
 
-public sealed record SiparisOlusturIstek(string SiparisNo, IReadOnlyList<SiparisKalemIstek> Kalemler);
+public sealed record SiparisOlusturIstek(string SiparisNo, IReadOnlyList<SiparisKalemIstek> Kalemler,
+    SiparisOnceligi Oncelik = SiparisOnceligi.Normal);
 
 /// <summary>CSV içeriğiyle toplu sipariş aktarma isteği.</summary>
-public sealed record SiparisIceAktarIstek(string Csv, bool HemenBaslat = false);
+public sealed record SiparisIceAktarIstek(string Csv, bool HemenBaslat = false,
+    SiparisOnceligi Oncelik = SiparisOnceligi.Normal);
 
 /// <summary>Bir siparişin aktarım sonucu.</summary>
 public sealed record IceAktarSatirSonucu(
@@ -55,7 +57,8 @@ public sealed record SiparisDto(
     DateTimeOffset Olusturma,
     DateTimeOffset? Tamamlanma,
     int KalemSayisi,
-    int AlinanKalemSayisi);
+    int AlinanKalemSayisi,
+    SiparisOnceligi Oncelik = SiparisOnceligi.Normal);
 
 public sealed record SiparisDetayDto(
     long Id,
@@ -64,7 +67,8 @@ public sealed record SiparisDetayDto(
     DateTimeOffset Olusturma,
     DateTimeOffset? Tamamlanma,
     IReadOnlyList<KalemDto> Kalemler,
-    IReadOnlyList<AlarmDto> Alarmlar);
+    IReadOnlyList<AlarmDto> Alarmlar,
+    SiparisOnceligi Oncelik = SiparisOnceligi.Normal);
 
 // ───────────────────────── Envanter ─────────────────────────
 

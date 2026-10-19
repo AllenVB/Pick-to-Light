@@ -69,7 +69,7 @@ public sealed class SiparisIceAktarma(
                     .ToList();
 
                 var siparis = await siparisler.OlusturAsync(
-                    new SiparisOlusturIstek(grup.SiparisNo, kalemler), ct);
+                    new SiparisOlusturIstek(grup.SiparisNo, kalemler, istek.Oncelik), ct);
 
                 if (istek.HemenBaslat)
                     await siparisler.BaslatAsync(siparis.Id, ct);

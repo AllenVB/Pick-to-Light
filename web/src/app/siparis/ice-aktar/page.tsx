@@ -4,7 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { ApiHata, api } from "@/lib/api";
 import { useKorumaliSayfa } from "@/hooks/useKorumaliSayfa";
-import type { IceAktarSonucu } from "@/types";
+import type { IceAktarSonucu, SiparisOnceligi } from "@/types";
 
 const ORNEK = `siparisNo;sku;miktar
 SIP-2026-001;KBL-2M;3
@@ -15,6 +15,7 @@ export default function IceAktarSayfasi() {
   const oturum = useKorumaliSayfa();
   const [csv, setCsv] = useState("");
   const [hemenBaslat, setHemenBaslat] = useState(false);
+  const [oncelik, setOncelik] = useState<SiparisOnceligi>("Normal");
   const [sonuc, setSonuc] = useState<IceAktarSonucu | null>(null);
   const [hata, setHata] = useState<string | null>(null);
   const [calisiyor, setCalisiyor] = useState(false);
@@ -53,7 +54,7 @@ export default function IceAktarSayfasi() {
     setHata(null);
     setSonuc(null);
     try {
-      setSonuc(await api.siparisIceAktar(csv, hemenBaslat));
+      setSonuc(await api.siparisIceAktar(csv, hemenBaslat, oncelik));
     } catch (h) {
       setHata(h instanceof ApiHata ? h.message : "Aktarım başarısız.");
     } finally {
@@ -104,6 +105,12 @@ export default function IceAktarSayfasi() {
             <input type="checkbox" checked={hemenBaslat} onChange={(e) => setHemenBaslat(e.target.checked)} />
             Aktarır aktarmaz başlat (ışıkları yak)
           </label>
+
+          <select className="girdi w-56" value={oncelik}
+            onChange={(e) => setOncelik(e.target.value as SiparisOnceligi)}>
+            <option value="Normal">Normal öncelik</option>
+            <option value="Acil">Acil — hepsi öne geçsin</option>
+          </select>
 
           <button className="dugme" disabled={calisiyor || onizleme.satir === 0}
             data-test="ice-aktar-dugme" onClick={aktar}>

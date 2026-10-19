@@ -21,6 +21,15 @@ public enum SiparisDurumu
     Iptal = 6
 }
 
+/// <summary>Sipariş önceliği. Kutu kuyruğunda yüksek öncelikli sipariş öne geçer.</summary>
+public enum SiparisOnceligi
+{
+    Normal = 1,
+
+    /// <summary>Acil: aynı kutuyu bekleyen normal siparişlerin önüne geçer.</summary>
+    Acil = 2
+}
+
 public enum KalemDurumu
 {
     Bekliyor = 1,

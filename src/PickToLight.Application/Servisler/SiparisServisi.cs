@@ -51,6 +51,7 @@ public sealed class SiparisServisi(
         {
             SiparisNo = no,
             Durum = SiparisDurumu.Bekliyor,
+            Oncelik = istek.Oncelik,
             PersonelId = oturum.PersonelId,
             Olusturma = zaman.Simdi
         };
@@ -454,7 +455,11 @@ public sealed class SiparisServisi(
             .Include(k => k.Kutu)
             .Include(k => k.Siparis)
             .Where(k => k.KutuId == kutuId && k.Durum == KalemDurumu.Sirada)
-            .OrderBy(k => k.Id)                       // ilk giren ilk çıkar
+            // Acil siparişler öne geçer; eşit öncelikte ilk giren ilk çıkar.
+            // Öncelik veritabanında metin olarak saklandığı için enum'a göre sıralamak
+            // alfabetik sonuç verir ("Normal" > "Acil"); bu yüzden açık karşılaştırma yapılır.
+            .OrderByDescending(k => k.Siparis.Oncelik == SiparisOnceligi.Acil)
+            .ThenBy(k => k.Id)
             .FirstOrDefaultAsync(ct);
 
         if (siradaki?.Kutu is null) return;
@@ -533,7 +538,8 @@ public sealed class SiparisServisi(
             .Select(s => new SiparisDto(
                 s.Id, s.SiparisNo, s.Durum, s.Olusturma, s.Tamamlanma,
                 s.Kalemler.Count,
-                s.Kalemler.Count(k => k.Durum == KalemDurumu.Alindi)))
+                s.Kalemler.Count(k => k.Durum == KalemDurumu.Alindi),
+                s.Oncelik))
             .ToListAsync(ct);
 
         return (liste, toplam);
@@ -574,7 +580,7 @@ public sealed class SiparisServisi(
             .ToList();
 
         return new SiparisDetayDto(siparis.Id, siparis.SiparisNo, siparis.Durum, siparis.Olusturma,
-            siparis.Tamamlanma, kalemler, alarmlar);
+            siparis.Tamamlanma, kalemler, alarmlar, siparis.Oncelik);
     }
 
     private async Task<Siparis> SiparisiYukleAsync(long siparisId, CancellationToken ct) =>

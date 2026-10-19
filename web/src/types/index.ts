@@ -3,6 +3,8 @@
 export type LedRengi = "Yesil" | "Sari" | "Kirmizi";
 export type SiparisDurumu =
   | "Bekliyor" | "Hazirlaniyor" | "Tamamlandi" | "KismiTamamlandi" | "Kilitli" | "Iptal";
+export type SiparisOnceligi = "Normal" | "Acil";
+
 export type KalemDurumu = "Bekliyor" | "IsikYandi" | "Alindi" | "Yetersiz" | "Iptal" | "Sirada";
 export type TeyitYontemi = "Buton" | "Ir" | "Agirlik" | "Manuel";
 export type BaglantiDurumu = "Online" | "Offline";
@@ -71,6 +73,7 @@ export interface SiparisOzet {
   tamamlanma?: string;
   kalemSayisi: number;
   alinanKalemSayisi: number;
+  oncelik: SiparisOnceligi;
 }
 
 export interface SiparisDetay {
@@ -81,6 +84,7 @@ export interface SiparisDetay {
   tamamlanma?: string;
   kalemler: Kalem[];
   alarmlar: Alarm[];
+  oncelik: SiparisOnceligi;
 }
 
 export interface Urun {

@@ -1,4 +1,4 @@
-import type { KalemDurumu, LedRengi, SiparisDurumu } from "@/types";
+import type { KalemDurumu, LedRengi, SiparisDurumu, SiparisOnceligi } from "@/types";
 
 const RENK_SINIF: Record<LedRengi, string> = {
   Yesil: "bg-durum-yesil/15 text-durum-yesil border-durum-yesil/40",
@@ -40,6 +40,18 @@ const SIPARIS_METIN: Record<SiparisDurumu, string> = {
   Kilitli: "KİLİTLİ",
   Iptal: "İPTAL",
 };
+
+/** Acil siparişler listede ve detayda ayırt edilebilsin diye işaretlenir. */
+export function OncelikRozeti({ oncelik }: { oncelik: SiparisOnceligi }) {
+  if (oncelik !== "Acil") return null;
+
+  return (
+    <span data-test="siparis-onceligi" data-oncelik={oncelik}
+      className="rounded-full bg-durum-kirmizi/20 px-2.5 py-0.5 text-[11px] font-bold text-durum-kirmizi">
+      ACİL
+    </span>
+  );
+}
 
 export function SiparisRozeti({ durum }: { durum: SiparisDurumu }) {
   return (

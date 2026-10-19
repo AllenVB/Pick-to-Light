@@ -5,7 +5,7 @@ import Link from "next/link";
 import { api } from "@/lib/api";
 import { useCanliOlaylar } from "@/hooks/useCanliOlaylar";
 import { useKorumaliSayfa } from "@/hooks/useKorumaliSayfa";
-import { SiparisRozeti } from "@/components/Rozet";
+import { OncelikRozeti, SiparisRozeti } from "@/components/Rozet";
 import type { SiparisOzet } from "@/types";
 
 export default function SiparislerSayfasi() {
@@ -72,7 +72,10 @@ export default function SiparislerSayfasi() {
                   <Link href={`/siparis/${encodeURIComponent(s.siparisNo)}`}
                     className="font-semibold text-marka-acik hover:underline">{s.siparisNo}</Link>
                 </td>
-                <td><SiparisRozeti durum={s.durum} /></td>
+                <td className="space-x-1 whitespace-nowrap">
+                  <SiparisRozeti durum={s.durum} />
+                  <OncelikRozeti oncelik={s.oncelik} />
+                </td>
                 <td>{s.alinanKalemSayisi}/{s.kalemSayisi}</td>
                 <td className="text-xs text-slate-400">{new Date(s.olusturma).toLocaleString("tr-TR")}</td>
                 <td className="text-xs text-slate-400">

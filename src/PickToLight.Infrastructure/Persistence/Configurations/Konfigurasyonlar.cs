@@ -88,6 +88,7 @@ public sealed class SiparisConfig : IEntityTypeConfiguration<Siparis>
         b.Property(x => x.SiparisNo).HasMaxLength(30).IsRequired();
         b.HasIndex(x => x.SiparisNo).IsUnique();
         b.Property(x => x.Durum).HasConversion<string>().HasMaxLength(20);
+        b.Property(x => x.Oncelik).HasConversion<string>().HasMaxLength(10);
         b.HasIndex(x => x.Durum);
 
         b.HasOne(x => x.Personel)
