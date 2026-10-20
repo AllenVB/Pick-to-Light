@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { ApiHata, api } from "@/lib/api";
 import { useCanliOlaylar } from "@/hooks/useCanliOlaylar";
 import { useKorumaliSayfa } from "@/hooks/useKorumaliSayfa";
+import { useToast } from "@/components/Toast";
 import { GeriSayim } from "@/components/GeriSayim";
 import { KalemRozeti, OncelikRozeti, RenkRozeti, SiparisRozeti } from "@/components/Rozet";
 import type { SiparisDetay } from "@/types";
@@ -14,6 +15,7 @@ export default function SiparisDetaySayfasi() {
   const { no } = useParams<{ no: string }>();
   const [detay, setDetay] = useState<SiparisDetay | null>(null);
   const [hata, setHata] = useState<string | null>(null);
+  const toast = useToast();
   const [islem, setIslem] = useState(false);
 
   const yenile = useCallback(async () => {
@@ -37,7 +39,7 @@ export default function SiparisDetaySayfasi() {
     setIslem(true);
     setHata(null);
     try { await f(); await yenile(); }
-    catch (h) { setHata(h instanceof ApiHata ? h.message : "İşlem başarısız."); }
+    catch (h) { toast(h instanceof ApiHata ? h.message : "İşlem başarısız.", "hata"); }
     finally { setIslem(false); }
   }
 

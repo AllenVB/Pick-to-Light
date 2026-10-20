@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { useCanliOlaylar } from "@/hooks/useCanliOlaylar";
 import { useKorumaliSayfa } from "@/hooks/useKorumaliSayfa";
+import { IskeletSatir } from "@/components/Durumlar";
 import type { Kutu, StokHareket } from "@/types";
 
 const TIP_SINIF: Record<string, string> = {
@@ -17,6 +18,7 @@ export default function HareketlerSayfasi() {
   const [hareketler, setHareketler] = useState<StokHareket[]>([]);
   const [kutular, setKutular] = useState<Kutu[]>([]);
   const [toplam, setToplam] = useState(0);
+  const [yukleniyor, setYukleniyor] = useState(true);
 
   const [kutuId, setKutuId] = useState("");
   const [tip, setTip] = useState("");
@@ -37,6 +39,7 @@ export default function HareketlerSayfasi() {
       boyut: BOYUT,
     })
       .then((s) => { setHareketler(s.liste); setToplam(s.toplam); })
+      .finally(() => setYukleniyor(false))
       .catch(() => { setHareketler([]); setToplam(0); });
   }, [kutuId, tip, baslangic, bitis, sayfa]);
 
@@ -110,7 +113,9 @@ export default function HareketlerSayfasi() {
               <th>Önce → Sonra</th><th>Personel</th><th>Açıklama</th></tr>
           </thead>
           <tbody>
-            {hareketler.map((h) => (
+            {yukleniyor && <><IskeletSatir sutun={8} /><IskeletSatir sutun={8} /><IskeletSatir sutun={8} /></>}
+
+            {!yukleniyor && hareketler.map((h) => (
               <tr key={h.id}>
                 <td className="whitespace-nowrap text-xs text-slate-400">
                   {new Date(h.zaman).toLocaleString("tr-TR")}

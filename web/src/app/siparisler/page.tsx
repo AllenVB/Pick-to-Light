@@ -6,12 +6,14 @@ import { api } from "@/lib/api";
 import { useCanliOlaylar } from "@/hooks/useCanliOlaylar";
 import { useKorumaliSayfa } from "@/hooks/useKorumaliSayfa";
 import { OncelikRozeti, SiparisRozeti } from "@/components/Rozet";
+import { IskeletSatir } from "@/components/Durumlar";
 import type { SiparisOzet } from "@/types";
 
 export default function SiparislerSayfasi() {
   const oturum = useKorumaliSayfa();
   const [siparisler, setSiparisler] = useState<SiparisOzet[]>([]);
   const [toplam, setToplam] = useState(0);
+  const [yukleniyor, setYukleniyor] = useState(true);
   const [filtre, setFiltre] = useState<string>("");
   const [arama, setArama] = useState("");
   const [sayfa, setSayfa] = useState(1);
@@ -21,6 +23,7 @@ export default function SiparislerSayfasi() {
   const yenile = useCallback(() => {
     api.siparisler({ durum: filtre || undefined, ara: arama.trim() || undefined, sayfa, boyut: BOYUT })
       .then((s) => { setSiparisler(s.liste); setToplam(s.toplam); })
+      .finally(() => setYukleniyor(false))
       .catch(() => { setSiparisler([]); setToplam(0); });
   }, [filtre, arama, sayfa]);
 
@@ -66,7 +69,9 @@ export default function SiparislerSayfasi() {
             <tr><th>Sipariş no</th><th>Durum</th><th>İlerleme</th><th>Oluşturma</th><th>Tamamlanma</th></tr>
           </thead>
           <tbody>
-            {siparisler.map((s) => (
+            {yukleniyor && <><IskeletSatir sutun={5} /><IskeletSatir sutun={5} /><IskeletSatir sutun={5} /></>}
+
+            {!yukleniyor && siparisler.map((s) => (
               <tr key={s.id}>
                 <td>
                   <Link href={`/siparis/${encodeURIComponent(s.siparisNo)}`}
