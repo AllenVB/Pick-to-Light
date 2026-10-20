@@ -46,7 +46,8 @@ public sealed class StokServisi(
 
             return new KutuDto(k.Id, k.Kod, k.UrunId, k.Urun?.Ad, k.CihazMac, k.MqttTopic, k.RafKonumu,
                 k.BaglantiDurumu, k.SonGorulme, adet, guvenlik, renk, yanan is not null,
-                yanan?.Miktar, yanan?.SiparisNo, yanan?.KalemId);
+                yanan?.Miktar, yanan?.SiparisNo, yanan?.KalemId,
+                k.FirmwareSurumu, k.Rssi, k.IpAdresi);
         }).ToList();
     }
 

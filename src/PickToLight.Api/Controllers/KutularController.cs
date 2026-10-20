@@ -23,7 +23,18 @@ public sealed class KutularController(CihazServisi cihaz, StokServisi stok) : Co
         => Ok(await cihaz.KutuEkleAsync(istek, ct));
 
     /// <summary>Kutu bilgilerini günceller (ürün ataması, raf, kod, cihaz MAC).</summary>
-    [HttpPut("{id:long}")]
+        /// <summary>
+    /// Kutunun ışığını birkaç saniye yakar — ESP32 kurulumunda kabloyu, LED'i ve
+    /// MQTT yolunu doğrulamak için. Sipariş ve stoka dokunmaz.
+    /// </summary>
+    [HttpPost("{id:long}/isik-testi")]
+    [Authorize(Roles = "ADMIN")]
+    public async Task<ActionResult<IsikTestiSonucu>> IsikTesti(long id,
+        [FromQuery] LedRengi renk = LedRengi.Yesil, [FromQuery] int saniye = 5,
+        CancellationToken ct = default)
+        => Ok(await cihaz.IsikTestiAsync(id, renk, saniye, ct));
+
+[HttpPut("{id:long}")]
     [Authorize(Roles = "ADMIN")]
     public async Task<ActionResult> Guncelle(long id, KutuIstek istek, CancellationToken ct)
     {

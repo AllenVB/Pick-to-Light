@@ -141,6 +141,14 @@ namespace PickToLight.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(17)")
                         .HasColumnName("cihaz_mac");
 
+                    b.Property<string>("FirmwareSurumu")
+                        .HasColumnType("text")
+                        .HasColumnName("firmware_surumu");
+
+                    b.Property<string>("IpAdresi")
+                        .HasColumnType("text")
+                        .HasColumnName("ip_adresi");
+
                     b.Property<string>("Kod")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -159,6 +167,10 @@ namespace PickToLight.Infrastructure.Persistence.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)")
                         .HasColumnName("raf_konumu");
+
+                    b.Property<int?>("Rssi")
+                        .HasColumnType("integer")
+                        .HasColumnName("rssi");
 
                     b.Property<DateTimeOffset?>("SonGorulme")
                         .HasColumnType("timestamp with time zone")

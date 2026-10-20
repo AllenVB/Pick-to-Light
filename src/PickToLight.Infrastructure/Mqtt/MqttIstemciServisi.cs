@@ -183,7 +183,8 @@ public sealed class MqttIstemciServisi : IHostedService, IMqttYayinci, IAsyncDis
             ? BaglantiDurumu.Online
             : BaglantiDurumu.Offline;
 
-        await sp.GetRequiredService<CihazServisi>().BaglantiDurumuGuncelleAsync(kutuId.Value, durum);
+        await sp.GetRequiredService<CihazServisi>()
+            .BaglantiDurumuGuncelleAsync(kutuId.Value, durum, mesaj?.Firmware, mesaj?.Rssi, mesaj?.Ip);
     }
 
     private async Task OlayIsleAsync(IServiceProvider sp, long? kutuId, string payload)

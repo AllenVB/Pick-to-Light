@@ -95,7 +95,13 @@ public sealed record KutuDto(
     /// <summary>Işığın hangi sipariş için yandığı.</summary>
     string? SiparisNo = null,
     /// <summary>Işığı yanan sipariş kalemi — ekrandan manuel teyit için.</summary>
-    long? AktifKalemId = null);
+    long? AktifKalemId = null,
+    /// <summary>Cihazdaki firmware sürümü.</summary>
+    string? FirmwareSurumu = null,
+    /// <summary>Wi-Fi sinyal gücü (dBm); -60 üstü iyi, -80 altı sorunlu.</summary>
+    int? Rssi = null,
+    /// <summary>Cihazın yerel ağ adresi.</summary>
+    string? IpAdresi = null);
 
 public sealed record KutuIstek(string Kod, long? UrunId, string CihazMac, string? RafKonumu, int BaslangicStogu);
 
@@ -148,6 +154,15 @@ public sealed record CihazOlayDto(
 // ───────────────────────── Kimlik ─────────────────────────
 
 public sealed record GirisIstek(string KullaniciAdi, string Parola);
+
+/// <summary>Işık testi sonucu — hangi topic'e ne gönderildiğini gösterir (ESP32 kurulumu).</summary>
+public sealed record IsikTestiSonucu(
+    string KutuKodu,
+    string Topic,
+    Guid MesajId,
+    LedRengi Renk,
+    int Saniye,
+    bool CihazCevrimici);
 
 public sealed record PersonelDto(
     long Id,

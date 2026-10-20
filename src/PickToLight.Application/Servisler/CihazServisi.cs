@@ -43,11 +43,44 @@ public sealed class CihazServisi(
         var urun = kutu.UrunId is null ? null : await db.Urunler.FindAsync([kutu.UrunId], ct);
 
         return new KutuDto(kutu.Id, kutu.Kod, kutu.UrunId, urun?.Ad, kutu.CihazMac, kutu.MqttTopic, kutu.RafKonumu,
-            kutu.BaglantiDurumu, kutu.SonGorulme, kutu.Stok.Adet, urun?.GuvenlikStogu ?? 0, null, false);
+            kutu.BaglantiDurumu, kutu.SonGorulme, kutu.Stok.Adet, urun?.GuvenlikStogu ?? 0, null, false,
+            null, null, null, kutu.FirmwareSurumu, kutu.Rssi, kutu.IpAdresi);
+    }
+
+    /// <summary>
+    /// Kutunun ışığını kısa süre yakar — sahada ESP32 kurarken kabloyu, LED'i ve
+    /// MQTT yolunu doğrulamak için. Sipariş, stok ve kalem durumlarına dokunmaz;
+    /// komut kalem kimliği taşımaz ve süre dolunca cihaz ışığı kendisi söndürür.
+    /// </summary>
+    public async Task<IsikTestiSonucu> IsikTestiAsync(long kutuId, LedRengi renk, int saniye,
+        CancellationToken ct = default)
+    {
+        var kutu = await db.Kutular.FirstOrDefaultAsync(k => k.Id == kutuId, ct)
+            ?? throw new KayitBulunamadiException("Kutu", kutuId);
+
+        var sure = Math.Clamp(saniye, 1, 30);
+        var mesajId = Guid.NewGuid();
+
+        await mqtt.LedYakAsync(new LedKomutu(mesajId, kutu.Id, kutu.MqttTopic, renk, 1, null, sure), ct);
+
+        log.LogInformation("Işık testi: kutu {Kod} → {Renk}, {Sure} sn", kutu.Kod, renk, sure);
+
+        return new IsikTestiSonucu(
+            kutu.Kod,
+            $"{kutu.MqttTopic}/komut",
+            mesajId,
+            renk,
+            sure,
+            kutu.CevrimiciMi);
     }
 
     /// <summary>Cihazın <c>durum</c> topic'inden (veya LWT'den) gelen bağlantı bilgisini işler.</summary>
-    public async Task BaglantiDurumuGuncelleAsync(long kutuId, BaglantiDurumu durum, CancellationToken ct = default)
+    /// <summary>
+    /// Cihazın durum mesajını işler. Telemetri (firmware, sinyal, IP) verildiyse
+    /// kaydedilir — sahada ESP32 kurarken bakılan ilk bilgiler bunlardır.
+    /// </summary>
+    public async Task BaglantiDurumuGuncelleAsync(long kutuId, BaglantiDurumu durum,
+        string? firmware = null, int? rssi = null, string? ip = null, CancellationToken ct = default)
     {
         var kutu = await db.Kutular.FirstOrDefaultAsync(k => k.Id == kutuId, ct);
         if (kutu is null)
@@ -56,6 +89,11 @@ public sealed class CihazServisi(
         var degisti = kutu.BaglantiDurumu != durum;
         kutu.BaglantiDurumu = durum;
         kutu.SonGorulme = zaman.Simdi;
+
+        // Çevrimdışı mesajı (LWT) telemetri taşımaz; son bilinen değerler korunur.
+        if (firmware is not null) kutu.FirmwareSurumu = firmware;
+        if (rssi is not null) kutu.Rssi = rssi;
+        if (ip is not null) kutu.IpAdresi = ip;
 
         if (degisti && durum == BaglantiDurumu.Offline)
         {
@@ -188,7 +226,7 @@ public sealed class CihazServisi(
             .ToListAsync(ct);
 
         foreach (var kutu in sessizler)
-            await BaglantiDurumuGuncelleAsync(kutu.Id, BaglantiDurumu.Offline, ct);
+            await BaglantiDurumuGuncelleAsync(kutu.Id, BaglantiDurumu.Offline, ct: ct);
 
         return sessizler.Count;
     }

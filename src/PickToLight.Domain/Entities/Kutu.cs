@@ -20,6 +20,20 @@ public class Kutu
     public BaglantiDurumu BaglantiDurumu { get; set; } = BaglantiDurumu.Offline;
     public DateTimeOffset? SonGorulme { get; set; }
 
+    // ── Cihaz telemetrisi ──────────────────────────────────────────────
+    // Kutu "durum" mesajında bu alanları zaten gönderiyor (fw / rssi / ip).
+    // Sahada ESP32 kurarken en çok bunlara bakılır: doğru firmware yüklü mü,
+    // Wi-Fi sinyali yeterli mi, cihaz hangi IP'yi aldı.
+
+    /// <summary>Cihazdaki firmware sürümü (durum mesajındaki <c>fw</c>).</summary>
+    public string? FirmwareSurumu { get; set; }
+
+    /// <summary>Wi-Fi sinyal gücü, dBm (durum mesajındaki <c>rssi</c>). -60 üstü iyi, -80 altı sorunlu.</summary>
+    public int? Rssi { get; set; }
+
+    /// <summary>Cihazın yerel ağdaki adresi (durum mesajındaki <c>ip</c>).</summary>
+    public string? IpAdresi { get; set; }
+
     public Stok? Stok { get; set; }
 
     public bool CevrimiciMi => BaglantiDurumu == BaglantiDurumu.Online;

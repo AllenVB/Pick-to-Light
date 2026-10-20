@@ -173,7 +173,7 @@ her kutuya ayrı kullanıcı/parola ve ACL üretir (kutu yalnızca kendi topic'l
 ## Testler
 
 ```bash
-dotnet test                     # 134 test: birim (74) + entegrasyon (60)
+dotnet test                     # 141 test: birim (74) + entegrasyon (67)
 cd web && npm run test:e2e      # 9 uçtan uca tarayıcı testi (Playwright)
 ```
 
@@ -242,6 +242,7 @@ NFR-01 hedefi 1000 ms. Sipariş başlatma API yanıtı: p95 33 ms (hedef 200 ms)
 | GET | `/api/raporlar/ozet` · `/urunler` · `/kutular` · `/gunluk` | Toplama performansı raporları |
 | WS | `/hubs/depo` | Canlı olaylar (SignalR) |
 | GET | `/api/kutular/olaylar` | Cihazlardan gelen ham MQTT mesajları (hata ayıklama) |
+| POST | `/api/kutular/{id}/isik-testi` | Kutunun ışığını birkaç saniye yakar (ESP32 kurulum testi, ADMIN) |
 | GET · POST · PUT | `/api/personeller` | Personel yönetimi: ekleme, rol/aktiflik, parola sıfırlama (ADMIN) |
 | GET | `/health` | Veritabanı ve MQTT broker durumu (JSON) |
 
