@@ -14,7 +14,9 @@ export default defineConfig({
   testDir: "./e2e",
   globalSetup: "./e2e/global-hazirlik.ts",
   timeout: 60_000,
-  expect: { timeout: 10_000 },
+  // Geliştirme sunucusu sayfaları ilk istekte derler; soğuk başlangıçta bir
+  // iddianın 10 saniyede sonuçlanmaması testin hatası değil, derleme süresidir.
+  expect: { timeout: 20_000 },
   fullyParallel: false,          // aynı envanteri paylaşıyorlar, sırayla koşsunlar
   retries: process.env.CI ? 1 : 0,
   reporter: [["list"]],
