@@ -11,6 +11,12 @@ public class Urun
     /// <summary>Güvenlik stoğu (b). Varsayılan 5.</summary>
     public int GuvenlikStogu { get; set; } = 5;
 
+    /// <summary>
+    /// Pasif ürün yeni siparişlerde seçilemez. Hareket geçmişi ürüne bağlı olduğu
+    /// için kayıt silinmez, arşivlenir (izlenebilirlik korunur).
+    /// </summary>
+    public bool Aktif { get; set; } = true;
+
     public DateTimeOffset Olusturma { get; set; } = DateTimeOffset.UtcNow;
 
     public ICollection<Kutu> Kutular { get; set; } = new List<Kutu>();

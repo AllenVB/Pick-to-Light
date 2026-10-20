@@ -17,6 +17,12 @@ public class Kutu
     public string MqttTopic { get; set; } = null!;
 
     public string? RafKonumu { get; set; }
+
+    /// <summary>
+    /// Devreden çıkarılan kutu ışık dağıtımına katılmaz ve panoda arşiv bölümünde
+    /// görünür. Stok hareketleri kutuya bağlı olduğu için kayıt silinmez.
+    /// </summary>
+    public bool Aktif { get; set; } = true;
     public BaglantiDurumu BaglantiDurumu { get; set; } = BaglantiDurumu.Offline;
     public DateTimeOffset? SonGorulme { get; set; }
 

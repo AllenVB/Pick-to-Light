@@ -37,6 +37,15 @@ public sealed class KutularController(CihazServisi cihaz, StokServisi stok) : Co
         [FromQuery] long? kutuId, [FromQuery] int limit = 100, CancellationToken ct = default)
         => Ok(await cihaz.HamOlaylarAsync(kutuId, limit, ct));
 
+    /// <summary>Kutuyu arşivler veya geri alır (kayıt silinmez, geçmiş korunur).</summary>
+    [HttpPost("{id:long}/aktiflik")]
+    [Authorize(Roles = "ADMIN")]
+    public async Task<ActionResult> Aktiflik(long id, [FromQuery] bool aktif, CancellationToken ct)
+    {
+        await cihaz.KutuAktifligiDegistirAsync(id, aktif, ct);
+        return NoContent();
+    }
+
     /// <summary>Bakım modu: seçilen kutuda test ışığı yakar (FR-16).</summary>
     [HttpPost("{id:long}/led-test")]
     [Authorize(Roles = "ADMIN")]

@@ -4,7 +4,7 @@ Planlama dokümanındaki (Bölüm 3) her gereksinimin **kodda nerede karşıland
 **hangi testin doğruladığı**. Durum sütunu: ✅ uygulandı ve test edildi ·
 🟡 uygulandı, otomatik testi yok · ⬜ kapsam dışı.
 
-_Son güncelleme: kodlama fazı · 151 otomatik test (34 domain + 40 servis + 67 entegrasyon + 10 uçtan uca) · gecikme ölçümü yapıldı_
+_Son güncelleme: kodlama fazı · 155 otomatik test (34 domain + 40 servis + 71 entegrasyon + 10 uçtan uca) · gecikme ölçümü yapıldı_
 
 ## Fonksiyonel gereksinimler
 

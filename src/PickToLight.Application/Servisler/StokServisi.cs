@@ -67,7 +67,8 @@ public sealed class StokServisi(
                 yanan?.Miktar, yanan?.SiparisNo, yanan?.KalemId,
                 k.FirmwareSurumu, k.Rssi, k.IpAdresi,
                 siradakiler.GetValueOrDefault(k.Id),
-                yanan?.IsikYanmaZamani?.AddSeconds(_ayar.TeyitZamanAsimiSaniye));
+                yanan?.IsikYanmaZamani?.AddSeconds(_ayar.TeyitZamanAsimiSaniye),
+                k.Aktif);
         }).ToList();
     }
 
@@ -140,13 +141,42 @@ public sealed class StokServisi(
 
     // ───────────────────────── Ürün yönetimi ─────────────────────────
 
-    public async Task<IReadOnlyList<UrunDto>> UrunleriListeleAsync(CancellationToken ct = default) =>
+    /// <summary>
+    /// Ürün kataloğu. Arşivlenen ürünler varsayılan olarak gelmez (sipariş girişinde
+    /// seçilmesinler); yönetim ekranı <paramref name="pasifDahil"/> ile hepsini ister.
+    /// </summary>
+    public async Task<IReadOnlyList<UrunDto>> UrunleriListeleAsync(bool pasifDahil = false,
+        CancellationToken ct = default) =>
         await db.Urunler
             .AsNoTracking()
-            .OrderBy(u => u.Ad)
+            .Where(u => pasifDahil || u.Aktif)
+            .OrderByDescending(u => u.Aktif)
+            .ThenBy(u => u.Ad)
             .Select(u => new UrunDto(u.Id, u.Sku, u.Ad, u.BirimAgirlikG, u.GuvenlikStogu,
-                u.Kutular.Sum(k => k.Stok!.Adet)))
+                u.Kutular.Sum(k => k.Stok!.Adet), u.Aktif))
             .ToListAsync(ct);
+
+    /// <summary>Ürünü arşivler veya geri alır. Kayıt silinmez: hareket geçmişi korunur.</summary>
+    public async Task UrunAktifligiDegistirAsync(long urunId, bool aktif, CancellationToken ct = default)
+    {
+        var urun = await db.Urunler.FirstOrDefaultAsync(u => u.Id == urunId, ct)
+                   ?? throw new KayitBulunamadiException("Ürün", urunId);
+
+        if (!aktif)
+        {
+            // Toplaması süren bir ürün arşivlenirse operatör yarım kalır.
+            var aktifKalem = await db.SiparisKalemleri
+                .AnyAsync(k => k.UrunId == urunId
+                               && k.Durum == KalemDurumu.IsikYandi || k.Durum == KalemDurumu.Sirada, ct);
+
+            if (aktifKalem)
+                throw new DomainException("urun-mesgul",
+                    "Bu ürün için devam eden toplama var; önce siparişleri bitirin veya iptal edin.");
+        }
+
+        urun.Aktif = aktif;
+        await db.SaveChangesAsync(ct);
+    }
 
     public async Task<UrunDto> UrunEkleAsync(UrunIstek istek, CancellationToken ct = default)
     {
@@ -164,7 +194,7 @@ public sealed class StokServisi(
         db.Urunler.Add(urun);
         await db.SaveChangesAsync(ct);
 
-        return new UrunDto(urun.Id, urun.Sku, urun.Ad, urun.BirimAgirlikG, urun.GuvenlikStogu, 0);
+        return new UrunDto(urun.Id, urun.Sku, urun.Ad, urun.BirimAgirlikG, urun.GuvenlikStogu, 0, urun.Aktif);
     }
 
     public async Task UrunGuncelleAsync(long urunId, UrunIstek istek, CancellationToken ct = default)

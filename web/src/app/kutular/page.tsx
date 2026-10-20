@@ -109,7 +109,10 @@ export default function KutularSayfasi() {
           {kutular.map((k) => (
             <CihazKarti key={k.id} kutu={k} yonetici={yonetici}
               onDuzenle={() => { setFormAcik(false); setDuzenlenen(k); }}
-              onTest={(renk) => isikTesti(k, renk)} />
+              onTest={(renk) => isikTesti(k, renk)}
+              onArsiv={() => calistir(
+                () => api.kutuAktiflik(k.id, k.aktif === false),
+                k.aktif === false ? `${k.kod} yeniden devreye alındı.` : `${k.kod} arşivlendi.`)} />
           ))}
         </section>
       )}
@@ -203,18 +206,20 @@ function KutuFormu({ urunler, mevcut, onKaydet, onVazgec }: {
  * yeterli mi, doğru firmware mi, hangi topic'i dinliyor. Hepsi tek kartta
  * toplanır; topic ve MAC tıklanarak kopyalanır.
  */
-function CihazKarti({ kutu, yonetici, onDuzenle, onTest }: {
+function CihazKarti({ kutu, yonetici, onDuzenle, onTest, onArsiv }: {
   kutu: Kutu;
   yonetici: boolean;
   onDuzenle: () => void;
   onTest: (renk: LedRengi) => void;
+  onArsiv: () => void;
 }) {
   const cevrimici = kutu.baglantiDurumu === "Online";
+  const arsivli = kutu.aktif === false;
 
   return (
     <article
       className={`kart space-y-3 ${kutu.isikYaniyor ? "border-marka-acik/70 nabiz-marka" : ""}
-                  ${cevrimici ? "" : "opacity-70"}`}
+                  ${cevrimici && !arsivli ? "" : "opacity-70"} ${arsivli ? "border-dashed" : ""}`}
       data-test="cihaz-karti" data-kutu={kutu.kod}>
 
       {/* Başlık: kod, raf, bağlantı */}
@@ -225,6 +230,7 @@ function CihazKarti({ kutu, yonetici, onDuzenle, onTest }: {
             {kutu.isikYaniyor && (
               <span className="rozet bg-marka/25 text-marka-acik">IŞIK YANIYOR</span>
             )}
+            {arsivli && <span className="rozet bg-slate-600/30 text-slate-400">ARŞİVDE</span>}
           </div>
           <p className="truncate text-sm text-slate-300">
             {kutu.urunAdi ?? <span className="text-slate-500">ürün atanmamış</span>}
@@ -295,6 +301,13 @@ function CihazKarti({ kutu, yonetici, onDuzenle, onTest }: {
 
           <button className="dugme-ikincil dugme-kucuk ml-auto" onClick={onDuzenle}>
             Düzenle
+          </button>
+          <button className={arsivli ? "dugme dugme-kucuk" : "dugme-tehlike dugme-kucuk"}
+            title={arsivli
+              ? "Kutuyu yeniden devreye al"
+              : "Kutuyu devreden çıkar: toplamaya girmez, kayıtlar silinmez"}
+            onClick={onArsiv}>
+            {arsivli ? "Devreye al" : "Arşivle"}
           </button>
         </div>
       )}

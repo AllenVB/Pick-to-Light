@@ -42,7 +42,7 @@ public sealed class KutuSecici(IAppDbContext db)
         var kutular = await db.Kutular
             .Include(k => k.Stok)
             .Include(k => k.Urun)
-            .Where(k => k.UrunId == urunId)
+            .Where(k => k.UrunId == urunId && k.Aktif)   // arşivlenen kutu toplamaya girmez
             .ToListAsync(ct);
 
         if (kutular.Count == 0)

@@ -14,14 +14,15 @@ export default function UrunlerSayfasi() {
   const yonetici = oturum?.rol === "Admin";
 
   const [urunler, setUrunler] = useState<Urun[]>([]);
+  const [arsivGoster, setArsivGoster] = useState(false);
   const [duzenlenen, setDuzenlenen] = useState<number | "yeni" | null>(null);
   const [form, setForm] = useState<Form>(BOS);
   const [hata, setHata] = useState<string | null>(null);
   const [bilgi, setBilgi] = useState<string | null>(null);
 
   const yenile = useCallback(() => {
-    api.urunler().then(setUrunler).catch(() => setHata("Ürünler alınamadı."));
-  }, []);
+    api.urunler(arsivGoster).then(setUrunler).catch(() => setHata("Ürünler alınamadı."));
+  }, [arsivGoster]);
 
   useEffect(() => { if (oturum) yenile(); }, [oturum, yenile]);
 
@@ -61,6 +62,17 @@ export default function UrunlerSayfasi() {
     }
   }
 
+  async function arsivle(u: Urun) {
+    setHata(null); setBilgi(null);
+    try {
+      await api.urunAktiflik(u.id, u.aktif === false);
+      setBilgi(u.aktif === false ? `${u.ad} yeniden kataloğa alındı.` : `${u.ad} arşivlendi.`);
+      yenile();
+    } catch (h) {
+      setHata(h instanceof ApiHata ? h.message : "İşlem başarısız.");
+    }
+  }
+
   if (!oturum) return null;
 
   return (
@@ -74,11 +86,20 @@ export default function UrunlerSayfasi() {
             inince kutu sarı yanar ve tedarik talebi açılır.
           </p>
         </div>
-        {yonetici && (
-          <button className="dugme" onClick={() => { setDuzenlenen("yeni"); setForm(BOS); }}>
-            + Yeni ürün
-          </button>
-        )}
+        <div className="flex flex-wrap items-center gap-3">
+          {yonetici && (
+            <label className="flex items-center gap-2 text-sm text-slate-300">
+              <input type="checkbox" checked={arsivGoster} data-test="arsiv-goster"
+                onChange={(e) => setArsivGoster(e.target.checked)} />
+              Arşivdekileri de göster
+            </label>
+          )}
+          {yonetici && (
+            <button className="dugme" onClick={() => { setDuzenlenen("yeni"); setForm(BOS); }}>
+              + Yeni ürün
+            </button>
+          )}
+        </div>
       </header>
 
       {hata && <p className="rounded-lg border border-durum-kirmizi/40 bg-durum-kirmizi/10 px-4 py-2 text-sm text-durum-kirmizi">{hata}</p>}
@@ -128,9 +149,14 @@ export default function UrunlerSayfasi() {
             {urunler.map((u) => {
               const kritik = u.toplamStok < u.guvenlikStogu;
               return (
-                <tr key={u.id}>
+                <tr key={u.id} className={u.aktif === false ? "opacity-50" : ""}>
                   <td className="font-mono text-xs">{u.sku}</td>
-                  <td className="font-semibold">{u.ad}</td>
+                  <td className="space-x-2 font-semibold">
+                    <span>{u.ad}</span>
+                    {u.aktif === false && (
+                      <span className="rozet bg-slate-600/30 text-slate-400">ARŞİVDE</span>
+                    )}
+                  </td>
                   <td>{u.birimAgirlikG != null ? `${u.birimAgirlikG} g` : "—"}</td>
                   <td>{u.guvenlikStogu}</td>
                   <td className="font-bold">{u.toplamStok}</td>
@@ -142,9 +168,17 @@ export default function UrunlerSayfasi() {
                         : <span className="text-durum-yesil">✓ yeterli</span>}
                   </td>
                   {yonetici && (
-                    <td>
-                      <button className="dugme-ikincil px-3 py-1 text-xs" onClick={() => duzenlemeyiAc(u)}>
+                    <td className="space-x-1 whitespace-nowrap">
+                      <button className="dugme-ikincil dugme-kucuk" onClick={() => duzenlemeyiAc(u)}>
                         Düzenle
+                      </button>
+                      <button
+                        className={u.aktif === false ? "dugme dugme-kucuk" : "dugme-tehlike dugme-kucuk"}
+                        title={u.aktif === false
+                          ? "Ürünü yeniden kataloğa al"
+                          : "Ürünü arşivle: yeni siparişlerde seçilemez, geçmişi korunur"}
+                        onClick={() => arsivle(u)}>
+                        {u.aktif === false ? "Geri al" : "Arşivle"}
                       </button>
                     </td>
                   )}

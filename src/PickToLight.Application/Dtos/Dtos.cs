@@ -72,7 +72,8 @@ public sealed record SiparisDetayDto(
 
 // ───────────────────────── Envanter ─────────────────────────
 
-public sealed record UrunDto(long Id, string Sku, string Ad, decimal? BirimAgirlikG, int GuvenlikStogu, int ToplamStok);
+public sealed record UrunDto(long Id, string Sku, string Ad, decimal? BirimAgirlikG, int GuvenlikStogu,
+    int ToplamStok, bool Aktif = true);
 
 public sealed record UrunIstek(string Sku, string Ad, decimal? BirimAgirlikG, int GuvenlikStogu);
 
@@ -105,7 +106,9 @@ public sealed record KutuDto(
     /// <summary>Bu kutuyu bekleyen sıradaki kalem sayısı (kutu kuyruğu).</summary>
     int SiradakiSayisi = 0,
     /// <summary>Yanan ışık için teyit son tarihi — kiosk ekranında geri sayım.</summary>
-    DateTimeOffset? TeyitSonTarihi = null);
+    DateTimeOffset? TeyitSonTarihi = null,
+    /// <summary>Arşivlenen kutu toplamaya girmez.</summary>
+    bool Aktif = true);
 
 public sealed record KutuIstek(string Kod, long? UrunId, string CihazMac, string? RafKonumu, int BaslangicStogu);
 

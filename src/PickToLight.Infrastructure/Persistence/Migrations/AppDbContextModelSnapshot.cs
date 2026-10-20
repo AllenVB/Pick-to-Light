@@ -129,6 +129,10 @@ namespace PickToLight.Infrastructure.Persistence.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<bool>("Aktif")
+                        .HasColumnType("boolean")
+                        .HasColumnName("aktif");
+
                     b.Property<string>("BaglantiDurumu")
                         .IsRequired()
                         .HasMaxLength(10)
@@ -554,6 +558,10 @@ namespace PickToLight.Infrastructure.Persistence.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)")
                         .HasColumnName("ad");
+
+                    b.Property<bool>("Aktif")
+                        .HasColumnType("boolean")
+                        .HasColumnName("aktif");
 
                     b.Property<decimal?>("BirimAgirlikG")
                         .HasPrecision(10, 2)

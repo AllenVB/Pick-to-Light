@@ -12,8 +12,18 @@ public sealed class UrunlerController(StokServisi stok) : ControllerBase
 {
     /// <summary>Ürün kataloğu ve her ürünün tüm kutulardaki toplam stoğu.</summary>
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<UrunDto>>> Listele(CancellationToken ct)
-        => Ok(await stok.UrunleriListeleAsync(ct));
+    public async Task<ActionResult<IReadOnlyList<UrunDto>>> Listele(
+        [FromQuery] bool pasifDahil = false, CancellationToken ct = default)
+        => Ok(await stok.UrunleriListeleAsync(pasifDahil, ct));
+
+    /// <summary>Ürünü arşivler veya geri alır (kayıt silinmez, geçmiş korunur).</summary>
+    [HttpPost("{id:long}/aktiflik")]
+    [Authorize(Roles = "ADMIN")]
+    public async Task<ActionResult> Aktiflik(long id, [FromQuery] bool aktif, CancellationToken ct)
+    {
+        await stok.UrunAktifligiDegistirAsync(id, aktif, ct);
+        return NoContent();
+    }
 
     /// <summary>Yeni ürün ekler (SKU benzersizdir).</summary>
     [HttpPost]

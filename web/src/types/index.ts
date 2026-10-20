@@ -31,6 +31,7 @@ export interface Kutu {
   alinacakMiktar?: number;
   siparisNo?: string;
   aktifKalemId?: number;
+  aktif?: boolean;
   siradakiSayisi?: number;
   teyitSonTarihi?: string | null;
   firmwareSurumu?: string | null;
@@ -99,6 +100,7 @@ export interface Urun {
   birimAgirlikG?: number;
   guvenlikStogu: number;
   toplamStok: number;
+  aktif: boolean;
 }
 
 export interface StokHareket {

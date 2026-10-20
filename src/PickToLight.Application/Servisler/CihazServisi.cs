@@ -131,6 +131,32 @@ public sealed class CihazServisi(
     }
 
     /// <summary>
+    /// Kutuyu devreden çıkarır veya geri alır. Arşivlenen kutu ışık dağıtımına
+    /// girmez; stok hareketleri kutuya bağlı olduğu için kayıt silinmez.
+    /// </summary>
+    public async Task KutuAktifligiDegistirAsync(long kutuId, bool aktif, CancellationToken ct = default)
+    {
+        var kutu = await db.Kutular.FirstOrDefaultAsync(k => k.Id == kutuId, ct)
+                   ?? throw new KayitBulunamadiException("Kutu", kutuId);
+
+        if (!aktif)
+        {
+            var mesgul = await db.SiparisKalemleri
+                .AnyAsync(k => k.KutuId == kutuId
+                               && (k.Durum == KalemDurumu.IsikYandi || k.Durum == KalemDurumu.Sirada), ct);
+
+            if (mesgul)
+                throw new DomainException("kutu-mesgul",
+                    "Bu kutuda devam eden toplama var; önce siparişleri bitirin veya iptal edin.");
+        }
+
+        kutu.Aktif = aktif;
+        await db.SaveChangesAsync(ct);
+
+        log.LogInformation("Kutu {Kod} {Durum}.", kutu.Kod, aktif ? "yeniden devreye alındı" : "arşivlendi");
+    }
+
+    /// <summary>
     /// Kutu bilgilerini günceller: ürün ataması, raf konumu, kod ve cihaz MAC'i.
     /// MQTT topic'i kutu kimliğinden türetildiği için değişmez.
     /// </summary>

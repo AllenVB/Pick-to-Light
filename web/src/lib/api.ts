@@ -127,7 +127,12 @@ export const api = {
 
   kutular: () => istek<Kutu[]>("/api/kutular"),
   stokDurumu: () => istek<Kutu[]>("/api/stok"),
-  urunler: () => istek<Urun[]>("/api/urunler"),
+  urunler: (pasifDahil = false) =>
+    istek<Urun[]>(`/api/urunler${pasifDahil ? "?pasifDahil=true" : ""}`),
+  urunAktiflik: (id: number, aktif: boolean) =>
+    istek<void>(`/api/urunler/${id}/aktiflik?aktif=${aktif}`, { method: "POST" }),
+  kutuAktiflik: (id: number, aktif: boolean) =>
+    istek<void>(`/api/kutular/${id}/aktiflik?aktif=${aktif}`, { method: "POST" }),
 
   siparisler: (secenek: { durum?: string; ara?: string; sayfa?: number; boyut?: number } = {}) => {
     const p = new URLSearchParams();
