@@ -67,6 +67,16 @@ export default function OperatorEkrani() {
   if (!oturum) return null;
 
   const yananlar = kutular.filter((k) => k.isikYaniyor);
+  const cevrimdisiler = kutular.filter((k) => k.baglantiDurumu === "Offline");
+
+  const alarmGecerli =
+    sonAlarm?.tip === "StokYok" ||
+    (sonAlarm?.tip === "CihazOffline" &&
+      // Alarmın kutusu hâlâ çevrimdışıysa anlamlıdır.
+      cevrimdisiler.some((k) => k.id === sonAlarm.kutuId));
+
+  const gosterilecekAlarm = alarmGecerli ? sonAlarm : null;
+  const sirada = kutular.reduce((t, k) => t + (k.siradakiSayisi ?? 0), 0);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -85,10 +95,16 @@ export default function OperatorEkrani() {
         </div>
       </header>
 
-      {sonAlarm && (sonAlarm.tip === "StokYok" || sonAlarm.tip === "CihazOffline") && (
-        <div className="mt-4 rounded-xl border-2 border-durum-kirmizi bg-durum-kirmizi/10 px-6 py-4 nabiz-kirmizi">
-          <p className="text-xs font-bold uppercase tracking-widest text-durum-kirmizi">{sonAlarm.tip}</p>
-          <p className="mt-1 text-xl font-bold">{sonAlarm.mesaj}</p>
+      {/* Cihaz kopması alarmı, kutu geri döndüyse gösterilmez: ekrandaki canlı
+          durumla çelişen bir uyarı operatörü yanıltır. Çevrimdışı kutular zaten
+          aşağıdaki sarı şeritte listeleniyor. */}
+      {gosterilecekAlarm && (
+        <div className="mt-4 rounded-xl border-2 border-durum-kirmizi bg-durum-kirmizi/10 px-6 py-4 nabiz-kirmizi"
+          data-test="kiosk-alarm">
+          <p className="text-xs font-bold uppercase tracking-widest text-durum-kirmizi">
+            {gosterilecekAlarm.tip}
+          </p>
+          <p className="mt-1 text-xl font-bold">{gosterilecekAlarm.mesaj}</p>
         </div>
       )}
 
@@ -96,6 +112,18 @@ export default function OperatorEkrani() {
         <p className="mt-4 rounded-lg border border-durum-kirmizi/40 bg-durum-kirmizi/10 px-4 py-2 text-sm text-durum-kirmizi">
           {hata}
         </p>
+      )}
+
+      {/* Çevrimdışı kutu varsa kalıcı uyarı: operatör hiç yanmayacak bir ışığı beklemesin. */}
+      {cevrimdisiler.length > 0 && (
+        <div className="mt-4 flex items-center gap-3 rounded-xl border border-durum-sari/40
+                        bg-durum-sari/10 px-5 py-3" data-test="cihaz-uyarisi">
+          <span aria-hidden className="text-xl">⚡</span>
+          <p className="text-base font-semibold text-durum-sari">
+            {cevrimdisiler.length} kutu çevrimdışı: {cevrimdisiler.map((k) => k.kod).join(", ")} —
+            bu kutular için ışık yanmaz, sorumluya bildirin.
+          </p>
+        </div>
       )}
 
       <main className="flex flex-1 items-center justify-center py-8">
@@ -107,10 +135,14 @@ export default function OperatorEkrani() {
             </p>
             <p className="mt-6 text-sm text-slate-600">
               {kutular.filter((k) => k.baglantiDurumu === "Online").length}/{kutular.length} kutu çevrimiçi
+              {sirada > 0 && ` · ${sirada} kalem sırada`}
             </p>
           </div>
         ) : (
-          <div className={`grid w-full gap-6 ${yananlar.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
+          <div className={`grid w-full gap-6 ${
+            yananlar.length === 1 ? "grid-cols-1"
+            : yananlar.length <= 4 ? "grid-cols-2"
+            : "grid-cols-3"}`}>
             {yananlar.map((k) => {
               const r = RENK[k.anlikRenk ?? "Yesil"];
               return (
@@ -120,6 +152,12 @@ export default function OperatorEkrani() {
                     <div>
                       <p className="text-6xl font-black leading-none">{k.kod}</p>
                       <p className="mt-3 text-2xl text-slate-300">{k.rafKonumu ?? "—"}</p>
+                      {(k.siradakiSayisi ?? 0) > 0 && (
+                        <p className="mt-2 inline-block rounded-full bg-durum-sari/20 px-3 py-1
+                                      text-sm font-bold text-durum-sari">
+                          +{k.siradakiSayisi} sipariş sırada
+                        </p>
+                      )}
                     </div>
                     <span className={`h-20 w-20 shrink-0 rounded-full ${r.lamba}`} />
                   </div>
@@ -140,14 +178,17 @@ export default function OperatorEkrani() {
                     </div>
                   </div>
 
-                  <div className="mt-6 flex items-center justify-between border-t border-zemin-cizgi pt-4">
-                    <p className={`text-xl font-black tracking-wide ${r.metin}`}>{r.ad}</p>
+                  <div className="mt-6 flex items-center justify-between gap-4 border-t border-zemin-cizgi pt-4">
+                    <div>
+                      <p className={`text-xl font-black tracking-wide ${r.metin}`}>{r.ad}</p>
+                      <KioskGeriSayim sonTarih={k.teyitSonTarihi} />
+                    </div>
 
                     {/* Buton/sensör çalışmazsa ekrandan teyit (FR-09 yedek yolu) */}
                     {k.aktifKalemId ? (
                       <button
-                        className="rounded-xl bg-marka px-8 py-4 text-lg font-bold text-white transition
-                                   hover:bg-marka-acik disabled:opacity-40"
+                        className="rounded-xl bg-marka px-10 py-5 text-xl font-bold text-white shadow-lg
+                                   transition hover:bg-marka-acik active:scale-95 disabled:opacity-40"
                         disabled={islemdeki === k.aktifKalemId}
                         onClick={() => teyitEt(k.aktifKalemId!)}>
                         {islemdeki === k.aktifKalemId ? "Gönderiliyor…" : "ALDIM ✓"}
@@ -163,5 +204,39 @@ export default function OperatorEkrani() {
         )}
       </main>
     </div>
+  );
+}
+
+/**
+ * Kiosk için teyit geri sayımı.
+ *
+ * Süre dolduğunda ışık söner ve rezerve stok iade edilir; operatör bunu
+ * önceden görmeli. Son dakikada sarıya döner.
+ */
+function KioskGeriSayim({ sonTarih }: { sonTarih?: string | null }) {
+  const [kalan, setKalan] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!sonTarih) { setKalan(null); return; }
+
+    const hesapla = () =>
+      setKalan(Math.max(0, Math.round((new Date(sonTarih).getTime() - Date.now()) / 1000)));
+
+    hesapla();
+    const sayac = setInterval(hesapla, 1000);
+    return () => clearInterval(sayac);
+  }, [sonTarih]);
+
+  if (kalan === null) return null;
+
+  const dakika = Math.floor(kalan / 60);
+  const saniye = kalan % 60;
+  const azKaldi = kalan <= 60;
+
+  return (
+    <p className={`mt-1 font-mono text-lg tabular-nums ${azKaldi ? "text-durum-sari" : "text-slate-500"}`}
+      data-test="kiosk-geri-sayim">
+      {kalan === 0 ? "süre doldu" : `${dakika}:${String(saniye).padStart(2, "0")} kaldı`}
+    </p>
   );
 }

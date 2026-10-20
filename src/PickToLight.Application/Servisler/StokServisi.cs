@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using PickToLight.Application.Abstractions;
+using PickToLight.Application.Ayarlar;
 using PickToLight.Application.Dtos;
 using PickToLight.Domain.Entities;
 using PickToLight.Domain.Enums;
@@ -13,8 +15,11 @@ public sealed class StokServisi(
     IAppDbContext db,
     IStokDeposu stokDeposu,
     IBildirimYayinci bildirim,
-    IOturumKullanicisi oturum)
+    IOturumKullanicisi oturum,
+    IOptions<PickToLightAyarlari> ayarlar)
 {
+    private readonly PickToLightAyarlari _ayar = ayarlar.Value;
+
     public async Task<IReadOnlyList<KutuDto>> KutuDurumlariAsync(CancellationToken ct = default)
     {
         var kutular = await db.Kutular
@@ -28,8 +33,21 @@ public sealed class StokServisi(
             .AsNoTracking()
             .Where(k => k.Durum == KalemDurumu.IsikYandi && k.KutuId != null)
             .OrderBy(k => k.IsikYanmaZamani)
-            .Select(k => new { k.KutuId, k.LedRengi, k.Miktar, SiparisNo = k.Siparis.SiparisNo, KalemId = k.Id })
+            .Select(k => new
+            {
+                k.KutuId, k.LedRengi, k.Miktar, SiparisNo = k.Siparis.SiparisNo, KalemId = k.Id,
+                k.IsikYanmaZamani
+            })
             .ToListAsync(ct);
+
+        // Kutu kuyruğu: ışığı yanan kalemin arkasında bekleyenler (operatör daha iş
+        // geleceğini bilsin, kiosk ekranında gösterilir).
+        var siradakiler = await db.SiparisKalemleri
+            .AsNoTracking()
+            .Where(k => k.Durum == KalemDurumu.Sirada && k.KutuId != null)
+            .GroupBy(k => k.KutuId!.Value)
+            .Select(g => new { KutuId = g.Key, Sayi = g.Count() })
+            .ToDictionaryAsync(x => x.KutuId, x => x.Sayi, ct);
 
         return kutular.Select(k =>
         {
@@ -47,7 +65,9 @@ public sealed class StokServisi(
             return new KutuDto(k.Id, k.Kod, k.UrunId, k.Urun?.Ad, k.CihazMac, k.MqttTopic, k.RafKonumu,
                 k.BaglantiDurumu, k.SonGorulme, adet, guvenlik, renk, yanan is not null,
                 yanan?.Miktar, yanan?.SiparisNo, yanan?.KalemId,
-                k.FirmwareSurumu, k.Rssi, k.IpAdresi);
+                k.FirmwareSurumu, k.Rssi, k.IpAdresi,
+                siradakiler.GetValueOrDefault(k.Id),
+                yanan?.IsikYanmaZamani?.AddSeconds(_ayar.TeyitZamanAsimiSaniye));
         }).ToList();
     }
 

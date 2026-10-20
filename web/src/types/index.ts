@@ -31,6 +31,8 @@ export interface Kutu {
   alinacakMiktar?: number;
   siparisNo?: string;
   aktifKalemId?: number;
+  siradakiSayisi?: number;
+  teyitSonTarihi?: string | null;
   firmwareSurumu?: string | null;
   rssi?: number | null;
   ipAdresi?: string | null;

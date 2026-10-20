@@ -101,7 +101,11 @@ public sealed record KutuDto(
     /// <summary>Wi-Fi sinyal gücü (dBm); -60 üstü iyi, -80 altı sorunlu.</summary>
     int? Rssi = null,
     /// <summary>Cihazın yerel ağ adresi.</summary>
-    string? IpAdresi = null);
+    string? IpAdresi = null,
+    /// <summary>Bu kutuyu bekleyen sıradaki kalem sayısı (kutu kuyruğu).</summary>
+    int SiradakiSayisi = 0,
+    /// <summary>Yanan ışık için teyit son tarihi — kiosk ekranında geri sayım.</summary>
+    DateTimeOffset? TeyitSonTarihi = null);
 
 public sealed record KutuIstek(string Kod, long? UrunId, string CihazMac, string? RafKonumu, int BaslangicStogu);
 

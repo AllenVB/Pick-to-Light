@@ -2,14 +2,58 @@ import { Page, expect } from "@playwright/test";
 
 export const API = process.env.PTL_API ?? "http://localhost:5080";
 
+const OTURUM_ANAHTARI = "ptl.oturum";
+const oturumOnbellegi = new Map<string, unknown>();
+
+/** Giriş yanıtını (token + rol) bir kez alır, sonra önbellekten verir. */
+async function oturumAl(kullanici: string, parola: string) {
+  const anahtar = `${kullanici}:${parola}`;
+  const mevcut = oturumOnbellegi.get(anahtar);
+  if (mevcut) return mevcut;
+
+  const yanit = await fetch(`${API}/api/auth/giris`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ kullaniciAdi: kullanici, parola }),
+  });
+
+  if (!yanit.ok) {
+    throw new Error(`Giriş başarısız (${yanit.status}): ${(await yanit.text()).slice(0, 200)}`);
+  }
+
+  const oturum = await yanit.json();
+  oturumOnbellegi.set(anahtar, oturum);
+  return oturum;
+}
+
+/**
+ * Testi oturum açmış durumda başlatır.
+ *
+ * Her test arayüzden giriş yapsaydı, API'nin IP başına uygulanan kaba kuvvet
+ * koruması takım arka arkaya koşturulduğunda girişleri reddediyordu (testler
+ * bu yüzden aralıklı düşüyordu). Oturum bir kez alınır ve localStorage'a yazılır;
+ * giriş ekranının kendisi ayrı bir testle doğrulanır.
+ */
 export async function girisYap(page: Page, kullanici = "admin", parola = "admin123") {
+  const oturum = await oturumAl(kullanici, parola);
+
+  await page.addInitScript(
+    ([anahtar, deger]) => window.localStorage.setItem(anahtar as string, deger as string),
+    [OTURUM_ANAHTARI, JSON.stringify(oturum)]
+  );
+
+  await page.goto("/");
+  await expect(page.getByTestId("pano-kpi").first()).toBeVisible();
+}
+
+/** Giriş ekranının kendisini (form + yönlendirme) doğrulayan yol. */
+export async function girisYapArayuzden(page: Page, kullanici: string, parola: string) {
   await page.goto("/giris");
 
   const kullaniciKutusu = page.locator('input[autocomplete="username"]');
   const parolaKutusu = page.locator('input[type="password"]');
 
-  // React hydration tamamlanmadan yazılan değerler sıfırlanabiliyor; yazdığımızın
-  // alanda kaldığını doğrulayana kadar tekrar denenir.
+  // React hydration tamamlanmadan yazılan değerler sıfırlanabiliyor.
   await expect(async () => {
     await kullaniciKutusu.fill(kullanici);
     await parolaKutusu.fill(parola);

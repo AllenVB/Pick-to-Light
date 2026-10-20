@@ -223,7 +223,7 @@ public sealed class TestTezgahi : IDisposable
         Siparisler = new SiparisServisi(Db, stokDeposu, new SahteIsikKuyrugu(Db), Mqtt, Bildirim, Alarmlar,
             kutuSecici, Zaman, Oturum, ayarlar, NullLogger<SiparisServisi>.Instance);
 
-        Stoklar = new StokServisi(Db, stokDeposu, Bildirim, Oturum);
+        Stoklar = new StokServisi(Db, stokDeposu, Bildirim, Oturum, ayarlar);
     }
 
     /// <summary>Tek ürün + tek kutu + stok kurar ve kutu kimliğini döndürür.</summary>

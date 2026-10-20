@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { girisYap, kutulariCevrimiciBekle, tokenAl } from "./yardimcilar";
+import { girisYap, girisYapArayuzden, kutulariCevrimiciBekle, tokenAl } from "./yardimcilar";
 
 test.describe("Ekranlar", () => {
   test.beforeAll(async () => {
@@ -35,6 +35,13 @@ test.describe("Ekranlar", () => {
 
     await page.goto("/stok");
     await expect(page.locator('button:has-text("Sayım")')).toHaveCount(0);
+  });
+
+  test("giriş ekranından oturum açılabilir", async ({ page }) => {
+    await girisYapArayuzden(page, "operator", "operator123");
+
+    await expect(page.getByTestId("pano-kpi").first()).toBeVisible();
+    await expect(page.locator("aside")).toContainText("Depo Operatörü");
   });
 
   test("yetkisiz kullanıcı giriş sayfasına yönlendirilir", async ({ page }) => {
