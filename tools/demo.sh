@@ -23,9 +23,18 @@ YESIL=$'\e[32m'; SARI=$'\e[33m'; KIRMIZI=$'\e[31m'; MAVI=$'\e[36m'; KALIN=$'\e[1
 
 baslik() { printf "\n%s▸ %s%s\n" "$KALIN$MAVI" "$1" "$BITIS"; }
 bilgi()  { printf "  %s\n" "$1"; }
-hata()   { printf "  %s✘ %s%s\n" "$KIRMIZI" "$1" "$BITIS"; }
+hata()     { printf "  %s✘ %s%s\n" "$KIRMIZI" "$1" "$BITIS"; }
+basarili() { printf "  %s✔ %s%s\n" "$YESIL" "$1" "$BITIS"; }
 
-jq_var() { python3 -c "import sys,json;d=json.load(sys.stdin);print($1)"; }
+# API hata döndürdüğünde (ör. mükerrer sipariş no) boş döner; çağıran kontrol eder.
+jq_var() { python3 -c "
+import sys, json
+try:
+    d = json.load(sys.stdin)
+    print($1)
+except Exception:
+    print('')
+"; }
 
 giris() {
   TOKEN=$(curl -s -X POST "$API/api/auth/giris" -H 'Content-Type: application/json' \
@@ -108,9 +117,19 @@ eszamanli() {
   ist -X POST "$API/api/stok/5/sayim" -d '{"yeniAdet":3,"aciklama":"Eşzamanlılık demosu"}' > /dev/null
   bilgi "K-05 stoğu 3 adete çekildi; iki sipariş 2'şer adet isteyecek."
 
-  local a b
-  a=$(ist -X POST "$API/api/siparisler" -d '{"siparisNo":"DEMO-ESZ-A","kalemler":[{"urunId":5,"miktar":2}]}' | jq_var "d['id']")
-  b=$(ist -X POST "$API/api/siparisler" -d '{"siparisNo":"DEMO-ESZ-B","kalemler":[{"urunId":5,"miktar":2}]}' | jq_var "d['id']")
+  # Sipariş numaraları her koşuda benzersiz olmalı: demo sunumda birden çok kez
+  # çalıştırılır ve sabit numara ikinci seferde "mükerrer sipariş no" hatası verir.
+  local etiket a b
+  etiket="$(date +%H%M%S)-$RANDOM"
+  a=$(ist -X POST "$API/api/siparisler" \
+      -d "{\"siparisNo\":\"DEMO-ESZ-A-$etiket\",\"kalemler\":[{\"urunId\":5,\"miktar\":2}]}" | jq_var "d['id']")
+  b=$(ist -X POST "$API/api/siparisler" \
+      -d "{\"siparisNo\":\"DEMO-ESZ-B-$etiket\",\"kalemler\":[{\"urunId\":5,\"miktar\":2}]}" | jq_var "d['id']")
+
+  if [ -z "$a" ] || [ -z "$b" ]; then
+    hata "Siparişler oluşturulamadı; API çalışıyor mu?"
+    return 1
+  fi
 
   ist -X POST "$API/api/siparisler/$a/baslat" > /tmp/ptl-demo-a.json &
   ist -X POST "$API/api/siparisler/$b/baslat" > /tmp/ptl-demo-b.json &
@@ -119,14 +138,25 @@ eszamanli() {
   python3 - <<'PY'
 import json
 for ad, dosya in (("A", "/tmp/ptl-demo-a.json"), ("B", "/tmp/ptl-demo-b.json")):
-    d = json.load(open(dosya))
-    k = d["kalemler"][0]
-    print(f"  Sipariş {ad}: {d['durum']:16} kalem={k['durum']}")
+    try:
+        d = json.load(open(dosya))
+        k = d["kalemler"][0]
+        print(f"  Sipariş {ad}: {d['durum']:16} kalem={k['durum']}")
+    except (json.JSONDecodeError, KeyError, IndexError):
+        print(f"  Sipariş {ad}: başlatılamadı (API yanıtı beklenen biçimde değil)")
 PY
 
   local kalan
   kalan=$(ist "$API/api/kutular" | jq_var "[k['adet'] for k in d if k['kod']=='K-05'][0]")
-  bilgi "K-05 kalan stok: $kalan  (3 - 2 = 1 olmalı; negatif stok yok)"
+  # Biri ışığı alır, diğeri aynı kutu meşgul olduğu için sıraya girer; ikisi de
+  # stoğu rezerve ettiğinden 3 - 2 - 2 mümkün değildir, 3 - 2 = 1 kalır.
+  bilgi "K-05 kalan stok: $kalan  (beklenen 1 · negatif stok yok)"
+
+  if [ "$kalan" = "1" ]; then
+    basarili "Eşzamanlı iki istekten yalnızca biri rezervasyon yaptı."
+  else
+    hata "Beklenmeyen stok: $kalan (1 olmalıydı)"
+  fi
 }
 
 komut="${1:-hepsi}"
