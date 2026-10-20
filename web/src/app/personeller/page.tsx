@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { ApiHata, api } from "@/lib/api";
 import { useKorumaliSayfa } from "@/hooks/useKorumaliSayfa";
+import { useToast } from "@/components/Toast";
+import { BosDurum } from "@/components/Durumlar";
 import type { Personel } from "@/types";
 
 export default function PersonellerSayfasi() {
@@ -16,7 +18,7 @@ export default function PersonellerSayfasi() {
   const [parola, setParola] = useState("");
   const [rol, setRol] = useState("Operator");
   const [hata, setHata] = useState<string | null>(null);
-  const [bilgi, setBilgi] = useState<string | null>(null);
+  const toast = useToast();
 
   const yenile = useCallback(() => {
     api.personeller().then(setPersoneller)
@@ -26,9 +28,14 @@ export default function PersonellerSayfasi() {
   useEffect(() => { if (oturum && yonetici) yenile(); }, [oturum, yonetici, yenile]);
 
   async function calistir(f: () => Promise<unknown>, basarim: string) {
-    setHata(null); setBilgi(null);
-    try { await f(); setBilgi(basarim); yenile(); }
-    catch (h) { setHata(h instanceof ApiHata ? h.message : "İşlem başarısız."); }
+    setHata(null);
+    try {
+      await f();
+      toast(basarim, "basari");
+      yenile();
+    } catch (h) {
+      toast(h instanceof ApiHata ? h.message : "İşlem başarısız.", "hata");
+    }
   }
 
   if (!oturum) return null;
@@ -58,7 +65,6 @@ export default function PersonellerSayfasi() {
       </header>
 
       {hata && <p className="rounded-lg border border-durum-kirmizi/40 bg-durum-kirmizi/10 px-4 py-2 text-sm text-durum-kirmizi">{hata}</p>}
-      {bilgi && <p className="rounded-lg border border-durum-yesil/40 bg-durum-yesil/10 px-4 py-2 text-sm text-durum-yesil">{bilgi}</p>}
 
       {formAcik && (
         <section className="kart space-y-4">
@@ -136,7 +142,12 @@ export default function PersonellerSayfasi() {
                 </td>
               </tr>
             ))}
-            {personeller.length === 0 && <tr><td colSpan={5} className="text-slate-500">Kayıt yok.</td></tr>}
+            {personeller.length === 0 && (
+              <tr><td colSpan={5}>
+                <BosDurum simge="☺" baslik="Kayıtlı personel yok"
+                  aciklama="Her stok hareketi bir personele bağlanır; operatörleri buradan tanımlayın." />
+              </td></tr>
+            )}
           </tbody>
         </table>
       </section>

@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { useCanliOlaylar } from "@/hooks/useCanliOlaylar";
 import { useKorumaliSayfa } from "@/hooks/useKorumaliSayfa";
+import { useToast } from "@/components/Toast";
+import { BosDurum } from "@/components/Durumlar";
 import type { Alarm, TedarikTalebi } from "@/types";
 
 const TIP_RENK: Record<string, string> = {
@@ -18,6 +20,7 @@ const TIP_RENK: Record<string, string> = {
 export default function AlarmlarSayfasi() {
   const oturum = useKorumaliSayfa();
   const [alarmlar, setAlarmlar] = useState<Alarm[]>([]);
+  const toast = useToast();
   const [talepler, setTalepler] = useState<TedarikTalebi[]>([]);
   const [sadeceOkunmamis, setSadeceOkunmamis] = useState(true);
   const [tip, setTip] = useState("");
@@ -56,7 +59,9 @@ export default function AlarmlarSayfasi() {
             Sadece okunmamışlar
           </label>
           <button className="dugme-ikincil text-xs"
-            onClick={() => api.alarmTumunuOkundu().then(yenile)}>
+            onClick={() => api.alarmTumunuOkundu()
+              .then((s) => { toast(`${s.isaretlenen} alarm okundu işaretlendi.`, "basari"); yenile(); })
+              .catch(() => toast("İşaretlenemedi.", "hata"))}>
             Tümünü okundu işaretle
           </button>
         </div>
@@ -81,7 +86,7 @@ export default function AlarmlarSayfasi() {
             )}
           </div>
         ))}
-        {alarmlar.length === 0 && <p className="text-sm text-slate-500">Gösterilecek alarm yok. ✔</p>}
+        {alarmlar.length === 0 && <p className="text-sm text-slate-500">Gösterilecek alarm yok.</p>}
       </section>
 
       <section className="kart">

@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { ApiHata, api, oturumOku } from "@/lib/api";
 import { useCanliOlaylar } from "@/hooks/useCanliOlaylar";
 import { useKorumaliSayfa } from "@/hooks/useKorumaliSayfa";
+import { useToast } from "@/components/Toast";
+import { BosDurum, IskeletSatir } from "@/components/Durumlar";
 import { RenkRozeti } from "@/components/Rozet";
 import type { Kutu } from "@/types";
 
@@ -11,20 +13,29 @@ export default function StokSayfasi() {
   const oturum = useKorumaliSayfa();
   const [kutular, setKutular] = useState<Kutu[]>([]);
   const [hata, setHata] = useState<string | null>(null);
-  const [bilgi, setBilgi] = useState<string | null>(null);
+  const [yukleniyor, setYukleniyor] = useState(true);
+  const toast = useToast();
 
   const yonetici = oturum?.rol === "Admin";
   const yenile = useCallback(() => {
-    api.stokDurumu().then(setKutular).catch(() => setHata("Stok bilgisi alınamadı."));
+    api.stokDurumu()
+      .then(setKutular)
+      .catch(() => setHata("Stok bilgisi alınamadı."))
+      .finally(() => setYukleniyor(false));
   }, []);
 
   useEffect(() => { if (oturum) yenile(); }, [oturum, yenile]);
   useCanliOlaylar({ StokGuncellendi: yenile, CihazDurumDegisti: yenile, KutuIsikDegisti: yenile });
 
   async function calistir(f: () => Promise<unknown>, basarimMesaji: string) {
-    setHata(null); setBilgi(null);
-    try { await f(); setBilgi(basarimMesaji); yenile(); }
-    catch (h) { setHata(h instanceof ApiHata ? h.message : "İşlem başarısız."); }
+    setHata(null);
+    try {
+      await f();
+      toast(basarimMesaji, "basari");
+      yenile();
+    } catch (h) {
+      toast(h instanceof ApiHata ? h.message : "İşlem başarısız.", "hata");
+    }
   }
 
   if (!oturum) return null;
@@ -40,7 +51,6 @@ export default function StokSayfasi() {
       </header>
 
       {hata && <p className="rounded-lg border border-durum-kirmizi/40 bg-durum-kirmizi/10 px-4 py-2 text-sm text-durum-kirmizi">{hata}</p>}
-      {bilgi && <p className="rounded-lg border border-durum-yesil/40 bg-durum-yesil/10 px-4 py-2 text-sm text-durum-yesil">{bilgi}</p>}
 
       <section className="kart overflow-x-auto">
         <table className="tablo">
@@ -51,7 +61,16 @@ export default function StokSayfasi() {
             </tr>
           </thead>
           <tbody>
-            {kutular.map((k) => (
+            {yukleniyor && <><IskeletSatir sutun={6} /><IskeletSatir sutun={6} /><IskeletSatir sutun={6} /></>}
+
+            {!yukleniyor && kutular.length === 0 && (
+              <tr><td colSpan={8}>
+                <BosDurum simge="▤" baslik="Stok kaydı yok"
+                  aciklama="Önce Kutu & Cihaz ekranından kutu tanımlayın; stok kutuya bağlı tutulur." />
+              </td></tr>
+            )}
+
+            {!yukleniyor && kutular.map((k) => (
               <tr key={k.id} data-test="stok-satiri" data-kutu={k.kod}>
                 <td className="font-mono text-xs">{k.kod}</td>
                 <td>{k.urunAdi ?? "—"}</td>

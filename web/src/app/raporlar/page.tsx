@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { useKorumaliSayfa } from "@/hooks/useKorumaliSayfa";
+import { BosDurum, IskeletKart } from "@/components/Durumlar";
 import type { GunlukHareket, KutuPerformans, RaporOzet, UrunHareket } from "@/types";
 
 const DONEMLER = [7, 30, 90];
@@ -107,6 +108,10 @@ export default function RaporlarSayfasi() {
       </header>
 
       {hata && <p className="rounded-lg border border-durum-kirmizi/40 bg-durum-kirmizi/10 px-4 py-2 text-sm text-durum-kirmizi">{hata}</p>}
+
+      {!ozet && !hata && (
+        <section className="grid grid-cols-2 gap-4 lg:grid-cols-4"><IskeletKart adet={4} /></section>
+      )}
 
       {ozet && (
         <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
