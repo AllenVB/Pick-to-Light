@@ -38,9 +38,27 @@ _Son güncelleme: kodlama fazı · 155 otomatik test (34 domain + 40 servis + 71
 | NFR-05 | İzlenebilirlik | `stok_hareketi` + `cihaz_olayi` + `X-Correlation-Id` + Serilog | Hareket defteri ve cihaz olayları ekranları | ✅ |
 | NFR-06 | Ölçeklenebilirlik (kutu ekleme kod değişmeden) | `depo/kutu/+/…` joker abonelikler · `/kutular` kutu ekleme | Tarayıcı testi: yeni kutu eklendi, MQTT topic'i otomatik atandı | ✅ |
 | NFR-07 | Güvenlik | JWT · PBKDF2 · roller · giriş hız sınırı · MQTT kullanıcı/ACL | `GuvenlikTestleri` (3 test) + yerel broker ACL doğrulaması | ✅ |
-| NFR-08 | 3 m mesafeden okunabilirlik, renk körlüğü | `/operator` kiosk ekranı · renk + ikon + metin birlikte | Tarayıcı ekran görüntüsü | 🟡 |
+| NFR-08 | 3 m mesafeden okunabilirlik, renk körlüğü | `/operator` kiosk: büyük punto, renk + metin birlikte, çevrimdışı kutu uyarısı, teyit geri sayımı | E2E `operatör ekranı`, tarayıcı doğrulaması | ✅ |
 | NFR-09 | Tek komutla kurulum | `docker compose up -d` · README / KURULUM.md | Yerelde (Docker'sız kurulumla) uçtan uca çalıştırıldı | ✅ |
 | NFR-10 | Donanımsız test edilebilirlik | `tools/KutuSimulatoru` (kalp atışlı, otomatik/manuel teyit) | Tüm uçtan uca testler simülatörle koşuldu | ✅ |
+
+## Plan sonrası eklenenler (gerçek kullanım ihtiyacından doğdu)
+
+Bu maddeler planlama dokümanında yoktu; geliştirme ve testler sırasında ortaya
+çıkan gerçek ihtiyaçlar üzerine eklendi.
+
+| Yetenek | Neden gerekti | Uygulama | Doğrulayan test |
+|---|---|---|---|
+| **Kutu kuyruğu** | İki sipariş aynı kutuyu isteyince kutu iki kez yanıyor, kiosk son komutun adedini gösterirken buton en eski kalemi teyit ediyordu: raftan alınanla stoktan düşen tutmuyordu | `KalemDurumu.Sirada` · `IIsikKuyrugu` (kutu başına advisory kilit) · kutu boşalınca sıradaki otomatik yanar | `KutuKuyruguTestleri` (6), `StokEszamanlilikTestleri` |
+| **Sipariş önceliği** | Acil sipariş, aynı kutuyu bekleyen normal siparişlerin arkasında kalıyordu | `SiparisOnceligi` (Normal/Acil) · kuyrukta acil öne geçer, yanan ışık kesilmez | `OncelikTestleri` (5) |
+| **Toplu sipariş aktarma** | ERP/Excel'den gelen 50 satırlık sipariş elle giriliyordu | `POST /api/siparisler/ice-aktar` · CSV, hatalı sipariş atlanır | `IceAktarmaTestleri` (8) |
+| **Sipariş arama ve sayfalama** | Liste ilk 25 kayıtta sessizce kesiliyor, numarayla arama yoktu | `ara` parametresi · `X-Toplam-Kayit` başlığı · arayüzde sayfa gezinme | `SiparisListesiTestleri` (4) |
+| **Hareket defteri filtreleri** | "Stok neden böyle?" sorusu için defteri gözle taramak gerekiyordu | Kutu / tip / tarih aralığı filtresi + sayfalama | `HareketDefteriTestleri` (5) |
+| **Raporlarda tarih aralığı** | Ay sonu kapanışında geçen ayın raporu alınamıyordu | `baslangic` / `bitis` parametreleri (gün sayısı geriye dönük uyumlu) | `RaporDonemTestleri` (4) |
+| **Personel yönetimi** | Sistem yalnızca tohum verisindeki iki kullanıcıyla çalışıyordu | `PersonelServisi` · ekleme, rol, pasifleştirme, parola sıfırlama | `PersonelTestleri` (7) |
+| **Kutu ve ürün arşivleme** | Devreden çıkan kutu/ürün silinemiyor (hareketler bağlı), listede kalıyordu | `aktif` bayrağı · arşivlenen kutu dağıtıma girmez, meşgulse arşivlenemez | `ArsivlemeTestleri` (4) |
+| **Cihaz telemetrisi** | Kutular firmware/sinyal/IP gönderiyordu ama sunucu atıyordu; ESP32 kurulumunda bu bilgiler gerekli | `kutu.firmware_surumu / rssi / ip_adresi` · arayüzde sinyal çubuğu | `CihazKurulumTestleri` (7) |
+| **Aranabilir ürün seçici** | Açılır liste yüzlerce SKU'da kullanılamaz; depoda barkod okuyucu standart | SKU/ad ile süzme · tam SKU + Enter = barkod akışı | E2E: ürün seçici |
 
 ## Planın kapsam dışı bıraktıkları (bilerek yapılmadı)
 

@@ -141,8 +141,8 @@
   <div class="badge green">Özet</div>
   <h1>Plandan çalışan sisteme</h1>
   <div class="body">
-    <div class="kutucuk"><div class="sayi">26</div><div class="sayi-alt">gereksinimin tamamı karşılandı<br>(16 fonksiyonel + 10 NFR)</div></div>
-    <div class="kutucuk"><div class="sayi">91</div><div class="sayi-alt">otomatik test geçiyor<br>74 birim + 17 entegrasyon</div></div>
+    <div class="kutucuk"><div class="sayi">26</div><div class="sayi-alt">gereksinimin tamamı karşılandı<br>+ 10 plan sonrası yetenek</div></div>
+    <div class="kutucuk"><div class="sayi">155</div><div class="sayi-alt">otomatik test geçiyor<br>74 birim · 71 entegrasyon · 10 uçtan uca</div></div>
     <div class="kutucuk"><div class="sayi">24 ms</div><div class="sayi-alt">sipariş → LED (p95)<br>hedef 1000 ms</div></div>
     <div class="kutucuk"><div class="sayi">0</div><div class="sayi-alt">negatif stok / fazla verme<br>20 paralel istekte</div></div>
   </div>
@@ -151,8 +151,9 @@
       <div class="h">Yazılım tarafı — tamamlandı</div>
       <ul class="chk" style="margin-bottom:0;font-size:9.6pt">
         <li>Backend (C# · ASP.NET Core · EF Core · PostgreSQL · MQTT · SignalR)</li>
-        <li>Next.js arayüzü: pano, sipariş, toplama, stok, ürün, kutu, alarm, rapor, kiosk</li>
-        <li>Kutu simülatörü, demo betiği, gecikme ölçüm aracı, CI iş akışı</li>
+        <li>Next.js arayüzü: 13 ekran — pano, sipariş, toplu aktarma, toplama, kiosk,
+            stok, ürün, kutu/cihaz, alarm, defter, rapor, personel, cihaz olayları</li>
+        <li>Kutu simülatörü, demo betiği, gecikme ölçüm aracı, tek komutla başlatma</li>
       </ul>
     </div>
     <div class="card" style="flex:1">
@@ -337,10 +338,12 @@ bash tools/demo.sh hepsi</pre>
         <ul class="chk" style="margin-bottom:0;font-size:9.8pt">
           <li>Işık kararı, atomik rezervasyon, teyit ve iade akışı</li>
           <li>Kalem bölme: tek kutu yetmezse birden çok kutudan toplama</li>
+          <li>Kutu kuyruğu ve sipariş önceliği (acil öne geçer)</li>
+          <li>Toplu sipariş aktarma (CSV), arşivleme, personel yönetimi</li>
           <li>Alarm, tedarik talebi, hareket defteri, raporlar</li>
           <li>Arayüz (9 ekran) · kiosk ekranı · canlı akış</li>
           <li>Güvenlik: JWT, roller, hız sınırı, MQTT kimlik + ACL</li>
-          <li>91 test, CI, demo betiği, ölçüm aracı, kurulum rehberi</li>
+          <li>155 test, demo betiği, ölçüm aracı, kurulum rehberi, operatör el kitabı</li>
         </ul>
       </div>
     </div>
@@ -348,7 +351,8 @@ bash tools/demo.sh hepsi</pre>
       <div class="card">
         <div class="h" style="color:#f59e0b">Sıradaki iş (donanım)</div>
         <ul class="chk amber" style="margin-bottom:0;font-size:9.8pt">
-          <li>Firmware'in ESP32'ye yüklenmesi ve ilk gerçek LED testi</li>
+          <li>Firmware'in ESP32'ye yüklenmesi ve ilk gerçek LED testi
+              (arayüzde kutu başına ışık testi düğmesi hazır)</li>
           <li>4 kutunun montajı, güç dağıtımı ve kablolama</li>
           <li>Onay sensörü yükseltmesi (IR / HX711) ve kalibrasyon</li>
           <li>Depo ağında gecikme ölçümünün tekrarı</li>

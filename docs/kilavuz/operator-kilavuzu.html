@@ -173,6 +173,28 @@
   Sorun değil. Sistem aynı kalem için ikinci teyidi yok sayar; stok iki kez düşmez.
 </p>
 
+<h3>Ekranda "SIRADA" yazıyor, ışık yanmıyor</h3>
+<p>
+  O kutunun ışığı <b>başka bir sipariş için</b> yanıyor demektir. Bir kutu aynı anda
+  yalnızca tek sipariş için yanar; aksi halde ekranda bir adet görünürken sistem
+  başka bir adedi düşerdi. Öndeki toplama bitince sıradaki ışık <b>kendiliğinden</b>
+  yanar, sizin bir şey yapmanız gerekmez. Kiosk ekranında kutunun üstünde
+  "+2 sipariş sırada" gibi bir not görürsünüz.
+</p>
+
+<h3>"ACİL" işaretli sipariş</h3>
+<p>
+  Acil siparişler aynı kutuyu bekleyen normal siparişlerin önüne geçer. Elinizdeki
+  toplama yarıda kesilmez: yanan ışık söndürülmez, acil olan sıranın başına alınır.
+</p>
+
+<h3>Ekranda geri sayım görüyorum</h3>
+<p>
+  Her yanan ışığın bir teyit süresi vardır (varsayılan 5 dakika). Geri sayım bittiğinde
+  ışık söner ve rezerve edilen stok iade edilir — <b>stok kaybolmaz</b>, sipariş yeniden
+  başlatılabilir. Son dakikada sayaç sarıya döner.
+</p>
+
 <h2>5. Sorun giderme</h2>
 <table>
   <tr><th style="width:38%">Belirti</th><th>Yapılacak</th></tr>
@@ -203,7 +225,17 @@
   <li><b>Tedarik talepleri:</b> Sarı ışık otomatik talep açar; ürün depoya girdiğinde
       talep kendiliğinden kapanır.</li>
   <li><b>Raporlar:</b> Ortalama toplama süresi, kırmızı oranı ve kutu yoğunluğu
-      Raporlar ekranındadır; vardiya sonunda bakılması önerilir.</li>
+      Raporlar ekranındadır. "Geçen ay" düğmesiyle veya tarih aralığı seçerek
+      dönem raporu alınır; vardiya sonunda bakılması önerilir.</li>
+  <li><b>Toplu sipariş:</b> ERP veya Excel çıktısı <code>siparisNo;sku;miktar</code>
+      biçiminde CSV olarak "Toplu Aktarma" ekranından aktarılır. Hatalı satır
+      tüm aktarımı bozmaz, hangi siparişin neden atlandığı bildirilir.</li>
+  <li><b>Acil sipariş:</b> Sipariş girişinde öncelik "Acil" seçilirse o sipariş
+      kutu sırasında öne geçer.</li>
+  <li><b>Arşivleme:</b> Devreden çıkan kutu veya artık kullanılmayan ürün silinmez,
+      arşivlenir: toplamaya girmez ama geçmiş kayıtları durur.</li>
+  <li><b>Cihaz kurulumu:</b> Kutu &amp; Cihaz ekranında her kutunun Wi-Fi sinyali,
+      firmware sürümü ve MQTT adresi görünür; renkli düğmelerle ışık testi yapılır.</li>
   <li><b>Hareket defteri:</b> Her stok değişikliğinin öncesi-sonrası adediyle kaydı
       buradadır. "Stok neden böyle?" sorusunun cevabı her zaman bu ekrandadır.</li>
 </ul>
