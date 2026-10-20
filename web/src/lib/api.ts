@@ -2,7 +2,7 @@
 
 import type {
   Alarm, ApiHatasi, CihazOlay, GunlukHareket, Kutu, KutuPerformans, Oturum, RaporOzet,
-  IceAktarSonucu, Personel, SiparisDetay, SiparisOnceligi, SiparisOzet, StokHareket, TedarikTalebi,
+  IceAktarSonucu, IsikTestiSonucu, Personel, SiparisDetay, SiparisOnceligi, SiparisOzet, StokHareket, TedarikTalebi,
   Urun, UrunHareket,
 } from "@/types";
 
@@ -222,6 +222,7 @@ export const api = {
   cihazOlaylari: (kutuId?: number, limit = 100) =>
     istek<CihazOlay[]>(`/api/kutular/olaylar?limit=${limit}${kutuId ? `&kutuId=${kutuId}` : ""}`),
 
-  ledTest: (kutuId: number, renk = "Yesil") =>
-    istek<unknown>(`/api/kutular/${kutuId}/led-test?renk=${renk}`, { method: "POST" }),
+  ledTest: (kutuId: number, renk = "Yesil", saniye = 8) =>
+    istek<IsikTestiSonucu>(`/api/kutular/${kutuId}/led-test?renk=${renk}&saniye=${saniye}`,
+      { method: "POST" }),
 };

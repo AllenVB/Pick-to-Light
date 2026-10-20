@@ -4,6 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import { ApiHata, api } from "@/lib/api";
 import { useCanliOlaylar } from "@/hooks/useCanliOlaylar";
 import { useKorumaliSayfa } from "@/hooks/useKorumaliSayfa";
+import { useToast } from "@/components/Toast";
+import { BosDurum, IskeletKart } from "@/components/Durumlar";
+import { GecenSure, Kopyala, Sinyal } from "@/components/Cihaz";
 import type { Kutu, LedRengi, Urun } from "@/types";
 
 export default function KutularSayfasi() {
@@ -13,12 +16,16 @@ export default function KutularSayfasi() {
   const [kutular, setKutular] = useState<Kutu[]>([]);
   const [urunler, setUrunler] = useState<Urun[]>([]);
   const [hata, setHata] = useState<string | null>(null);
-  const [bilgi, setBilgi] = useState<string | null>(null);
   const [formAcik, setFormAcik] = useState(false);
   const [duzenlenen, setDuzenlenen] = useState<Kutu | null>(null);
+  const [yukleniyor, setYukleniyor] = useState(true);
+  const toast = useToast();
 
   const yenile = useCallback(() => {
-    api.kutular().then(setKutular).catch(() => setHata("Kutu listesi alınamadı."));
+    api.kutular()
+      .then(setKutular)
+      .catch(() => setHata("Kutu listesi alınamadı."))
+      .finally(() => setYukleniyor(false));
     api.urunler().then(setUrunler).catch(() => undefined);
   }, []);
 
@@ -26,9 +33,28 @@ export default function KutularSayfasi() {
   useCanliOlaylar({ CihazDurumDegisti: yenile, StokGuncellendi: yenile, KutuIsikDegisti: yenile });
 
   async function calistir(f: () => Promise<unknown>, basarim: string) {
-    setHata(null); setBilgi(null);
-    try { await f(); setBilgi(basarim); yenile(); }
-    catch (h) { setHata(h instanceof ApiHata ? h.message : "İşlem başarısız."); }
+    setHata(null);
+    try {
+      await f();
+      toast(basarim, "basari");
+      yenile();
+    } catch (h) {
+      toast(h instanceof ApiHata ? h.message : "İşlem başarısız.", "hata");
+    }
+  }
+
+  async function isikTesti(kutu: Kutu, renk: LedRengi) {
+    try {
+      const sonuc = await api.ledTest(kutu.id, renk, 8);
+      toast(
+        sonuc.cihazCevrimici
+          ? `${kutu.kod}: ${sonuc.saniye} sn test ışığı gönderildi (${sonuc.topic}).`
+          : `${kutu.kod} çevrimdışı — komut yayınlandı ama cihaz dinlemiyor olabilir.`,
+        sonuc.cihazCevrimici ? "basari" : "bilgi"
+      );
+    } catch (h) {
+      toast(h instanceof ApiHata ? h.message : "Test komutu gönderilemedi.", "hata");
+    }
   }
 
   if (!oturum) return null;
@@ -54,7 +80,6 @@ export default function KutularSayfasi() {
       </header>
 
       {hata && <p className="rounded-lg border border-durum-kirmizi/40 bg-durum-kirmizi/10 px-4 py-2 text-sm text-durum-kirmizi">{hata}</p>}
-      {bilgi && <p className="rounded-lg border border-durum-yesil/40 bg-durum-yesil/10 px-4 py-2 text-sm text-durum-yesil">{bilgi}</p>}
 
       {(formAcik || duzenlenen) && yonetici && (
         <KutuFormu
@@ -70,55 +95,24 @@ export default function KutularSayfasi() {
         />
       )}
 
-      <section className="kart overflow-x-auto">
-        <table className="tablo">
-          <thead>
-            <tr>
-              <th>Kod</th><th>Ürün</th><th>Raf</th><th>Cihaz MAC</th><th>MQTT topic</th>
-              <th>Stok</th><th>Bağlantı</th><th>Son görülme</th>{yonetici && <th>LED testi</th>}
-            </tr>
-          </thead>
-          <tbody>
-            {kutular.map((k) => (
-              <tr key={k.id} className={k.isikYaniyor ? "bg-marka/5" : ""}>
-                <td className="font-mono text-xs font-bold">{k.kod}</td>
-                <td>{k.urunAdi ?? <span className="text-slate-500">— atanmamış —</span>}</td>
-                <td className="text-xs text-slate-400">{k.rafKonumu ?? "—"}</td>
-                <td className="font-mono text-[11px] text-slate-400">{k.cihazMac}</td>
-                <td className="font-mono text-[11px] text-slate-400">{k.mqttTopic}</td>
-                <td className="font-bold">{k.adet}</td>
-                <td>
-                  <span className={k.baglantiDurumu === "Online" ? "text-durum-yesil" : "text-durum-gri"}>
-                    ● {k.baglantiDurumu === "Online" ? "Çevrimiçi" : "Çevrimdışı"}
-                  </span>
-                  {k.isikYaniyor && <span className="ml-2 text-[11px] text-marka-acik">🔆 ışık yanıyor</span>}
-                </td>
-                <td className="text-xs text-slate-400">
-                  {k.sonGorulme ? new Date(k.sonGorulme).toLocaleString("tr-TR") : "hiç"}
-                </td>
-                {yonetici && (
-                  <td className="whitespace-nowrap">
-                    <button className="mr-2 rounded-md border border-zemin-cizgi px-2 py-1 text-xs hover:border-marka-acik"
-                      onClick={() => { setFormAcik(false); setDuzenlenen(k); }}>
-                      Düzenle
-                    </button>
-                    {(["Yesil", "Sari", "Kirmizi"] as LedRengi[]).map((renk) => (
-                      <button key={renk} title={`${renk} test`}
-                        className="mr-1 rounded-md border border-zemin-cizgi px-2 py-1 text-xs hover:border-marka-acik"
-                        onClick={() => calistir(() => api.ledTest(k.id, renk), `${k.kod}: ${renk} test ışığı gönderildi.`)}>
-                        {renk === "Yesil" ? "🟢" : renk === "Sari" ? "🟡" : "🔴"}
-                      </button>
-                    ))}
-                  </td>
-                )}
-              </tr>
-            ))}
-            {kutular.length === 0 && (
-              <tr><td colSpan={yonetici ? 9 : 8} className="text-slate-500">Kutu yok.</td></tr>
-            )}
-          </tbody>
-        </table>
-      </section>
+      {yukleniyor ? (
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3"><IskeletKart adet={3} /></section>
+      ) : kutular.length === 0 ? (
+        <section className="kart">
+          <BosDurum simge="▣" baslik="Henüz kutu tanımlı değil"
+            aciklama="Her kutu bir ESP32 kontrolcüsüne karşılık gelir. Kutuyu ekledikten sonra
+                      MQTT topic'i kimliğinden türetilir ve aynı kimliği firmware'e girersiniz."
+            eylem={yonetici && <button className="dugme" onClick={() => setFormAcik(true)}>+ İlk kutuyu ekle</button>} />
+        </section>
+      ) : (
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" data-test="cihaz-kartlari">
+          {kutular.map((k) => (
+            <CihazKarti key={k.id} kutu={k} yonetici={yonetici}
+              onDuzenle={() => { setFormAcik(false); setDuzenlenen(k); }}
+              onTest={(renk) => isikTesti(k, renk)} />
+          ))}
+        </section>
+      )}
 
       {!yonetici && (
         <p className="text-xs text-slate-500">
@@ -199,5 +193,111 @@ function KutuFormu({ urunler, mevcut, onKaydet, onVazgec }: {
         aynı değeri ESP32 firmware'ine kutu kimliği olarak girin.
       </p>
     </section>
+  );
+}
+
+/**
+ * Tek bir kutunun donanım kartı.
+ *
+ * Sahada ESP32 kurarken sırasıyla şunlara bakılır: cihaz bağlandı mı, sinyal
+ * yeterli mi, doğru firmware mi, hangi topic'i dinliyor. Hepsi tek kartta
+ * toplanır; topic ve MAC tıklanarak kopyalanır.
+ */
+function CihazKarti({ kutu, yonetici, onDuzenle, onTest }: {
+  kutu: Kutu;
+  yonetici: boolean;
+  onDuzenle: () => void;
+  onTest: (renk: LedRengi) => void;
+}) {
+  const cevrimici = kutu.baglantiDurumu === "Online";
+
+  return (
+    <article
+      className={`kart space-y-3 ${kutu.isikYaniyor ? "border-marka-acik/70 nabiz-marka" : ""}
+                  ${cevrimici ? "" : "opacity-70"}`}
+      data-test="cihaz-karti" data-kutu={kutu.kod}>
+
+      {/* Başlık: kod, raf, bağlantı */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <h3 className="font-mono text-lg font-bold tracking-tight">{kutu.kod}</h3>
+            {kutu.isikYaniyor && (
+              <span className="rozet bg-marka/25 text-marka-acik">IŞIK YANIYOR</span>
+            )}
+          </div>
+          <p className="truncate text-sm text-slate-300">
+            {kutu.urunAdi ?? <span className="text-slate-500">ürün atanmamış</span>}
+          </p>
+          <p className="ipucu">{kutu.rafKonumu ?? "raf tanımsız"}</p>
+        </div>
+
+        <div className="shrink-0 text-right">
+          <span className={`rozet ${cevrimici
+            ? "bg-durum-yesil/15 text-durum-yesil"
+            : "bg-slate-600/20 text-slate-400"}`}>
+            ● {cevrimici ? "ÇEVRİMİÇİ" : "ÇEVRİMDIŞI"}
+          </span>
+          <div className="mt-1.5"><GecenSure zaman={kutu.sonGorulme} /></div>
+        </div>
+      </div>
+
+      {/* Cihaz telemetrisi */}
+      <div className="grid grid-cols-3 gap-2 border-y border-zemin-cizgi/60 py-2.5">
+        <div>
+          <p className="etiket">Sinyal</p>
+          <div className="mt-1"><Sinyal rssi={kutu.rssi} /></div>
+        </div>
+        <div>
+          <p className="etiket">Firmware</p>
+          <p className="mt-1 font-mono text-[11px] text-slate-300">{kutu.firmwareSurumu ?? "—"}</p>
+        </div>
+        <div>
+          <p className="etiket">Stok</p>
+          <p className="mt-1 text-sm font-bold tabular-nums">{kutu.adet}</p>
+        </div>
+      </div>
+
+      {/* Ağ kimliği — kurulumda kopyalanır */}
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-2">
+          <span className="etiket w-14 shrink-0">Topic</span>
+          <Kopyala deger={`${kutu.mqttTopic}/komut`} />
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="etiket w-14 shrink-0">MAC</span>
+          <Kopyala deger={kutu.cihazMac} />
+        </div>
+        {kutu.ipAdresi && (
+          <div className="flex items-center gap-2">
+            <span className="etiket w-14 shrink-0">IP</span>
+            <Kopyala deger={kutu.ipAdresi} />
+          </div>
+        )}
+      </div>
+
+      {yonetici && (
+        <div className="flex flex-wrap items-center gap-2 pt-1">
+          <span className="ipucu mr-1">Işığı test et:</span>
+          {([
+            ["Yesil", "bg-durum-yesil"],
+            ["Sari", "bg-durum-sari"],
+            ["Kirmizi", "bg-durum-kirmizi"],
+          ] as [LedRengi, string][]).map(([renk, sinif]) => (
+            <button key={renk} onClick={() => onTest(renk)}
+              title={`${renk} ışığı 8 saniye yak`}
+              data-test={`isik-test-${renk}`}
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-zemin-cizgi
+                         transition hover:border-marka-acik active:scale-95">
+              <span className={`h-3.5 w-3.5 rounded-full ${sinif}`} />
+            </button>
+          ))}
+
+          <button className="dugme-ikincil dugme-kucuk ml-auto" onClick={onDuzenle}>
+            Düzenle
+          </button>
+        </div>
+      )}
+    </article>
   );
 }

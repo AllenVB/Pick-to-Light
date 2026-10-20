@@ -157,7 +157,6 @@ public sealed record GirisIstek(string KullaniciAdi, string Parola);
 
 /// <summary>Işık testi sonucu — hangi topic'e ne gönderildiğini gösterir (ESP32 kurulumu).</summary>
 public sealed record IsikTestiSonucu(
-    string KutuKodu,
     string Topic,
     Guid MesajId,
     LedRengi Renk,

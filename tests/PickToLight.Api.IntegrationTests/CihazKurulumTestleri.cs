@@ -64,7 +64,7 @@ public class CihazKurulumTestleri(TestUygulamasi uygulama) : IClassFixture<TestU
         var istemci = await uygulama.GirisYapAsync();
         uygulama.Mqtt.Temizle();
 
-        var yanit = await istemci.PostAsync("/api/kutular/3/isik-testi?renk=Kirmizi&saniye=7", null);
+        var yanit = await istemci.PostAsync("/api/kutular/3/led-test?renk=Kirmizi&saniye=7", null);
         yanit.EnsureSuccessStatusCode();
 
         var sonuc = await yanit.Content.ReadFromJsonAsync<TestSonucu>(TestUygulamasi.JsonAyar);
@@ -85,7 +85,7 @@ public class CihazKurulumTestleri(TestUygulamasi uygulama) : IClassFixture<TestU
         var oncekiKalem = await uygulama.SorguAsync<int>(
             "SELECT COUNT(*) FROM siparis_kalemi WHERE durum IN ('IsikYandi', 'Sirada')");
 
-        await istemci.PostAsync("/api/kutular/3/isik-testi", null);
+        await istemci.PostAsync("/api/kutular/3/led-test", null);
 
         (await uygulama.SorguAsync<int>("SELECT adet FROM stok WHERE kutu_id = 3"))
             .Should().Be(oncekiStok, "test komutu stok düşürmez");
@@ -100,11 +100,11 @@ public class CihazKurulumTestleri(TestUygulamasi uygulama) : IClassFixture<TestU
         Skip.If(!uygulama.Hazir, uygulama.AtlamaSebebi);
         var istemci = await uygulama.GirisYapAsync();
 
-        var uzun = await istemci.PostAsync("/api/kutular/3/isik-testi?saniye=9999", null);
+        var uzun = await istemci.PostAsync("/api/kutular/3/led-test?saniye=9999", null);
         var sonuc = await uzun.Content.ReadFromJsonAsync<TestSonucu>(TestUygulamasi.JsonAyar);
         sonuc!.Saniye.Should().Be(30, "test ışığı en çok 30 saniye yanar");
 
-        var kisa = await istemci.PostAsync("/api/kutular/3/isik-testi?saniye=0", null);
+        var kisa = await istemci.PostAsync("/api/kutular/3/led-test?saniye=0", null);
         (await kisa.Content.ReadFromJsonAsync<TestSonucu>(TestUygulamasi.JsonAyar))!.Saniye.Should().Be(1);
     }
 
@@ -114,7 +114,7 @@ public class CihazKurulumTestleri(TestUygulamasi uygulama) : IClassFixture<TestU
         Skip.If(!uygulama.Hazir, uygulama.AtlamaSebebi);
         var istemci = await uygulama.GirisYapAsync();
 
-        (await istemci.PostAsync("/api/kutular/999999/isik-testi", null)).StatusCode
+        (await istemci.PostAsync("/api/kutular/999999/led-test", null)).StatusCode
             .Should().Be(HttpStatusCode.NotFound);
     }
 
@@ -124,12 +124,12 @@ public class CihazKurulumTestleri(TestUygulamasi uygulama) : IClassFixture<TestU
         Skip.If(!uygulama.Hazir, uygulama.AtlamaSebebi);
         var operatorIstemci = await uygulama.GirisYapAsync("operator", "operator123");
 
-        (await operatorIstemci.PostAsync("/api/kutular/3/isik-testi", null)).StatusCode
+        (await operatorIstemci.PostAsync("/api/kutular/3/led-test", null)).StatusCode
             .Should().Be(HttpStatusCode.Forbidden, "donanım testi yönetici işidir");
     }
 
     private sealed record KutuSatiri(long Id, string Kod, string BaglantiDurumu,
         string? FirmwareSurumu, int? Rssi, string? IpAdresi);
-    private sealed record TestSonucu(string KutuKodu, string Topic, Guid MesajId, string Renk,
-        int Saniye, bool CihazCevrimici);
+    private sealed record TestSonucu(string Topic, Guid MesajId, string Renk, int Saniye,
+        bool CihazCevrimici);
 }

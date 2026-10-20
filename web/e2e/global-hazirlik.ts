@@ -42,14 +42,27 @@ export default async function hazirla() {
   const temel = process.env.PTL_WEB ?? "http://localhost:3000";
 
   await aktifSiparisleriIptalEt();
-  const yollar = ["/giris", "/", "/siparis/yeni", "/siparisler", "/operator", "/stok", "/raporlar", "/personeller"];
+  const yollar = ["/", "/siparis/yeni", "/siparisler", "/operator", "/stok", "/raporlar",
+    "/personeller", "/kutular", "/alarmlar", "/hareketler"];
 
   const tarayici = await chromium.launch();
   const sayfa = await tarayici.newPage();
 
+  try {
+    // Korumalı sayfalar oturum olmadan içeriklerini render etmez; ısıtmanın işe
+    // yaraması için önce giriş yapılır, sonra sayfalar gezilir.
+    await sayfa.goto(temel + "/giris", { waitUntil: "domcontentloaded", timeout: 30_000 });
+    await sayfa.fill('input[autocomplete="username"]', "admin");
+    await sayfa.fill('input[type="password"]', "admin123");
+    await sayfa.click('button:has-text("Giriş yap")');
+    await sayfa.waitForURL("**/", { timeout: 30_000 });
+  } catch {
+    /* giriş yapılamazsa ısıtma yine de denenir */
+  }
+
   for (const yol of yollar) {
     try {
-      await sayfa.goto(temel + yol, { waitUntil: "domcontentloaded", timeout: 30_000 });
+      await sayfa.goto(temel + yol, { waitUntil: "networkidle", timeout: 30_000 });
     } catch {
       /* ısıtma başarısız olursa testler yine de denesin */
     }

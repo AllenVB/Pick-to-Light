@@ -47,33 +47,6 @@ public sealed class CihazServisi(
             null, null, null, kutu.FirmwareSurumu, kutu.Rssi, kutu.IpAdresi);
     }
 
-    /// <summary>
-    /// Kutunun ışığını kısa süre yakar — sahada ESP32 kurarken kabloyu, LED'i ve
-    /// MQTT yolunu doğrulamak için. Sipariş, stok ve kalem durumlarına dokunmaz;
-    /// komut kalem kimliği taşımaz ve süre dolunca cihaz ışığı kendisi söndürür.
-    /// </summary>
-    public async Task<IsikTestiSonucu> IsikTestiAsync(long kutuId, LedRengi renk, int saniye,
-        CancellationToken ct = default)
-    {
-        var kutu = await db.Kutular.FirstOrDefaultAsync(k => k.Id == kutuId, ct)
-            ?? throw new KayitBulunamadiException("Kutu", kutuId);
-
-        var sure = Math.Clamp(saniye, 1, 30);
-        var mesajId = Guid.NewGuid();
-
-        await mqtt.LedYakAsync(new LedKomutu(mesajId, kutu.Id, kutu.MqttTopic, renk, 1, null, sure), ct);
-
-        log.LogInformation("Işık testi: kutu {Kod} → {Renk}, {Sure} sn", kutu.Kod, renk, sure);
-
-        return new IsikTestiSonucu(
-            kutu.Kod,
-            $"{kutu.MqttTopic}/komut",
-            mesajId,
-            renk,
-            sure,
-            kutu.CevrimiciMi);
-    }
-
     /// <summary>Cihazın <c>durum</c> topic'inden (veya LWT'den) gelen bağlantı bilgisini işler.</summary>
     /// <summary>
     /// Cihazın durum mesajını işler. Telemetri (firmware, sinyal, IP) verildiyse
@@ -132,14 +105,29 @@ public sealed class CihazServisi(
         await db.SaveChangesAsync(ct);
     }
 
-    /// <summary>Bakım: seçilen kutuda test amaçlı ışık yakar (FR-16).</summary>
-    public async Task LedTestAsync(long kutuId, LedRengi renk, int saniye = 10, CancellationToken ct = default)
+    /// <summary>
+    /// Bakım: seçilen kutuda test amaçlı ışık yakar (FR-16).
+    ///
+    /// Sahada ESP32 kurarken kabloyu, LED'i ve MQTT yolunu doğrulamak için kullanılır;
+    /// sipariş, stok ve kalem durumlarına dokunmaz. Komut kalem kimliği taşımaz, süre
+    /// dolunca cihaz ışığı kendisi söndürür. Dönen sonuç hangi topic'e ne gönderildiğini
+    /// gösterir — cihaz tarafında <c>mosquitto_sub</c> ile karşılaştırmak için.
+    /// </summary>
+    public async Task<IsikTestiSonucu> LedTestAsync(long kutuId, LedRengi renk, int saniye = 10,
+        CancellationToken ct = default)
     {
         var kutu = await db.Kutular.FirstOrDefaultAsync(k => k.Id == kutuId, ct)
                    ?? throw new KayitBulunamadiException("Kutu", kutuId);
 
-        await mqtt.LedYakAsync(new LedKomutu(Guid.NewGuid(), kutu.Id, kutu.MqttTopic, renk, 0, null, saniye), ct);
+        var sure = Math.Clamp(saniye, 1, 30);
+        var mesajId = Guid.NewGuid();
+
+        await mqtt.LedYakAsync(new LedKomutu(mesajId, kutu.Id, kutu.MqttTopic, renk, 0, null, sure), ct);
         await bildirim.KutuIsikDegistiAsync(kutu.Id, renk, 0, null, ct);
+
+        log.LogInformation("Işık testi: kutu {Kod} → {Renk}, {Sure} sn", kutu.Kod, renk, sure);
+
+        return new IsikTestiSonucu($"{kutu.MqttTopic}/komut", mesajId, renk, sure, kutu.CevrimiciMi);
     }
 
     /// <summary>

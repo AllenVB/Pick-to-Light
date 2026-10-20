@@ -31,6 +31,9 @@ export interface Kutu {
   alinacakMiktar?: number;
   siparisNo?: string;
   aktifKalemId?: number;
+  firmwareSurumu?: string | null;
+  rssi?: number | null;
+  ipAdresi?: string | null;
 }
 
 export interface Kalem {
@@ -207,4 +210,12 @@ export interface IceAktarSonucu {
   olusturulan: number;
   basarisiz: number;
   sonuclar: IceAktarSatirSonucu[];
+}
+
+export interface IsikTestiSonucu {
+  topic: string;
+  mesajId: string;
+  renk: LedRengi;
+  saniye: number;
+  cihazCevrimici: boolean;
 }
