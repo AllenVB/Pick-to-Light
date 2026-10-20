@@ -2,31 +2,102 @@
 @tailwind components;
 @tailwind utilities;
 
-:root { color-scheme: dark; }
+:root {
+  color-scheme: dark;
+
+  /* Depo ekranları çoğunlukla uzaktan ve loş ışıkta okunur: koyu zemin,
+     yüksek kontrastlı metin ve belirgin durum renkleri. */
+  --gecis: 160ms cubic-bezier(0.4, 0, 0.2, 1);
+}
 
 body {
   @apply bg-zemin text-slate-100 antialiased;
+  background-image:
+    radial-gradient(1200px 600px at 15% -10%, rgba(20, 184, 166, 0.07), transparent 60%),
+    radial-gradient(900px 500px at 110% 10%, rgba(15, 118, 110, 0.06), transparent 55%);
+  background-attachment: fixed;
+}
+
+/* Klavye kullanıcısı nerede olduğunu görsün (barkod okuyucu da klavyedir). */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  @apply outline-none ring-2 ring-marka-acik ring-offset-2 ring-offset-zemin;
 }
 
 @layer components {
-  .kart { @apply rounded-xl border border-zemin-cizgi bg-zemin-kart p-4; }
-  .baslik { @apply text-xl font-bold tracking-tight; }
-  .etiket { @apply text-xs uppercase tracking-widest text-slate-400; }
+  /* ── Yüzeyler ─────────────────────────────────────────────── */
+  .kart {
+    @apply rounded-xl border border-zemin-cizgi bg-zemin-kart/80 p-4 shadow-sm backdrop-blur-[2px];
+    transition: border-color var(--gecis), box-shadow var(--gecis), transform var(--gecis);
+  }
+  .kart-tiklanabilir {
+    @apply cursor-pointer hover:-translate-y-0.5 hover:border-marka-acik/60 hover:shadow-lg hover:shadow-black/30;
+  }
+  .panel { @apply rounded-xl border border-zemin-cizgi bg-zemin/60 p-4; }
+
+  /* ── Tipografi ────────────────────────────────────────────── */
+  .baslik { @apply text-xl font-bold tracking-tight text-slate-50; }
+  .baslik-buyuk { @apply text-2xl font-extrabold tracking-tight text-slate-50; }
+  .etiket { @apply text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400; }
+  .ipucu { @apply text-xs leading-relaxed text-slate-400; }
+  .sayi { @apply tabular-nums; }
+
+  /* ── Düğmeler (dokunmatik için en az 40 px yükseklik) ──────── */
   .dugme {
-    @apply rounded-lg bg-marka px-4 py-2 text-sm font-semibold text-white
-           transition hover:bg-marka-acik disabled:cursor-not-allowed disabled:opacity-40;
+    @apply inline-flex min-h-[2.5rem] items-center justify-center gap-2 rounded-lg bg-marka px-4 py-2
+           text-sm font-semibold text-white shadow-sm
+           hover:bg-marka-acik active:scale-[0.98]
+           disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-marka;
+    transition: background-color var(--gecis), transform var(--gecis), box-shadow var(--gecis);
   }
   .dugme-ikincil {
-    @apply rounded-lg border border-zemin-cizgi px-4 py-2 text-sm font-semibold
-           text-slate-200 transition hover:border-marka-acik hover:text-marka-acik;
+    @apply inline-flex min-h-[2.5rem] items-center justify-center gap-2 rounded-lg border border-zemin-cizgi
+           bg-zemin-kart/60 px-4 py-2 text-sm font-semibold text-slate-200
+           hover:border-marka-acik hover:text-marka-acik active:scale-[0.98]
+           disabled:cursor-not-allowed disabled:opacity-40;
+    transition: border-color var(--gecis), color var(--gecis), transform var(--gecis);
   }
+  .dugme-tehlike {
+    @apply inline-flex min-h-[2.5rem] items-center justify-center gap-2 rounded-lg border
+           border-durum-kirmizi/40 bg-durum-kirmizi/10 px-4 py-2 text-sm font-semibold text-durum-kirmizi
+           hover:bg-durum-kirmizi/20 active:scale-[0.98] disabled:opacity-40;
+    transition: background-color var(--gecis), transform var(--gecis);
+  }
+  .dugme-kucuk { @apply min-h-0 px-3 py-1.5 text-xs; }
+
+  /* ── Form ─────────────────────────────────────────────────── */
   .girdi {
-    @apply w-full rounded-lg border border-zemin-cizgi bg-zemin px-3 py-2 text-sm
-           text-slate-100 outline-none placeholder:text-slate-500 focus:border-marka-acik;
+    @apply w-full rounded-lg border border-zemin-cizgi bg-zemin/80 px-3 py-2 text-sm text-slate-100
+           outline-none placeholder:text-slate-500 hover:border-slate-600 focus:border-marka-acik;
+    transition: border-color var(--gecis);
   }
+  .girdi:disabled { @apply cursor-not-allowed opacity-50; }
+
+  /* ── Tablo ────────────────────────────────────────────────── */
   .tablo { @apply w-full text-left text-sm; }
-  .tablo th { @apply border-b border-zemin-cizgi px-3 py-2 text-xs uppercase tracking-wider text-slate-400; }
-  .tablo td { @apply border-b border-zemin-cizgi/60 px-3 py-2; }
+  .tablo th {
+    @apply sticky top-0 z-10 border-b border-zemin-cizgi bg-zemin-kart/95 px-3 py-2
+           text-[11px] font-semibold uppercase tracking-wider text-slate-400 backdrop-blur;
+  }
+  .tablo td { @apply border-b border-zemin-cizgi/50 px-3 py-2.5 align-middle; }
+  .tablo tbody tr { transition: background-color var(--gecis); }
+  .tablo tbody tr:hover { @apply bg-slate-50/[0.03]; }
+
+  /* ── Rozetler ─────────────────────────────────────────────── */
+  .rozet {
+    @apply inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-0.5
+           text-[11px] font-bold;
+  }
+
+  /* ── Yükleniyor iskeleti ──────────────────────────────────── */
+  .iskelet {
+    @apply rounded bg-slate-50/[0.06];
+    animation: iskelet-parilti 1.4s ease-in-out infinite;
+  }
+}
+
+@keyframes iskelet-parilti {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 0.85; }
 }
 
 @keyframes nabiz-kirmizi {
@@ -40,3 +111,25 @@ body {
   50% { box-shadow: 0 0 0 9px rgba(245, 158, 11, 0); }
 }
 .nabiz-sari { animation: nabiz-sari 2s infinite; }
+
+/* Işığı yanan kutu panoda hemen seçilsin */
+@keyframes nabiz-marka {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(20, 184, 166, 0.45); }
+  50% { box-shadow: 0 0 0 12px rgba(20, 184, 166, 0); }
+}
+.nabiz-marka { animation: nabiz-marka 1.8s infinite; }
+
+@keyframes toast-gir {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.toast-gir { animation: toast-gir 200ms cubic-bezier(0.2, 0.9, 0.3, 1); }
+
+/* Hareket azaltma tercihi olan kullanıcılar için animasyonları sustur. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
