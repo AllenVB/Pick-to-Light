@@ -360,6 +360,10 @@ namespace PickToLight.Infrastructure.Persistence.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("stok_rezerve_edildi");
 
+                    b.Property<long?>("TeyitEdenPersonelId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("teyit_eden_personel_id");
+
                     b.Property<string>("TeyitYontemi")
                         .HasMaxLength(10)
                         .HasColumnType("character varying(10)")
@@ -386,6 +390,9 @@ namespace PickToLight.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("SiparisId")
                         .HasDatabaseName("ix_siparis_kalemi_siparis_id");
+
+                    b.HasIndex("TeyitEdenPersonelId")
+                        .HasDatabaseName("ix_siparis_kalemi_teyit_eden_personel_id");
 
                     b.HasIndex("UrunId")
                         .HasDatabaseName("ix_siparis_kalemi_urun_id");
@@ -664,6 +671,12 @@ namespace PickToLight.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_siparis_kalemi_siparis_siparis_id");
 
+                    b.HasOne("PickToLight.Domain.Entities.Personel", "TeyitEdenPersonel")
+                        .WithMany()
+                        .HasForeignKey("TeyitEdenPersonelId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_siparis_kalemi_personel_teyit_eden_personel_id");
+
                     b.HasOne("PickToLight.Domain.Entities.Urun", "Urun")
                         .WithMany()
                         .HasForeignKey("UrunId")
@@ -674,6 +687,8 @@ namespace PickToLight.Infrastructure.Persistence.Migrations
                     b.Navigation("Kutu");
 
                     b.Navigation("Siparis");
+
+                    b.Navigation("TeyitEdenPersonel");
 
                     b.Navigation("Urun");
                 });

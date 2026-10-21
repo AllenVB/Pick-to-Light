@@ -38,6 +38,15 @@ public class SiparisKalemi
 
     public DateTimeOffset? AlinmaZamani { get; set; }
 
+    /// <summary>
+    /// Kalemi teyit eden kişi. Kutu butonundan gelen teyitlerde kimlik yoktur (null):
+    /// butona kim bastığını sistem bilemez. Ekrandan verilen teyitlerde oturum sahibi yazılır.
+    /// Siparişi başlatan kişiyle aynı olmak zorunda değildir — stok hareketi başlatana,
+    /// bu alan rafta ürünü alana işaret eder.
+    /// </summary>
+    public long? TeyitEdenPersonelId { get; set; }
+    public Personel? TeyitEdenPersonel { get; set; }
+
     /// <summary>Stok bu kalem için rezerve edildi mi? (iptal/zaman aşımında iade gerekir)</summary>
     public bool StokRezerveEdildi { get; set; }
 }

@@ -226,6 +226,22 @@ public sealed class TestTezgahi : IDisposable
         Stoklar = new StokServisi(Db, stokDeposu, Bildirim, Oturum, ayarlar);
     }
 
+    /// <summary>Oturum sahibi olarak kullanılacak personeli kurar (teyit izi testleri için).</summary>
+    public Personel PersonelKur(string adSoyad = "Ayşe Yılmaz", string kullaniciAdi = "ayse")
+    {
+        var personel = new Personel
+        {
+            AdSoyad = adSoyad,
+            KullaniciAdi = kullaniciAdi,
+            ParolaHash = "test",
+            Rol = PersonelRolu.Operator
+        };
+        Db.Personeller.Add(personel);
+        Db.SaveChanges();
+        Oturum.PersonelId = personel.Id;
+        return personel;
+    }
+
     /// <summary>Tek ürün + tek kutu + stok kurar ve kutu kimliğini döndürür.</summary>
     public (Urun Urun, Kutu Kutu) EnvanterKur(string sku = "TST-1", int stokAdedi = 20, int guvenlikStogu = 5,
         BaglantiDurumu baglanti = BaglantiDurumu.Online, decimal? birimAgirlik = null)

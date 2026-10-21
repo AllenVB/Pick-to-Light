@@ -48,7 +48,11 @@ public sealed record KalemDto(
     /// <summary>Işığın yandığı an (null ise ışık yanmıyor).</summary>
     DateTimeOffset? IsikYanmaZamani = null,
     /// <summary>Teyit beklenen son an; sonrasında ışık söner ve rezerve stok iade edilir.</summary>
-    DateTimeOffset? TeyitSonTarihi = null);
+    DateTimeOffset? TeyitSonTarihi = null,
+    /// <summary>Kalemi teyit eden kişi; kutu butonundan gelen teyitlerde null (kimlik yok).</summary>
+    string? TeyitEden = null,
+    /// <summary>Işığın yanmasından teyide kadar geçen süre (sn) — toplama hızı göstergesi.</summary>
+    int? ToplamaSuresiSn = null);
 
 public sealed record SiparisDto(
     long Id,

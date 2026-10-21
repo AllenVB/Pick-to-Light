@@ -289,6 +289,9 @@ public sealed class SiparisServisi(
         kalem.Durum = KalemDurumu.Alindi;
         kalem.TeyitYontemi = yontem;
         kalem.AlinmaZamani = zaman.Simdi;
+        // MQTT'den gelen buton teyidinde HttpContext yoktur; alan null kalır ve
+        // "kutu butonu" olarak gösterilir. Ekrandan teyitte oturum sahibi yazılır.
+        kalem.TeyitEdenPersonelId = oturum.PersonelId;
 
         if (kalem.Kutu is not null)
             await mqtt.LedSondurAsync(kalem.Kutu.Id, kalem.Kutu.MqttTopic, ct);
@@ -551,6 +554,7 @@ public sealed class SiparisServisi(
             .AsNoTracking()
             .Include(s => s.Kalemler).ThenInclude(k => k.Urun)
             .Include(s => s.Kalemler).ThenInclude(k => k.Kutu).ThenInclude(k => k!.Stok)
+            .Include(s => s.Kalemler).ThenInclude(k => k.TeyitEdenPersonel)
             .FirstOrDefaultAsync(s => s.SiparisNo == siparisNo, ct)
             ?? throw new KayitBulunamadiException("Sipariş", siparisNo);
 
@@ -576,6 +580,10 @@ public sealed class SiparisServisi(
                 IsikYanmaZamani: k.Durum == KalemDurumu.IsikYandi ? k.IsikYanmaZamani : null,
                 TeyitSonTarihi: k.Durum == KalemDurumu.IsikYandi && k.IsikYanmaZamani is not null
                     ? k.IsikYanmaZamani.Value.AddSeconds(_ayar.TeyitZamanAsimiSaniye)
+                    : null,
+                TeyitEden: k.TeyitEdenPersonel?.AdSoyad,
+                ToplamaSuresiSn: k.AlinmaZamani is not null && k.IsikYanmaZamani is not null
+                    ? (int)Math.Round((k.AlinmaZamani.Value - k.IsikYanmaZamani.Value).TotalSeconds)
                     : null))
             .ToList();
 

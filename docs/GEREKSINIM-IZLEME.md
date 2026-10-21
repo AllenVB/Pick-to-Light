@@ -58,6 +58,7 @@ Bu maddeler planlama dokümanında yoktu; geliştirme ve testler sırasında ort
 | **Personel yönetimi** | Sistem yalnızca tohum verisindeki iki kullanıcıyla çalışıyordu | `PersonelServisi` · ekleme, rol, pasifleştirme, parola sıfırlama | `PersonelTestleri` (7) |
 | **Kutu ve ürün arşivleme** | Devreden çıkan kutu/ürün silinemiyor (hareketler bağlı), listede kalıyordu | `aktif` bayrağı · arşivlenen kutu dağıtıma girmez, meşgulse arşivlenemez | `ArsivlemeTestleri` (4) |
 | **Cihaz telemetrisi** | Kutular firmware/sinyal/IP gönderiyordu ama sunucu atıyordu; ESP32 kurulumunda bu bilgiler gerekli | `kutu.firmware_surumu / rssi / ip_adresi` · arayüzde sinyal çubuğu | `CihazKurulumTestleri` (7) |
+| **Kalem bazında teyit izi** | Stok hareketi siparişi *başlatan* kişiye yazılıyordu; rafta ürünü alıp teyidi veren başka biri olabilir. Denetimde ("bu kalemi kim aldı?") yanlış isim görünüyordu | `siparis_kalemi.teyit_eden_personel_id` · ekrandan teyitte oturum sahibi, kutu butonunda kimlik yok (açıkça yazılır) · toplama süresi (ışık yanmasından teyide) | `TeyitIziTestleri` (4), E2E `ekrandan verilen teyit` |
 | **Aranabilir ürün seçici** | Açılır liste yüzlerce SKU'da kullanılamaz; depoda barkod okuyucu standart | SKU/ad ile süzme · tam SKU + Enter = barkod akışı | E2E: ürün seçici |
 
 ## Planın kapsam dışı bıraktıkları (bilerek yapılmadı)

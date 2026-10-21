@@ -58,6 +58,10 @@ export interface Kalem {
   hata?: string;
   isikYanmaZamani?: string;
   teyitSonTarihi?: string;
+  /** Kalemi teyit eden kişi; kutu butonundan gelen teyitlerde boş (kimlik yok). */
+  teyitEden?: string;
+  /** Işığın yanmasından teyide kadar geçen süre (sn). */
+  toplamaSuresiSn?: number;
 }
 
 export interface Alarm {

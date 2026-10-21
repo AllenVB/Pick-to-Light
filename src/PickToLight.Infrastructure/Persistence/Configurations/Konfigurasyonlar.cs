@@ -122,6 +122,12 @@ public sealed class SiparisKalemiConfig : IEntityTypeConfiguration<SiparisKalemi
 
         b.HasOne(x => x.Urun).WithMany().HasForeignKey(x => x.UrunId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne(x => x.Kutu).WithMany().HasForeignKey(x => x.KutuId).OnDelete(DeleteBehavior.SetNull);
+
+        // Personel pasifleştirilse bile geçmiş teyit kaydı kime ait olduğunu korumalı:
+        // silme değil, kısıtlama. (Personel kaydı zaten silinmiyor, pasifleştiriliyor.)
+        b.HasOne(x => x.TeyitEdenPersonel).WithMany()
+            .HasForeignKey(x => x.TeyitEdenPersonelId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }
 
