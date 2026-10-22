@@ -74,4 +74,24 @@ test.describe("Ürün seçici (barkod okuyucu dostu)", () => {
     // Seçimden sonra liste kapanır
     await expect(page.getByTestId("urun-sonuclari")).toHaveCount(0);
   });
+
+});
+
+test.describe("Tema", () => {
+  test("tema anahtarı seçimi hatırlar ve yenilemede korur", async ({ page }) => {
+    await girisYap(page);
+
+    // Varsayılan koyu: depo ekranları loş ışıkta ve uzaktan okunur.
+    await expect(page.locator('[data-test="tema-dugmesi"]')).toHaveAttribute("data-tema", "koyu");
+
+    await page.click('[data-test="tema-dugmesi"]');
+    await expect(page.locator("html")).toHaveAttribute("data-tema", "acik");
+
+    // Yenilemede korunmalı; ayrıca koyu ekran yanıp sönmemeli (tema <head>'de uygulanır).
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(page.locator("html")).toHaveAttribute("data-tema", "acik");
+
+    await page.click('[data-test="tema-dugmesi"]');
+    await expect(page.locator("html")).not.toHaveAttribute("data-tema", "acik");
+  });
 });

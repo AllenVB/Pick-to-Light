@@ -25,7 +25,7 @@ export function RenkRozeti({ renk }: { renk?: LedRengi }) {
 
 const SIPARIS_SINIF: Record<SiparisDurumu, string> = {
   Bekliyor: "bg-slate-500/20 text-slate-300",
-  Hazirlaniyor: "bg-marka/25 text-marka-acik",
+  Hazirlaniyor: "bg-marka/25 text-marka-metin",
   Tamamlandi: "bg-durum-yesil/20 text-durum-yesil",
   KismiTamamlandi: "bg-durum-sari/20 text-durum-sari",
   Kilitli: "bg-durum-kirmizi/20 text-durum-kirmizi",
@@ -64,7 +64,7 @@ export function SiparisRozeti({ durum }: { durum: SiparisDurumu }) {
 
 const KALEM_SINIF: Record<KalemDurumu, string> = {
   Bekliyor: "bg-slate-500/20 text-slate-300",
-  IsikYandi: "bg-marka/25 text-marka-acik",
+  IsikYandi: "bg-marka/25 text-marka-metin",
   Alindi: "bg-durum-yesil/20 text-durum-yesil",
   Yetersiz: "bg-durum-kirmizi/20 text-durum-kirmizi",
   Iptal: "bg-slate-700/40 text-slate-400",

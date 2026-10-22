@@ -12,9 +12,9 @@ import type { Alarm, Kutu, LedRengi } from "@/types";
  * Kenar çubuğu yoktur; yalnızca ışığı yanan kutular büyük puntoyla gösterilir.
  */
 const RENK: Record<LedRengi, { cerceve: string; lamba: string; metin: string; ad: string }> = {
-  Yesil: { cerceve: "border-durum-yesil", lamba: "bg-durum-yesil", metin: "text-durum-yesil", ad: "AL" },
-  Sari: { cerceve: "border-durum-sari", lamba: "bg-durum-sari nabiz-sari", metin: "text-durum-sari", ad: "AL · STOK AZALDI" },
-  Kirmizi: { cerceve: "border-durum-kirmizi", lamba: "bg-durum-kirmizi nabiz-kirmizi", metin: "text-durum-kirmizi", ad: "ALMA · STOK YOK" },
+  Yesil: { cerceve: "border-durum-yesil", lamba: "bg-led-yesil", metin: "text-durum-yesil", ad: "AL" },
+  Sari: { cerceve: "border-durum-sari", lamba: "bg-led-sari nabiz-sari", metin: "text-durum-sari", ad: "AL · STOK AZALDI" },
+  Kirmizi: { cerceve: "border-durum-kirmizi", lamba: "bg-led-kirmizi nabiz-kirmizi", metin: "text-durum-kirmizi", ad: "ALMA · STOK YOK" },
 };
 
 export default function OperatorEkrani() {
@@ -83,9 +83,9 @@ export default function OperatorEkrani() {
       <header className="flex items-center justify-between border-b border-zemin-cizgi pb-4">
         <div className="flex items-center gap-4">
           <div className="flex gap-2">
-            <span className="h-4 w-4 rounded-full bg-durum-yesil" />
-            <span className="h-4 w-4 rounded-full bg-durum-sari" />
-            <span className="h-4 w-4 rounded-full bg-durum-kirmizi" />
+            <span className="h-4 w-4 rounded-full bg-led-yesil" />
+            <span className="h-4 w-4 rounded-full bg-led-sari" />
+            <span className="h-4 w-4 rounded-full bg-led-kirmizi" />
           </div>
           <h1 className="text-2xl font-extrabold">Toplama Ekranı</h1>
         </div>

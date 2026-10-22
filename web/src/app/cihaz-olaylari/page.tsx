@@ -11,7 +11,7 @@ import type { CihazOlay, Kutu } from "@/types";
 
 /** Topic'in son parçasına göre renk: komut / olay / durum / telemetri. */
 const TOPIC_SINIF: Record<string, string> = {
-  olay: "text-marka-acik",
+  olay: "text-marka-metin",
   durum: "text-durum-yesil",
   telemetri: "text-slate-400",
   komut: "text-durum-sari",
@@ -178,7 +178,7 @@ export default function CihazOlaylariSayfasi() {
       </p>
 
       <p className="text-xs text-slate-500">
-        Kutu listesi ve LED testi için <Link href="/kutular" className="text-marka-acik hover:underline">Kutu &amp; Cihaz</Link> sayfasına bakın.
+        Kutu listesi ve LED testi için <Link href="/kutular" className="text-marka-metin hover:underline">Kutu &amp; Cihaz</Link> sayfasına bakın.
       </p>
     </div>
   );

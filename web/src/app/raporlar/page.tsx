@@ -202,7 +202,7 @@ function Kutucuk({ baslik, deger, alt, vurgu, tehlike }: {
   return (
     <div className="kart" data-test="rapor-kpi">
       <p className="etiket">{baslik}</p>
-      <p className={`mt-1 text-2xl font-extrabold ${tehlike ? "text-durum-kirmizi" : vurgu ? "text-marka-acik" : ""}`}>
+      <p className={`mt-1 text-2xl font-extrabold ${tehlike ? "text-durum-kirmizi" : vurgu ? "text-marka-metin" : ""}`}>
         {deger}
       </p>
       <p className="text-[11px] text-slate-400">{alt}</p>

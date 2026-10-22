@@ -20,7 +20,7 @@ export function useToast() {
 const SINIF: Record<ToastTuru, string> = {
   basari: "border-durum-yesil/40 bg-durum-yesil/10 text-durum-yesil",
   hata: "border-durum-kirmizi/40 bg-durum-kirmizi/10 text-durum-kirmizi",
-  bilgi: "border-marka-acik/40 bg-marka/10 text-marka-acik",
+  bilgi: "border-marka-acik/40 bg-marka/10 text-marka-metin",
 };
 
 const SIMGE: Record<ToastTuru, string> = { basari: "✓", hata: "✕", bilgi: "ℹ" };

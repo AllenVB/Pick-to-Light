@@ -148,7 +148,7 @@ export default function IceAktarSayfasi() {
                   <td className="font-semibold">
                     {s.basarili
                       ? <Link href={`/siparis/${encodeURIComponent(s.siparisNo)}`}
-                          className="text-marka-acik hover:underline">{s.siparisNo}</Link>
+                          className="text-marka-metin hover:underline">{s.siparisNo}</Link>
                       : s.siparisNo}
                   </td>
                   <td className="text-xs text-slate-400">{s.satirNumaralari.join(", ")}</td>

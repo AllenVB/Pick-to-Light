@@ -112,7 +112,7 @@ export default function PanoSayfasi() {
                 <tr key={s.id}>
                   <td>
                     <Link href={`/siparis/${encodeURIComponent(s.siparisNo)}`}
-                      className="font-semibold text-marka-acik hover:underline">
+                      className="font-semibold text-marka-metin hover:underline">
                       {s.siparisNo}
                     </Link>
                   </td>
@@ -170,7 +170,7 @@ function Kutucuk({ baslik, deger, alt, vurgu, tehlike, bag }: {
     <>
       <p className="etiket">{baslik}</p>
       <p className={`mt-1 text-3xl font-extrabold tabular-nums ${
-        tehlike ? "text-durum-kirmizi" : vurgu ? "text-marka-acik" : ""}`}>{deger}</p>
+        tehlike ? "text-durum-kirmizi" : vurgu ? "text-marka-metin" : ""}`}>{deger}</p>
       <p className="ipucu mt-0.5">{alt}</p>
     </>
   );

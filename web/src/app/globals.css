@@ -8,14 +8,102 @@
   /* Depo ekranları çoğunlukla uzaktan ve loş ışıkta okunur: koyu zemin,
      yüksek kontrastlı metin ve belirgin durum renkleri. */
   --gecis: 160ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ── Koyu tema (varsayılan) ──────────────────────────────────
+     Değerler kanal üçlüsüdür; Tailwind opaklık ekleri böyle çalışır. */
+  --marka: 15 118 110;
+  --marka-acik: 20 184 166;
+  --marka-koyu: 11 60 71;
+  /* Marka renginin *metin* tonu. Dolgu/çerçeve için marka-acik kullanılır;
+     metin aynı tonla yazılınca açık temada turkuaz zemin üstünde okunmuyor. */
+  --marka-metin: 20 184 166;
+
+  --zemin: 13 21 32;
+  --zemin-kart: 22 33 46;
+  --zemin-cizgi: 39 56 74;
+
+  --durum-yesil: 52 211 110;
+  --durum-sari: 250 180 45;
+  --durum-kirmizi: 250 128 128;
+  --durum-gri: 139 155 178;
+  /* Beyaz yazı taşıyan dolgular (alarm sayacı) için koyu kırmızı: durum-kirmizi
+     metin okunabilirliği için açıldı, beyaz yazıyı taşıyamaz. */
+  --dolgu-kirmizi: 185 28 28;
+
+  /* LED renkleri kutudaki fiziksel ışığı temsil eder; okunabilirlik için
+     koyulaştırılmaz, iki temada da aynıdır. Durum *metni* ayrı renk kullanır. */
+  --led-yesil: 34 197 94;
+  --led-sari: 250 204 21;
+  --led-kirmizi: 239 68 68;
+
+  /* Metin ölçeği: 50 en parlak → 600 en soluk.
+     400–600 arası kart zeminine karşı ölçülerek seçildi; en soluk kademe bile
+     WCAG AA normal metin eşiğini (4.5:1) geçer. Ölçüm: tools/tema-denetimi.js */
+  --s-50: 248 250 252;
+  --s-100: 241 245 249;
+  --s-200: 226 232 240;
+  --s-300: 203 213 225;
+  --s-400: 158 172 192;
+  --s-500: 139 155 178;
+  --s-600: 124 141 165;
+  --s-700: 51 65 85;
+  --s-800: 30 41 59;
+  --s-900: 15 23 42;
+}
+
+/*
+ * Açık tema — parlak depo aydınlatması ve yazıcı çıktısı için.
+ * Metin ölçeği ters çevrilir: "text-slate-400 = soluk metin" anlamı korunur,
+ * ama artık beyaz zeminde okunacak kadar koyudur.
+ *
+ * Durum renkleri de koyulaştırıldı: #22c55e beyaz üstünde 1.9:1 kontrast
+ * verir ve okunmaz; #15803d ile 4.6:1'e çıkar (WCAG AA metin eşiği 4.5).
+ */
+:root[data-tema="acik"] {
+  color-scheme: light;
+
+  --marka: 13 109 102;
+  --marka-acik: 13 148 136;
+  --marka-koyu: 204 237 233;
+  --marka-metin: 15 94 88;
+
+  --zemin: 241 245 249;
+  --zemin-kart: 255 255 255;
+  --zemin-cizgi: 212 222 234;
+
+  --durum-yesil: 16 110 52;
+  --durum-sari: 146 64 14;
+  --durum-kirmizi: 166 28 28;
+  --durum-gri: 95 112 137;
+  --dolgu-kirmizi: 178 24 24;
+
+  /* Ters ölçek: 50 en koyu → 600 en soluk (ama hâlâ okunur) */
+  --s-50: 15 23 42;
+  --s-100: 23 33 54;
+  --s-200: 35 47 71;
+  --s-300: 52 68 94;
+  --s-400: 78 96 121;
+  --s-500: 85 101 125;
+  --s-600: 92 109 133;
+  --s-700: 190 202 216;
+  --s-800: 219 227 236;
+  --s-900: 241 245 249;
 }
 
 body {
   @apply bg-zemin text-slate-100 antialiased;
   background-image:
-    radial-gradient(1200px 600px at 15% -10%, rgba(20, 184, 166, 0.07), transparent 60%),
-    radial-gradient(900px 500px at 110% 10%, rgba(15, 118, 110, 0.06), transparent 55%);
+    radial-gradient(1200px 600px at 15% -10%, rgb(var(--marka-acik) / 0.07), transparent 60%),
+    radial-gradient(900px 500px at 110% 10%, rgb(var(--marka) / 0.06), transparent 55%);
   background-attachment: fixed;
+  transition: background-color var(--gecis), color var(--gecis);
+}
+
+/* Açık temada ışıltı beyaz zeminde kirli göründüğü için daha da seyreltilir. */
+:root[data-tema="acik"] body {
+  background-image:
+    radial-gradient(1200px 600px at 15% -10%, rgb(var(--marka-acik) / 0.05), transparent 60%),
+    radial-gradient(900px 500px at 110% 10%, rgb(var(--marka) / 0.04), transparent 55%);
 }
 
 /* Klavye kullanıcısı nerede olduğunu görsün (barkod okuyucu da klavyedir). */
@@ -52,7 +140,7 @@ body {
   .dugme-ikincil {
     @apply inline-flex min-h-[2.5rem] items-center justify-center gap-2 rounded-lg border border-zemin-cizgi
            bg-zemin-kart/60 px-4 py-2 text-sm font-semibold text-slate-200
-           hover:border-marka-acik hover:text-marka-acik active:scale-[0.98]
+           hover:border-marka-acik hover:text-marka-metin active:scale-[0.98]
            disabled:cursor-not-allowed disabled:opacity-40;
     transition: border-color var(--gecis), color var(--gecis), transform var(--gecis);
   }

@@ -9,16 +9,18 @@ const CERCEVE: Record<LedRengi, string> = {
   Kirmizi: "border-durum-kirmizi/70 nabiz-kirmizi",
 };
 
+// Kutudaki ışığı gösteren lamba ve stok çubuğu fiziksel LED rengini kullanır:
+// açık temada koyulaştırılırsa sarı kahverengiye döner ve "sarı LED" anlamını yitirir.
 const LAMBA: Record<LedRengi, string> = {
-  Yesil: "bg-durum-yesil",
-  Sari: "bg-durum-sari",
-  Kirmizi: "bg-durum-kirmizi",
+  Yesil: "bg-led-yesil",
+  Sari: "bg-led-sari",
+  Kirmizi: "bg-led-kirmizi",
 };
 
 const DOLGU: Record<LedRengi, string> = {
-  Yesil: "bg-durum-yesil",
-  Sari: "bg-durum-sari",
-  Kirmizi: "bg-durum-kirmizi",
+  Yesil: "bg-led-yesil",
+  Sari: "bg-led-sari",
+  Kirmizi: "bg-led-kirmizi",
 };
 
 const METIN: Record<LedRengi, string> = {
@@ -46,7 +48,10 @@ export function KutuKarti({ kutu }: { kutu: Kutu }) {
     <div
       data-test="kutu-karti"
       data-kutu={kutu.kod}
-      className={`kart relative space-y-3 ${cevrimdisi ? "opacity-60" : CERCEVE[renk]} ${
+      className={`kart relative space-y-3 ${
+        // Çevrimdışı kart sönük görünmeli ama okunur kalmalı: kartın tamamını
+        // soluklaştırmak yerine yalnızca zemin ve çerçeve kısılır.
+        cevrimdisi ? "border-zemin-cizgi bg-zemin-kart/40" : CERCEVE[renk]} ${
         kutu.isikYaniyor ? "ring-2 ring-marka-acik" : ""
       }`}
     >
@@ -81,7 +86,7 @@ export function KutuKarti({ kutu }: { kutu: Kutu }) {
       {/* Durum satırı: toplama talimatı veya cihaz sağlığı */}
       <div className="flex items-center justify-between border-t border-zemin-cizgi/60 pt-2.5">
         {kutu.isikYaniyor ? (
-          <span className="rozet bg-marka/25 text-marka-acik">
+          <span className="rozet bg-marka/25 text-marka-metin">
             {kutu.alinacakMiktar ? `${kutu.alinacakMiktar} ADET AL` : "IŞIK YANIYOR"}
           </span>
         ) : (

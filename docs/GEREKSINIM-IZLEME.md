@@ -38,7 +38,7 @@ _Son güncelleme: kodlama fazı · 155 otomatik test (34 domain + 40 servis + 71
 | NFR-05 | İzlenebilirlik | `stok_hareketi` + `cihaz_olayi` + `X-Correlation-Id` + Serilog | Hareket defteri ve cihaz olayları ekranları | ✅ |
 | NFR-06 | Ölçeklenebilirlik (kutu ekleme kod değişmeden) | `depo/kutu/+/…` joker abonelikler · `/kutular` kutu ekleme | Tarayıcı testi: yeni kutu eklendi, MQTT topic'i otomatik atandı | ✅ |
 | NFR-07 | Güvenlik | JWT · PBKDF2 · roller · giriş hız sınırı · MQTT kullanıcı/ACL | `GuvenlikTestleri` (3 test) + yerel broker ACL doğrulaması | ✅ |
-| NFR-08 | 3 m mesafeden okunabilirlik, renk körlüğü | `/operator` kiosk: büyük punto, renk + metin birlikte, çevrimdışı kutu uyarısı, teyit geri sayımı | E2E `operatör ekranı`, tarayıcı doğrulaması | ✅ |
+| NFR-08 | 3 m mesafeden okunabilirlik, renk körlüğü | `/operator` kiosk: büyük punto, renk + metin birlikte, çevrimdışı kutu uyarısı, teyit geri sayımı · tüm ekranlarda WCAG AA kontrastı (ölçülerek: `tools/tema-denetimi.js`) · koyu/açık tema | E2E `operatör ekranı`, kontrast denetimi iki temada temiz | ✅ |
 | NFR-09 | Tek komutla kurulum | `docker compose up -d` · README / KURULUM.md | Yerelde (Docker'sız kurulumla) uçtan uca çalıştırıldı | ✅ |
 | NFR-10 | Donanımsız test edilebilirlik | `tools/KutuSimulatoru` (kalp atışlı, otomatik/manuel teyit) | Tüm uçtan uca testler simülatörle koşuldu | ✅ |
 
@@ -58,6 +58,7 @@ Bu maddeler planlama dokümanında yoktu; geliştirme ve testler sırasında ort
 | **Personel yönetimi** | Sistem yalnızca tohum verisindeki iki kullanıcıyla çalışıyordu | `PersonelServisi` · ekleme, rol, pasifleştirme, parola sıfırlama | `PersonelTestleri` (7) |
 | **Kutu ve ürün arşivleme** | Devreden çıkan kutu/ürün silinemiyor (hareketler bağlı), listede kalıyordu | `aktif` bayrağı · arşivlenen kutu dağıtıma girmez, meşgulse arşivlenemez | `ArsivlemeTestleri` (4) |
 | **Cihaz telemetrisi** | Kutular firmware/sinyal/IP gönderiyordu ama sunucu atıyordu; ESP32 kurulumunda bu bilgiler gerekli | `kutu.firmware_surumu / rssi / ip_adresi` · arayüzde sinyal çubuğu | `CihazKurulumTestleri` (7) |
+| **Açık tema** | Depo aydınlatması parlak olduğunda koyu ekran yansıma yapıyordu; kiosk dışı ekranlar gün ışığında da kullanılıyor | CSS değişkenleriyle çift tema (`data-tema`), seçim hatırlanır, sayfa açılışında yanıp sönmez · fiziksel LED renkleri (`led-*`) durum renklerinden ayrıldı: ışık rengi iki temada da aynı | `tools/tema-denetimi.js` (WCAG ölçümü), E2E `tema anahtarı` |
 | **Kalem bazında teyit izi** | Stok hareketi siparişi *başlatan* kişiye yazılıyordu; rafta ürünü alıp teyidi veren başka biri olabilir. Denetimde ("bu kalemi kim aldı?") yanlış isim görünüyordu | `siparis_kalemi.teyit_eden_personel_id` · ekrandan teyitte oturum sahibi, kutu butonunda kimlik yok (açıkça yazılır) · toplama süresi (ışık yanmasından teyide) | `TeyitIziTestleri` (4), E2E `ekrandan verilen teyit` |
 | **Aranabilir ürün seçici** | Açılır liste yüzlerce SKU'da kullanılamaz; depoda barkod okuyucu standart | SKU/ad ile süzme · tam SKU + Enter = barkod akışı | E2E: ürün seçici |
 

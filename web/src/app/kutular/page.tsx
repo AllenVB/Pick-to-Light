@@ -219,7 +219,7 @@ function CihazKarti({ kutu, yonetici, onDuzenle, onTest, onArsiv }: {
   return (
     <article
       className={`kart space-y-3 ${kutu.isikYaniyor ? "border-marka-acik/70 nabiz-marka" : ""}
-                  ${cevrimici && !arsivli ? "" : "opacity-70"} ${arsivli ? "border-dashed" : ""}`}
+                  ${cevrimici && !arsivli ? "" : "bg-zemin-kart/50"} ${arsivli ? "border-dashed" : ""}`}
       data-test="cihaz-karti" data-kutu={kutu.kod}>
 
       {/* Başlık: kod, raf, bağlantı */}
@@ -228,7 +228,7 @@ function CihazKarti({ kutu, yonetici, onDuzenle, onTest, onArsiv }: {
           <div className="flex items-center gap-2">
             <h3 className="font-mono text-lg font-bold tracking-tight">{kutu.kod}</h3>
             {kutu.isikYaniyor && (
-              <span className="rozet bg-marka/25 text-marka-acik">IŞIK YANIYOR</span>
+              <span className="rozet bg-marka/25 text-marka-metin">IŞIK YANIYOR</span>
             )}
             {arsivli && <span className="rozet bg-slate-600/30 text-slate-400">ARŞİVDE</span>}
           </div>
@@ -286,9 +286,10 @@ function CihazKarti({ kutu, yonetici, onDuzenle, onTest, onArsiv }: {
         <div className="flex flex-wrap items-center gap-2 pt-1">
           <span className="ipucu mr-1">Işığı test et:</span>
           {([
-            ["Yesil", "bg-durum-yesil"],
-            ["Sari", "bg-durum-sari"],
-            ["Kirmizi", "bg-durum-kirmizi"],
+            // Düğmeler kutuda yanacak fiziksel ışığı gösterir: LED renkleri.
+            ["Yesil", "bg-led-yesil"],
+            ["Sari", "bg-led-sari"],
+            ["Kirmizi", "bg-led-kirmizi"],
           ] as [LedRengi, string][]).map(([renk, sinif]) => (
             <button key={renk} onClick={() => onTest(renk)}
               title={`${renk} ışığı 8 saniye yak`}

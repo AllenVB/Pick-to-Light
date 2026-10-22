@@ -75,7 +75,7 @@ export default function AlarmlarSayfasi() {
             <div>
               <p className="font-bold">{a.tip}</p>
               <p className="text-slate-200">{a.mesaj}</p>
-              <p className="mt-1 text-[11px] text-slate-500">
+              <p className="mt-1 text-[11px] text-slate-400">
                 {new Date(a.zaman).toLocaleString("tr-TR")}
                 {a.kutuKod ? ` · ${a.kutuKod}` : ""}
               </p>

@@ -108,7 +108,9 @@ export default function PersonellerSayfasi() {
           <thead><tr><th>Ad soyad</th><th>Kullanıcı adı</th><th>Rol</th><th>Durum</th><th>İşlem</th></tr></thead>
           <tbody>
             {personeller.map((p) => (
-              <tr key={p.id} className={p.aktif ? "" : "opacity-50"}>
+              // Pasif personel sönük durmalı ama adı okunmalı: satırın tamamını
+              // soluklaştırmak yerine metin tonu kısılır (opacity-50 ile ad 2:1'e düşüyordu).
+              <tr key={p.id} className={p.aktif ? "" : "bg-zemin/40 text-slate-400"}>
                 <td className="font-semibold">{p.adSoyad}</td>
                 <td className="font-mono text-xs">{p.kullaniciAdi}</td>
                 <td>

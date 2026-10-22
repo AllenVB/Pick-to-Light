@@ -51,9 +51,9 @@ export function Kopyala({ deger, etiket }: { deger: string; etiket?: string }) {
     <button onClick={kopyala} title={`Kopyala: ${deger}`}
       className="inline-flex items-center gap-1.5 rounded-md border border-zemin-cizgi bg-zemin/60
                  px-2 py-1 font-mono text-[11px] text-slate-300 transition hover:border-marka-acik
-                 hover:text-marka-acik">
+                 hover:text-marka-metin">
       <span className="truncate">{etiket ?? deger}</span>
-      <span aria-hidden className={kopyalandi ? "text-durum-yesil" : "opacity-50"}>
+      <span aria-hidden className={kopyalandi ? "text-durum-yesil" : "text-slate-500"}>
         {kopyalandi ? "✓" : "⧉"}
       </span>
     </button>

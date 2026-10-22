@@ -114,7 +114,7 @@ function KalemKarti({ kalem, sira, islem, onTeyit }: {
 
       {yaniyor && (
         <p className="mt-3 flex flex-wrap items-center gap-2 border-t border-kenar/60 pt-3 text-xs text-slate-400">
-          <span className="font-semibold text-marka-acik">Işık yanıyor</span>
+          <span className="font-semibold text-marka-metin">Işık yanıyor</span>
           <span className="text-slate-600">·</span>
           <GeriSayim sonTarih={kalem.teyitSonTarihi} />
         </p>

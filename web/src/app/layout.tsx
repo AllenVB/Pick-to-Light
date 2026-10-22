@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Kenar } from "@/components/Kenar";
 import { ToastSaglayici } from "@/components/Toast";
+import { TemaBaslatici } from "@/components/Tema";
 
 export const metadata: Metadata = {
   title: "Pick-to-Light · Akıllı Depo",
@@ -10,7 +11,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="tr">
+    <html lang="tr" suppressHydrationWarning>
+      <head>
+        {/* Tema, gövde çizilmeden uygulanmalı: yoksa açık temada koyu ekran yanıp söner. */}
+        <TemaBaslatici />
+      </head>
       <body>
         {/* Küçük ekranda gezinme üstte yatay şerit, büyük ekranda sol kenar çubuğu olur. */}
         <ToastSaglayici>

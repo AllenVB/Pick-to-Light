@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api, oturumOku, oturumSil } from "@/lib/api";
 import { useCanliOlaylar } from "@/hooks/useCanliOlaylar";
+import { TemaDugmesi } from "@/components/Tema";
 
 const BAGLANTILAR = [
   { yol: "/", ad: "Canlı Pano", kisa: "Pano", ikon: "▦" },
@@ -46,10 +47,11 @@ export function Kenar() {
     <aside className="flex shrink-0 flex-col border-b border-zemin-cizgi bg-zemin-kart/40 p-4
                       lg:w-60 lg:border-b-0 lg:border-r">
       <div className="mb-3 flex items-center justify-between lg:mb-6 lg:block">
+        {/* Marka işareti: sistemin üç LED rengi — fiziksel ışığı temsil eder. */}
         <div className="flex items-center gap-2">
-          <span className="h-3 w-3 rounded-full bg-durum-yesil" />
-          <span className="h-3 w-3 rounded-full bg-durum-sari" />
-          <span className="h-3 w-3 rounded-full bg-durum-kirmizi" />
+          <span className="h-3 w-3 rounded-full bg-led-yesil" />
+          <span className="h-3 w-3 rounded-full bg-led-sari" />
+          <span className="h-3 w-3 rounded-full bg-led-kirmizi" />
         </div>
         <div className="lg:mt-3">
           <h1 className="text-lg font-extrabold leading-tight">Pick-to-Light</h1>
@@ -73,16 +75,17 @@ export function Kenar() {
               key={b.yol}
               href={b.yol}
               className={`flex shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm transition lg:shrink ${
-                aktif ? "bg-marka/20 font-semibold text-marka-acik" : "text-slate-300 hover:bg-zemin-kart"
+                aktif ? "bg-marka/20 font-semibold text-marka-metin" : "text-slate-300 hover:bg-zemin-kart"
               }`}
             >
               <span>
-                <span className="mr-2 opacity-70">{b.ikon}</span>
+                <span className="mr-2">{b.ikon}</span>
                 <span className="hidden sm:inline lg:inline">{b.ad}</span>
                 <span className="sm:hidden">{b.kisa}</span>
               </span>
+              {/* text-white açıkça verilir: devralınan gri, kırmızı dolgu üstünde okunmuyordu. */}
               {b.yol === "/alarmlar" && okunmamis > 0 && (
-                <span className="rounded-full bg-durum-kirmizi px-2 py-0.5 text-[10px] font-bold">
+                <span className="rounded-full bg-dolgu-kirmizi px-2 py-0.5 text-[10px] font-bold text-white">
                   {okunmamis}
                 </span>
               )}
@@ -92,7 +95,9 @@ export function Kenar() {
       </nav>
 
       <div className="mt-4 hidden border-t border-zemin-cizgi pt-4 text-xs lg:block">
-        <p className="text-slate-400">Oturum</p>
+        <TemaDugmesi />
+
+        <p className="mt-4 text-slate-400">Oturum</p>
         <p className="font-semibold">{adSoyad ?? "—"}</p>
         <button
           onClick={() => { oturumSil(); router.replace("/giris"); }}

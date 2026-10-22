@@ -75,7 +75,7 @@ export default function SiparislerSayfasi() {
               <tr key={s.id}>
                 <td>
                   <Link href={`/siparis/${encodeURIComponent(s.siparisNo)}`}
-                    className="font-semibold text-marka-acik hover:underline">{s.siparisNo}</Link>
+                    className="font-semibold text-marka-metin hover:underline">{s.siparisNo}</Link>
                 </td>
                 <td className="space-x-1 whitespace-nowrap">
                   <SiparisRozeti durum={s.durum} />
