@@ -237,12 +237,25 @@ public sealed class MqttIstemciServisi : IHostedService, IMqttYayinci, IAsyncDis
         MqttQualityOfServiceLevel qos = MqttQualityOfServiceLevel.AtLeastOnce)
         => new MqttTopicFilterBuilder().WithTopic(topic).WithQualityOfServiceLevel(qos).Build();
 
+    private bool _atildi;
+
     public async ValueTask DisposeAsync()
     {
-        if (_istemci is not null)
+        if (_atildi) return;
+        _atildi = true;
+
+        if (_istemci is null) return;
+
+        try
         {
             await _istemci.StopAsync();
-            _istemci.Dispose();
         }
+        catch (ObjectDisposedException)
+        {
+            // Uygulama açılışta hata alıp kapanırken istemci zaten atılmış olabiliyor.
+            // Kapanış yolunun kendisi istisna fırlatırsa asıl hata ekranda kayboluyor.
+        }
+
+        _istemci.Dispose();
     }
 }

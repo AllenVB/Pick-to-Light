@@ -216,18 +216,44 @@ if (builder.Configuration.GetValue("Veritabani:BaslangictaGuncelle", true))
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
 
-    try
+    // Docker ile kalkan PostgreSQL birkaç saniye geç hazır olabilir; o yüzden
+    // hemen pes edilmez. Süre dolduğunda API *başlatılmaz*: veritabanısız açılan
+    // bir API sağlıklı görünüp her isteğe 500 döndürüyor ve asıl sebep
+    // (bağlantı dizesi, parola, kapalı sunucu) kullanıcıdan gizleniyordu.
+    var beklemeSaniye = builder.Configuration.GetValue("Veritabani:BaslangictaBeklemeSaniye", 30);
+    var sonTarih = DateTimeOffset.UtcNow.AddSeconds(beklemeSaniye);
+    var hazirlandi = false;
+
+    while (!hazirlandi)
     {
-        await db.Database.MigrateAsync();
-        await VeriTohumlama.CalistirAsync(db, scope.ServiceProvider.GetRequiredService<IParolaHasleyici>(), logger);
-    }
-    catch (Exception hata)
-    {
-        logger.LogError(hata, "Veritabanı hazırlanamadı. Bağlantı dizesini ve PostgreSQL'i kontrol edin.");
+        try
+        {
+            await db.Database.MigrateAsync();
+            await VeriTohumlama.CalistirAsync(db,
+                scope.ServiceProvider.GetRequiredService<IParolaHasleyici>(), logger);
+            hazirlandi = true;
+        }
+        catch (Exception hata) when (DateTimeOffset.UtcNow < sonTarih)
+        {
+            logger.LogWarning("Veritabanı henüz hazır değil ({Sebep}); yeniden denenecek.", hata.Message);
+            await Task.Delay(TimeSpan.FromSeconds(3));
+        }
+        catch (Exception hata)
+        {
+            logger.LogCritical(hata,
+                "Veritabanı {Saniye} saniyedir hazırlanamadı; API başlatılmıyor. "
+                + "Bağlantı dizesini ve PostgreSQL'i kontrol edin "
+                + "(yerelde kurulu bir PostgreSQL 5432'yi tutuyor olabilir — bkz. docs/KURULUM.md).",
+                beklemeSaniye);
+
+            await Log.CloseAndFlushAsync();
+            return 1;
+        }
     }
 }
 
 app.Run();
+return 0;
 
 /// <summary>Entegrasyon testlerinin WebApplicationFactory ile erişebilmesi için.</summary>
 public partial class Program;

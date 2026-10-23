@@ -61,6 +61,7 @@ Yapılandırma (`src/PickToLight.Api/appsettings.json`):
 | `Cors:IzinliKaynaklar` | localhost:3000 | Arayüz adresi |
 | `Guvenlik:GirisDenemeLimiti` | 5 | IP başına dakikadaki giriş denemesi (kaba kuvvet koruması) |
 | `Guvenlik:GirisPenceresiDakika` | 1 | Sınırın penceresi |
+| `Veritabani:BaslangictaBeklemeSaniye` | 30 | Açılışta veritabanının hazır olması için beklenen süre. Süre dolarsa API **başlatılmaz** (veritabanısız açılan API her isteğe 500 döner, sebebi görünmez) |
 
 Ortam değişkeniyle geçersiz kılma örneği:
 
