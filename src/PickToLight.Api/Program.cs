@@ -21,6 +21,12 @@ using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Railway/Render gibi platformlar dinlenecek portu PORT ile bildirir; yerelde
+// bu değişken yoktur ve appsettings.json'daki adres geçerli kalır.
+var platformPortu = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrWhiteSpace(platformPortu))
+    builder.WebHost.UseUrls($"http://0.0.0.0:{platformPortu}");
+
 // ───────────────────────── Loglama ─────────────────────────
 builder.Host.UseSerilog((ctx, cfg) => cfg
     .ReadFrom.Configuration(ctx.Configuration)

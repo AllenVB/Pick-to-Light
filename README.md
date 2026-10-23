@@ -265,6 +265,7 @@ hız sınırlıdır (varsayılan: dakikada 5 deneme); aşıldığında `429` dö
 | [`docs/Hafta2-ER-Diyagrami.pdf`](docs/Hafta2-ER-Diyagrami.pdf) | Veritabanı ER diyagramı |
 | [`docs/GEREKSINIM-IZLEME.md`](docs/GEREKSINIM-IZLEME.md) · [PDF](docs/Gereksinim-Izleme-Matrisi.pdf) | Her gereksinimin kodda ve testte nerede karşılandığı |
 | [`docs/KURULUM.md`](docs/KURULUM.md) | Kurulum, yapılandırma, MQTT güvenliği, testler, sorun giderme |
+| [`docs/DEPLOY.md`](docs/DEPLOY.md) | Buluta yayınlama: Vercel (arayüz) + Railway (API, PostgreSQL, MQTT) |
 
 PDF'leri yeniden üretmek:
 
