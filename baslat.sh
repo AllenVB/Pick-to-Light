@@ -40,14 +40,21 @@ command -v node   >/dev/null || { renk "1;31" "HATA: Node.js bulunamadı."; exit
 
 # 1) Altyapı — zaten ayaktaysa dokunulmaz
 echo "[1/5] Altyapı kontrol ediliyor..."
-if acik_mi 5432 && acik_mi 1883; then
+# Her port ayrı bakılır: yerel bir PostgreSQL 5432'yi tutuyorsa onu tekrar
+# başlatmaya çalışmak Docker'ı "port dolu" diye düşürür; eksik olan kaldırılır.
+eksik=""
+acik_mi 5432 || eksik="$eksik postgres"
+acik_mi 1883 || eksik="$eksik mosquitto"
+
+if [ -z "$eksik" ]; then
     echo "      PostgreSQL ve MQTT broker zaten çalışıyor."
 elif command -v docker >/dev/null; then
-    echo "      Docker ile başlatılıyor..."
-    docker compose up -d postgres mosquitto || { renk "1;31" "HATA: Docker servisleri başlatılamadı."; exit 1; }
+    echo "      Docker ile başlatılıyor:$eksik"
+    # shellcheck disable=SC2086
+    docker compose up -d $eksik || { renk "1;31" "HATA: Docker servisleri başlatılamadı."; exit 1; }
     sleep 6
 else
-    renk "1;31" "HATA: PostgreSQL/Mosquitto kapalı ve Docker yok."
+    renk "1;31" "HATA: Eksik servis var ($eksik) ve Docker yok."
     exit 1
 fi
 
@@ -88,6 +95,22 @@ echo
 if [ "$api_hazir" -eq 0 ]; then
     renk "1;31" "API 90 saniyede açılmadı. Hata için: tail -30 $GUNLUK/api.log"
     exit 1
+fi
+
+# API veritabanına bağlanamasa da ayağa kalkar; o durumda arayüz her istekte
+# "İstek işlenirken beklenmeyen bir hata oluştu" der. Sebebini burada söyleriz.
+saglik=$(curl -fsS http://localhost:5080/health 2>/dev/null | tr -d ' \n')
+durum_oku() { printf '%s' "$saglik" | sed -n "s/.*\"$1\":{\"durum\":\"\([^\"]*\)\".*/\1/p"; }
+
+saglikli=0
+case "$saglik" in '{"durum":"Healthy"'*) saglikli=1 ;; '') saglikli=1 ;; esac
+
+if [ "$saglikli" -eq 0 ]; then
+    renk "1;33" "UYARI: altyapı sağlıklı değil — ayrıntı: http://localhost:5080/health"
+    [ "$(durum_oku veritabani)" = "Healthy" ] || renk "1;33" \
+        "   · Veritabanı: PostgreSQL erişilemiyor ya da ptl kullanıcısı/parolası yanlış (bkz. docs/KURULUM.md)."
+    [ "$(durum_oku mqtt)" = "Healthy" ] || renk "1;33" \
+        "   · MQTT: broker kapalı; LED komutları kuyrukta bekler, kutular yanmaz."
 fi
 
 renk "1;32" "Hazır → http://localhost:3000"

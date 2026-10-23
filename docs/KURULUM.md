@@ -169,3 +169,30 @@ PostgreSQL yoksa bu testler atlanır.
 | `relation "stok" does not exist` | Migration uygulanmamış: `dotnet ef database update -p src/PickToLight.Infrastructure -s src/PickToLight.Api` |
 | Işık yanıyor ama teyit düşmüyor | Cihaz `mesajId`'yi geri döndürmüyor olabilir; `cihaz_olayi` tablosundaki ham payload'a bakın |
 | 5 dk sonra ışık kendiliğinden söndü | Teyit zaman aşımı; stok iade edildi (tasarım gereği) |
+| Her sayfada "İstek işlenirken beklenmeyen bir hata oluştu" | API ayakta ama veritabanına bağlanamıyor. `curl http://localhost:5080/health` ile doğrulayın; aşağıdaki bölüme bakın |
+| `28P01: password authentication failed for user "ptl"` | PostgreSQL çalışıyor ama `ptl` rolü yok veya parolası farklı; aşağıdaki bölüme bakın |
+
+### Yerel PostgreSQL 5432'yi tutuyorsa (Windows'ta sık)
+
+Makinede kurulu bir PostgreSQL varsa 5432 zaten açıktır. `baslat` betiği portu açık
+görüp Docker'ı atlar, ama o sunucuda `ptl` rolü olmadığı için API açılışta
+`28P01: password authentication failed` verir — ve veritabanısız ayağa kalktığı
+için arayüz her istekte "İstek işlenirken beklenmeyen bir hata oluştu" der.
+İki çözümden biri:
+
+**A. Projenin Docker kabını kullanın** — yerel servisi durdurup portu boşaltın:
+
+```powershell
+net stop postgresql-x64-16        # sürüm numarası kurulumunuza göre
+docker compose up -d postgres mosquitto
+```
+
+**B. Yerel sunucuda rolü açın** — Docker'a hiç dokunmadan:
+
+```powershell
+"C:\Program Files\PostgreSQL\16\bin\psql" -U postgres -c "CREATE ROLE ptl LOGIN PASSWORD 'ptl_parola' CREATEDB;"
+"C:\Program Files\PostgreSQL\16\bin\createdb" -U postgres -O ptl picktolight
+```
+
+Mosquitto ayrıca gerekir (yerel PostgreSQL onu başlatmaz): `docker compose up -d mosquitto`.
+Şema ve demo verisi API ilk açılışta kendi kurulur.
