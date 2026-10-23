@@ -48,6 +48,7 @@ export function KutuKarti({ kutu }: { kutu: Kutu }) {
     <div
       data-test="kutu-karti"
       data-kutu={kutu.kod}
+      data-isik={kutu.isikYaniyor ? "yaniyor" : "sonuk"}
       className={`kart relative space-y-3 ${
         // Çevrimdışı kart sönük görünmeli ama okunur kalmalı: kartın tamamını
         // soluklaştırmak yerine yalnızca zemin ve çerçeve kısılır.

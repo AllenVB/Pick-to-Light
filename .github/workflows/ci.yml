@@ -141,7 +141,9 @@ jobs:
 
       - name: Kutu simülatörünü başlat
         run: |
-          dotnet run --project tools/KutuSimulatoru -- --kutu 1,2,3,4,5 > simulator.log 2>&1 &
+          # --gecikme: otomatik teyit 15 sn sonra. Varsayılan 2 sn, "ışık yanıyor"
+          # durumunu doğrulayan testlerle yarışıyordu.
+          dotnet run --project tools/KutuSimulatoru -- --kutu 1,2,3,4,5 --gecikme 15000 > simulator.log 2>&1 &
           sleep 15
 
       - name: Arayüzü başlat

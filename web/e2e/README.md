@@ -10,7 +10,7 @@ gerçek API, gerçek veritabanı ve kutu simülatörü ile tam akış doğrulama
 ```bash
 dotnet run --project src/PickToLight.Api                      # :5080
 cd web && npm run dev                                         # :3000
-dotnet run --project tools/KutuSimulatoru -- --kutu 1,2,3,4,5 # MQTT
+dotnet run --project tools/KutuSimulatoru -- --kutu 1,2,3,4,5 --gecikme 15000   # MQTT
 ```
 
 ## Çalıştırma
@@ -22,6 +22,9 @@ npm run test:e2e:ui       # Playwright arayüzüyle adım adım
 npx playwright test --grep "kırmızı"   # tek senaryo
 ```
 
+`--gecikme 15000`: simülatör teyidi 15 sn geciktirir. Varsayılan 2 sn, ışığın
+*yandığı anı* doğrulayan canlı güncelleme testleriyle yarışıyor. CI de bu değerle koşar.
+
 Farklı adresler için: `PTL_WEB=http://sunucu:3000 PTL_API=http://sunucu:5080 npm run test:e2e`
 
 ## Kapsam
@@ -30,6 +33,7 @@ Farklı adresler için: `PTL_WEB=http://sunucu:3000 PTL_API=http://sunucu:5080 n
 |---|---|
 | `toplama-akisi.spec.ts` | Yeşil akış (ışık → teyit → stok düşme), kırmızı akış (ışık yanmaz, alarm, kilit), iptalde stok iadesi |
 | `ekranlar.spec.ts` | Canlı pano, operatör kiosk ekranı, raporlar, rol bazlı görünürlük, oturumsuz yönlendirme |
+| `canli.spec.ts` | SignalR canlı güncelleme (FR-10): pano ışık durumu, kiosk kartı, alarm — hiçbiri sayfa yenilemeden. Işık testi düğmesi (FR-16) |
 
 ## Seçici kuralı
 
@@ -38,7 +42,9 @@ Testler CSS sınıfı veya metin yerine **`data-test`** niteliklerini kullanır
 düzeni değiştiğinde testler kırılmaz. Yeni bir ekran eklerken doğrulanması gereken
 öğelere `data-test` ekleyin; mevcut işaretler: `pano-kpi`, `kutu-karti`,
 `siparis-basligi`, `siparis-durumu`, `kalem-satiri`, `kalem-durumu`, `led-rengi`,
-`siparis-alarmlari`, `kiosk-karti`, `rapor-kpi`, `stok-satiri`.
+`siparis-alarmlari`, `kiosk-karti`, `rapor-kpi`, `stok-satiri`, `pano-alarmlari`,
+`pano-son-siparisler`, `toast`, `isik-test-<Renk>`; `kutu-karti` ışık durumunu
+`data-isik="yaniyor|sonuk"` ile verir.
 
 ## Notlar
 

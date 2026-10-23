@@ -103,7 +103,7 @@ export default function PanoSayfasi() {
       </section>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <section className="kart">
+        <section className="kart" data-test="pano-son-siparisler">
           <h2 className="etiket mb-3">Son siparişler</h2>
           <table className="tablo">
             <thead><tr><th>Sipariş</th><th>Durum</th><th>İlerleme</th></tr></thead>
@@ -133,7 +133,7 @@ export default function PanoSayfasi() {
           </table>
         </section>
 
-        <section className="kart">
+        <section className="kart" data-test="pano-alarmlari">
           <h2 className="etiket mb-3">Okunmamış alarmlar</h2>
           <ul className="space-y-2">
             {alarmlar.map((a) => {

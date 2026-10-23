@@ -138,3 +138,29 @@ export async function urunSec(page: Page, sku: string, satir = 0) {
 export function benzersizNo(onek: string) {
   return `${onek}-${Date.now().toString().slice(-6)}`;
 }
+
+/** Sipariş oluşturup başlatır; canlı güncelleme testleri ışığı böyle yakar. */
+export async function siparisBaslat(token: string, no: string, urunId: number, miktar: number) {
+  const olustur = await fetch(`${API}/api/siparisler`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ siparisNo: no, kalemler: [{ urunId, miktar }] }),
+  });
+  expect(olustur.ok, "sipariş oluşturulamadı").toBeTruthy();
+
+  const { id } = (await olustur.json()) as { id: number };
+  const baslat = await fetch(`${API}/api/siparisler/${id}/baslat`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  expect(baslat.ok, "sipariş başlatılamadı").toBeTruthy();
+  return id;
+}
+
+/** Testin açtığı ışığı söndürür; sonraki testler temiz durumda başlasın. */
+export async function siparisIptal(token: string, id: number) {
+  await fetch(`${API}/api/siparisler/${id}/iptal`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
