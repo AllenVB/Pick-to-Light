@@ -1,4 +1,5 @@
 using System.Text;
+using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using MQTTnet;
@@ -21,6 +22,9 @@ using MQTTnet.Protocol;
 //    --agirlik 1=1212.5,2=720   kutuların başlangıç içerik ağırlığı (g); varsayılan: demo tohum verisi
 //    --alinan-fark 2            her toplamada istenenden 2 adet FAZLA alınır (eksik için -1)
 //    Elle teyitte:  <kutuId> [alınanAdet]   (ör. "1 12")
+//    --api http://localhost:5080   verilirse sanal kutular ağırlığı sistem stoğuna uydurur: mal kabul,
+//                                  sayım veya demo hazırlığı raftaki ürünü fiziksel olarak değiştirmiş gibi
+//                                  baskül de değişir (PTL_KULLANICI / PTL_PAROLA, varsayılan admin).
 // ─────────────────────────────────────────────────────────────────────────────
 
 var ayar = ArgumanlariOku(args);
@@ -152,6 +156,61 @@ _ = Task.Run(async () =>
 
 foreach (var kutuId in ayar.KutuIdleri)
     await TelemetriYayinlaAsync(kutuId, kararli: true);
+
+// Baskülü sistem stoğuna uydurma (isteğe bağlı): yalnızca ışığı yanmayan kutularda ve
+// fark en az yarım adetse; operatörün elindeki toplama animasyonunu bozmaz.
+if (ayar.Api is not null)
+{
+    _ = Task.Run(async () =>
+    {
+        using var http = new HttpClient { BaseAddress = new Uri(ayar.Api), Timeout = TimeSpan.FromSeconds(5) };
+        string? token = null;
+
+        while (true)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(4));
+            try
+            {
+                if (token is null)
+                {
+                    var giris = await http.PostAsJsonAsync("/api/auth/giris", new
+                    {
+                        kullaniciAdi = Environment.GetEnvironmentVariable("PTL_KULLANICI") ?? "admin",
+                        parola = Environment.GetEnvironmentVariable("PTL_PAROLA") ?? "admin123"
+                    });
+                    token = (await giris.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("token").GetString();
+                    http.DefaultRequestHeaders.Authorization = new("Bearer", token);
+                }
+
+                var kutular = await http.GetFromJsonAsync<JsonElement>("/api/kutular");
+                foreach (var k in kutular.EnumerateArray())
+                {
+                    var id = k.GetProperty("id").GetInt64();
+                    if (!agirliklar.ContainsKey(id)
+                        || k.GetProperty("isikYaniyor").GetBoolean()
+                        || k.GetProperty("birimAgirlikG").ValueKind != JsonValueKind.Number
+                        || k.GetProperty("beklenenFizikselAdet").ValueKind != JsonValueKind.Number)
+                        continue;
+
+                    lock (kilit) { if (aktifIsiklar.ContainsKey(id)) continue; }
+
+                    var birim = k.GetProperty("birimAgirlikG").GetDecimal();
+                    var hedef = k.GetProperty("beklenenFizikselAdet").GetInt32() * birim;
+                    if (Math.Abs(agirliklar[id] - hedef) >= birim / 2)
+                    {
+                        agirliklar[id] = hedef;
+                        await TelemetriYayinlaAsync(id, kararli: true);
+                        Yaz(id, "⚖️", $"baskül stoğa uydu: {hedef:0.#} g", ConsoleColor.DarkYellow);
+                    }
+                }
+            }
+            catch
+            {
+                token = null;   // API kapalı / oturum düştü: sonraki turda yeniden denenir
+            }
+        }
+    });
+}
 
 Console.WriteLine(ayar.OtomatikTeyit
     ? $"\nSimülatör çalışıyor (kalp atışı her {ayar.KalpAtisiSaniye} sn). Çıkmak için Ctrl+C.\n"
@@ -316,7 +375,8 @@ static Ayarlar ArgumanlariOku(string[] args)
         Yontem: Deger("yontem", "BUTON").ToUpperInvariant(),
         KalpAtisiSaniye: int.Parse(Deger("kalp-atisi", "20")),
         Agirliklar: AgirliklariOku(Deger("agirlik", string.Empty)),
-        AlinanFark: int.Parse(Deger("alinan-fark", "0")));
+        AlinanFark: int.Parse(Deger("alinan-fark", "0")),
+        Api: Deger("api", Environment.GetEnvironmentVariable("PTL_API") ?? string.Empty) is { Length: > 0 } api ? api : null);
 }
 
 // Varsayılan: demo tohum verisiyle tutarlı içerik ağırlıkları (stok adedi × birim ağırlık).
@@ -344,7 +404,7 @@ static Dictionary<long, decimal> AgirliklariOku(string metin)
 }
 
 internal sealed record Ayarlar(string Sunucu, int Port, long[] KutuIdleri, bool OtomatikTeyit,
-    int TeyitGecikmesiMs, string Yontem, int KalpAtisiSaniye, Dictionary<long, decimal> Agirliklar, int AlinanFark);
+    int TeyitGecikmesiMs, string Yontem, int KalpAtisiSaniye, Dictionary<long, decimal> Agirliklar, int AlinanFark, string? Api);
 
 internal sealed class LedKomut
 {

@@ -15,7 +15,12 @@
 # ─────────────────────────────────────────────────────────────────────────────
 set -uo pipefail
 
+# Windows (Git Bash) altında Python varsayılan olarak konsol kod sayfasını (cp1254) kullanır ve
+# simge/Türkçe karakter basarken çöker; UTF-8 zorlanır.
+export PYTHONIOENCODING=utf-8
+
 API="${PTL_API:-http://localhost:5080}"
+WEB="${PTL_WEB:-http://localhost:3000}"
 KULLANICI="${PTL_KULLANICI:-admin}"
 PAROLA="${PTL_PAROLA:-admin123}"
 
@@ -46,6 +51,8 @@ giris() {
   fi
 }
 
+# Not: Windows'ta curl.exe komut satırı argümanındaki Türkçe karakterleri bozar (geçersiz JSON);
+# bu yüzden istek gövdelerindeki açıklamalar ASCII tutulur.
 ist() { curl -s -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' "$@"; }
 
 durum() {
@@ -66,7 +73,7 @@ hazirla() {
   # Yeşil: bol stok · Sarı: güvenlik seviyesine yakın · Kırmızı: yetersiz
   for p in "1:30" "2:6" "3:2" "4:14" "5:40"; do
     kutu="${p%%:*}"; adet="${p##*:}"
-    ist -X POST "$API/api/stok/$kutu/sayim" -d "{\"yeniAdet\":$adet,\"aciklama\":\"Demo hazırlığı\"}" > /dev/null
+    ist -X POST "$API/api/stok/$kutu/sayim" -d "{\"yeniAdet\":$adet,\"aciklama\":\"Demo hazirligi\"}" > /dev/null
   done
   bilgi "Stoklar: K-01=30 · K-02=6 · K-03=2 · K-04=14 · K-05=40"
 
@@ -114,7 +121,7 @@ if d['alarmlar']: print('  alarmlar:', ', '.join(a['tip'] for a in d['alarmlar']
 
 eszamanli() {
   baslik "Eşzamanlılık: aynı kutudan iki sipariş aynı anda"
-  ist -X POST "$API/api/stok/5/sayim" -d '{"yeniAdet":3,"aciklama":"Eşzamanlılık demosu"}' > /dev/null
+  ist -X POST "$API/api/stok/5/sayim" -d '{"yeniAdet":3,"aciklama":"Eszamanlilik demosu"}' > /dev/null
   bilgi "K-05 stoğu 3 adete çekildi; iki sipariş 2'şer adet isteyecek."
 
   # Sipariş numaraları her koşuda benzersiz olmalı: demo sunumda birden çok kez
@@ -131,13 +138,19 @@ eszamanli() {
     return 1
   fi
 
-  ist -X POST "$API/api/siparisler/$a/baslat" > /tmp/ptl-demo-a.json &
-  ist -X POST "$API/api/siparisler/$b/baslat" > /tmp/ptl-demo-b.json &
+  # Geçici dosyalar: Windows'ta Python, Git Bash'in /tmp'sini göremez; yol karşılıklı çevrilir.
+  local tmp
+  tmp="$(mktemp -d)"
+  tmp="$(cygpath -m "$tmp" 2>/dev/null || echo "$tmp")"
+
+  ist -X POST "$API/api/siparisler/$a/baslat" > "$tmp/a.json" &
+  ist -X POST "$API/api/siparisler/$b/baslat" > "$tmp/b.json" &
   wait
 
-  python3 - <<'PY'
-import json
-for ad, dosya in (("A", "/tmp/ptl-demo-a.json"), ("B", "/tmp/ptl-demo-b.json")):
+  PTL_TMP="$tmp" python3 - <<'PY'
+import json, os
+tmp = os.environ["PTL_TMP"]
+for ad, dosya in (("A", tmp + "/a.json"), ("B", tmp + "/b.json")):
     try:
         d = json.load(open(dosya))
         k = d["kalemler"][0]
@@ -177,7 +190,7 @@ case "$komut" in
     eszamanli
     durum
     baslik "Demo tamamlandı"
-    bilgi "Arayüz: http://localhost:3000  ·  Hareket defteri ve alarmlar sayfalarını gösterin."
+    bilgi "Arayüz: $WEB  ·  Hareket defteri ve alarmlar sayfalarını gösterin."
     ;;
   *) echo "Bilinmeyen komut: $komut"; sed -n '4,16p' "$0"; exit 1 ;;
 esac

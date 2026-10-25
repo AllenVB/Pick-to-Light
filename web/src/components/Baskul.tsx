@@ -84,12 +84,12 @@ export function BaskulSatiri({ kutu }: { kutu: Kutu }) {
 
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px]" data-test="baskul-satiri">
-      <span aria-hidden>⚖</span>
-      <span className={`font-mono font-semibold tabular-nums ${eski ? "text-durum-gri" : ""}`}>
+      <span aria-hidden className="shrink-0">⚖</span>
+      <span className={`whitespace-nowrap font-mono font-semibold tabular-nums ${eski ? "text-durum-gri" : ""}`}>
         {gramMetni(kutu.agirlikG!)}
       </span>
       {kutu.tahminiAdet != null && (
-        <span className="text-slate-400">≈ {kutu.tahminiAdet} adet</span>
+        <span className="whitespace-nowrap text-slate-400">≈ {kutu.tahminiAdet} adet</span>
       )}
       {!oturuyor && <span className="text-durum-sari">ölçülüyor…</span>}
       {eski && <span className="text-durum-gri">ölçüm eski</span>}
