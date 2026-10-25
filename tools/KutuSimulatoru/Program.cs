@@ -14,6 +14,13 @@ using MQTTnet.Protocol;
 //  Kullanım:
 //    dotnet run --project tools/KutuSimulatoru -- --kutu 1,2,3,4 --sunucu localhost
 //    dotnet run --project tools/KutuSimulatoru -- --kutu 1 --otomatik-teyit false
+//
+//  Baskül (kutunun altındaki HX711): her sanal kutu bir içerik ağırlığı tutar, düzenli
+//  telemetri yayınlar. LED komutu birim ağırlık taşıyorsa operatör "ürünü alır": ağırlık
+//  düşer ve TEYIT, yontem=AGIRLIK ve olculenFark ile gönderilir.
+//    --agirlik 1=1212.5,2=720   kutuların başlangıç içerik ağırlığı (g); varsayılan: demo tohum verisi
+//    --alinan-fark 2            her toplamada istenenden 2 adet FAZLA alınır (eksik için -1)
+//    Elle teyitte:  <kutuId> [alınanAdet]   (ör. "1 12")
 // ─────────────────────────────────────────────────────────────────────────────
 
 var ayar = ArgumanlariOku(args);
@@ -26,6 +33,7 @@ Console.WriteLine($"""
     Broker       : {ayar.Sunucu}:{ayar.Port}
     Kutular      : {string.Join(", ", ayar.KutuIdleri)}
     Otomatik teyit: {(ayar.OtomatikTeyit ? $"{ayar.TeyitGecikmesiMs} ms sonra" : "kapalı (ENTER ile teyit)")}
+    Baskül       : {string.Join(", ", ayar.Agirliklar.Select(a => $"{a.Key}={a.Value:0.#} g"))}  (alınan fark: {ayar.AlinanFark:+0;-0;0} adet)
     """);
 
 var jsonAyar = new JsonSerializerOptions
@@ -49,7 +57,11 @@ var istemciAyarlari = new MqttClientOptionsBuilder()
     .Build();
 
 // Aktif ışıklar: kutuId → (mesajId, renk, miktar)
-var aktifIsiklar = new Dictionary<long, (string MesajId, string Renk, int Miktar)>();
+var aktifIsiklar = new Dictionary<long, (string MesajId, string Renk, int Miktar, decimal Birim)>();
+
+// Sanal baskül: kutu içeriğinin ağırlığı (g). Gerçek cihazda HX711 ölçer.
+var agirliklar = new Dictionary<long, decimal>(ayar.Agirliklar);
+var rastgele = new Random();
 var kilit = new object();
 
 istemci.ApplicationMessageReceivedAsync += async e =>
@@ -64,6 +76,15 @@ istemci.ApplicationMessageReceivedAsync += async e =>
     var komut = JsonSerializer.Deserialize<LedKomut>(payload, jsonAyar);
     if (komut is null)
         return;
+
+    if (komut.Tip is "TARE" or "KALIBRE")
+    {
+        // Gerçek cihaz burada ofset/ölçek katsayısını hesaplayıp NVS'e yazar; simülatörde yalnızca izlenir.
+        Yaz(kutuId.Value, "⚖️", komut.Tip == "TARE"
+            ? "TARE alındı (simülatörde içerik ağırlığı korunur)"
+            : $"KALİBRASYON alındı — referans {komut.ReferansG:0.#} g", ConsoleColor.Magenta);
+        return;
+    }
 
     if (komut.Tip == "LED_SONDUR")
     {
@@ -80,13 +101,14 @@ istemci.ApplicationMessageReceivedAsync += async e =>
         _ => ("⚪", ConsoleColor.White)
     };
 
-    lock (kilit) aktifIsiklar[kutuId.Value] = (komut.MesajId, komut.Renk ?? "?", komut.Miktar);
-    Yaz(kutuId.Value, simge, $"{komut.Renk} yandı — {komut.Miktar} adet al (ttl {komut.TtlSn} sn)", renk);
+    lock (kilit) aktifIsiklar[kutuId.Value] = (komut.MesajId, komut.Renk ?? "?", komut.Miktar, komut.BirimAgirlikG ?? 0m);
+    Yaz(kutuId.Value, simge, $"{komut.Renk} yandı — {komut.Miktar} adet al" +
+        (komut.BeklenenGram > 0 ? $" ({komut.BeklenenGram:0.#} g)" : "") + $" (ttl {komut.TtlSn} sn)", renk);
 
     if (ayar.OtomatikTeyit && komut.Miktar > 0)
     {
         await Task.Delay(ayar.TeyitGecikmesiMs);
-        await TeyitGonderAsync(kutuId.Value);
+        await TeyitGonderAsync(kutuId.Value, ayar.AlinanFark);
     }
 };
 
@@ -117,6 +139,20 @@ _ = Task.Run(async () =>
     }
 });
 
+// Baskül telemetrisi: gerçek cihaz gibi periyodik, küçük sensör gürültüsüyle.
+_ = Task.Run(async () =>
+{
+    while (true)
+    {
+        await Task.Delay(TimeSpan.FromSeconds(5));
+        foreach (var kutuId in ayar.KutuIdleri)
+            await TelemetriYayinlaAsync(kutuId, kararli: true);
+    }
+});
+
+foreach (var kutuId in ayar.KutuIdleri)
+    await TelemetriYayinlaAsync(kutuId, kararli: true);
+
 Console.WriteLine(ayar.OtomatikTeyit
     ? $"\nSimülatör çalışıyor (kalp atışı her {ayar.KalpAtisiSaniye} sn). Çıkmak için Ctrl+C.\n"
     : "\nSimülatör çalışıyor. Teyit için: <kutuId> yazıp ENTER. Çıkmak için Ctrl+C.\n");
@@ -140,19 +176,25 @@ else
 {
     while (true)
     {
-        var satir = Console.ReadLine();
-        if (long.TryParse(satir?.Trim(), out var kutuId))
-            await TeyitGonderAsync(kutuId);
+        var parcalar = (Console.ReadLine() ?? string.Empty).Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parcalar.Length > 0 && long.TryParse(parcalar[0], out var kutuId))
+        {
+            // İkinci sayı verilirse istenenden farklı adet alınmış gibi davranılır.
+            int? alinan = parcalar.Length > 1 && int.TryParse(parcalar[1], out var a) ? a : null;
+            await TeyitGonderAsync(kutuId, 0, alinan);
+        }
         else
-            Console.WriteLine("Kutu numarası girin (örn. 1).");
+            Console.WriteLine("Kutu numarası girin (örn. 1) veya \"1 12\" (12 adet alındı).");
     }
 }
 
 // ───────────────────────── yardımcılar ─────────────────────────
 
-async Task TeyitGonderAsync(long kutuId)
+async Task TeyitGonderAsync(long kutuId, int alinanFark, int? alinanAdet = null)
 {
     string? mesajId;
+    int miktar;
+    decimal birim;
     lock (kilit)
     {
         if (!aktifIsiklar.TryGetValue(kutuId, out var isik))
@@ -162,20 +204,62 @@ async Task TeyitGonderAsync(long kutuId)
         }
 
         mesajId = isik.MesajId;
+        miktar = isik.Miktar;
+        birim = isik.Birim;
         aktifIsiklar.Remove(kutuId);
+    }
+
+    decimal? olculenFark = null;
+    var yontem = ayar.Yontem;
+
+    if (birim > 0)
+    {
+        // Operatör kutudan ürünleri alır: ağırlık adım adım düşer, sonra oturur.
+        var mevcut = agirliklar.GetValueOrDefault(kutuId);
+        var alinan = Math.Clamp(alinanAdet ?? miktar + alinanFark, 0, (int)Math.Floor(mevcut / birim));
+        var dusus = alinan * birim;
+        const int adim = 5;
+
+        for (var i = 1; i <= adim; i++)
+        {
+            agirliklar[kutuId] = mevcut - dusus * i / adim;
+            await TelemetriYayinlaAsync(kutuId, kararli: i == adim);
+            await Task.Delay(250);
+        }
+
+        olculenFark = -(dusus + (decimal)(rastgele.NextDouble() - 0.5) * 0.4m);
+        yontem = "AGIRLIK";
     }
 
     var olay = new
     {
         mesajId,
         tip = "TEYIT",
-        yontem = ayar.Yontem,
+        yontem,
+        olculenFark = olculenFark.HasValue ? Math.Round(olculenFark.Value, 2) : (decimal?)null,
         cihazMac = $"A0:B1:C2:D3:E4:{kutuId:X2}",
         zaman = DateTimeOffset.UtcNow
     };
 
     await YayinlaAsync($"depo/kutu/{kutuId}/olay", JsonSerializer.Serialize(olay, jsonAyar));
-    Yaz(kutuId, "✅", $"teyit gönderildi ({ayar.Yontem})", ConsoleColor.Cyan);
+    Yaz(kutuId, "✅", olculenFark.HasValue
+        ? $"teyit gönderildi (AGIRLIK, {Math.Abs(olculenFark.Value):0.#} g düştü)"
+        : $"teyit gönderildi ({yontem})", ConsoleColor.Cyan);
+}
+
+async Task TelemetriYayinlaAsync(long kutuId, bool kararli)
+{
+    if (!agirliklar.TryGetValue(kutuId, out var agirlik))
+        return;
+
+    var olculen = Math.Max(0m, agirlik + (decimal)(rastgele.NextDouble() - 0.5) * 0.4m);
+    var mesaj = new { agirlikG = Math.Round(olculen, 1), kararli };
+
+    await istemci.PublishAsync(new MqttApplicationMessageBuilder()
+        .WithTopic($"depo/kutu/{kutuId}/telemetri")
+        .WithPayload(JsonSerializer.Serialize(mesaj, jsonAyar))
+        .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtMostOnce)   // telemetri: QoS 0
+        .Build(), CancellationToken.None);
 }
 
 async Task DurumYayinlaAsync(long kutuId, string baglanti)
@@ -230,11 +314,37 @@ static Ayarlar ArgumanlariOku(string[] args)
         OtomatikTeyit: !string.Equals(Deger("otomatik-teyit", "true"), "false", StringComparison.OrdinalIgnoreCase),
         TeyitGecikmesiMs: int.Parse(Deger("gecikme", "2000")),
         Yontem: Deger("yontem", "BUTON").ToUpperInvariant(),
-        KalpAtisiSaniye: int.Parse(Deger("kalp-atisi", "20")));
+        KalpAtisiSaniye: int.Parse(Deger("kalp-atisi", "20")),
+        Agirliklar: AgirliklariOku(Deger("agirlik", string.Empty)),
+        AlinanFark: int.Parse(Deger("alinan-fark", "0")));
+}
+
+// Varsayılan: demo tohum verisiyle tutarlı içerik ağırlıkları (stok adedi × birim ağırlık).
+static Dictionary<long, decimal> AgirliklariOku(string metin)
+{
+    var sonuc = new Dictionary<long, decimal>
+    {
+        [1] = 1212.5m,   // K-01: 25 × 48.5 g
+        [2] = 720m,      // K-02:  6 × 120 g
+        [3] = 12.4m,     // K-03:  2 × 6.2 g
+        [4] = 392m,      // K-04: 14 × 28 g
+        [5] = 66m        // K-05: 60 × 1.1 g
+    };
+
+    foreach (var cift in metin.Split(',', StringSplitOptions.RemoveEmptyEntries))
+    {
+        var p = cift.Split('=');
+        if (p.Length == 2 && long.TryParse(p[0], out var id)
+            && decimal.TryParse(p[1], System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out var g))
+            sonuc[id] = g;
+    }
+
+    return sonuc;
 }
 
 internal sealed record Ayarlar(string Sunucu, int Port, long[] KutuIdleri, bool OtomatikTeyit,
-    int TeyitGecikmesiMs, string Yontem, int KalpAtisiSaniye);
+    int TeyitGecikmesiMs, string Yontem, int KalpAtisiSaniye, Dictionary<long, decimal> Agirliklar, int AlinanFark);
 
 internal sealed class LedKomut
 {
@@ -244,4 +354,7 @@ internal sealed class LedKomut
     public int Miktar { get; set; }
     public long? KalemId { get; set; }
     public int TtlSn { get; set; }
+    public decimal? BirimAgirlikG { get; set; }
+    public decimal? BeklenenGram { get; set; }
+    public decimal? ReferansG { get; set; }
 }

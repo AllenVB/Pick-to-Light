@@ -6,13 +6,15 @@ import { api } from "@/lib/api";
 import { useCanliOlaylar } from "@/hooks/useCanliOlaylar";
 import { useKorumaliSayfa } from "@/hooks/useKorumaliSayfa";
 import { KutuKarti } from "@/components/KutuKarti";
+import { canliKutular, useCanliAgirlik } from "@/components/Baskul";
 import { OncelikRozeti, SiparisRozeti } from "@/components/Rozet";
 import { BosDurum, IskeletKart } from "@/components/Durumlar";
 import type { Alarm, Kutu, SiparisOzet } from "@/types";
 
 export default function PanoSayfasi() {
   const oturum = useKorumaliSayfa();
-  const [kutular, setKutular] = useState<Kutu[]>([]);
+  const [hamKutular, setKutular] = useState<Kutu[]>([]);
+  const kutular = canliKutular(hamKutular, useCanliAgirlik());
   const [siparisler, setSiparisler] = useState<SiparisOzet[]>([]);
   const [alarmlar, setAlarmlar] = useState<Alarm[]>([]);
   const [hata, setHata] = useState<string | null>(null);

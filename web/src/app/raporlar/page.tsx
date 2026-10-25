@@ -21,7 +21,7 @@ function gecenAy() {
 }
 
 export default function RaporlarSayfasi() {
-  const oturum = useKorumaliSayfa();
+  const oturum = useKorumaliSayfa("Admin");
   const [gun, setGun] = useState(30);
   const [baslangic, setBaslangic] = useState("");
   const [bitis, setBitis] = useState("");

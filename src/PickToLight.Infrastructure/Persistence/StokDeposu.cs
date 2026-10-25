@@ -58,6 +58,14 @@ public sealed class StokDeposu(AppDbContext db, ILogger<StokDeposu> log) : IStok
         string? aciklama = null, CancellationToken ct = default)
         => IslemYapAsync(kutuId, yeniAdet, HareketTipi.Sayim, SayimSql, null, personelId, aciklama, ct);
 
+    public async Task<bool> AgirlikYazAsync(long kutuId, decimal agirlikG, DateTimeOffset zaman,
+        CancellationToken ct = default)
+        => await db.Stoklar
+               .Where(s => s.KutuId == kutuId)
+               .ExecuteUpdateAsync(u => u
+                   .SetProperty(s => s.SonAgirlikG, agirlikG)
+                   .SetProperty(s => s.AgirlikZamani, zaman), ct) > 0;
+
     private async Task<StokDusSonucu> IslemYapAsync(long kutuId, int deger, HareketTipi tip, string sql,
         long? siparisKalemiId, long? personelId, string? aciklama, CancellationToken ct)
     {

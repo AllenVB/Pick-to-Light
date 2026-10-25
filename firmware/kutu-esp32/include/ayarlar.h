@@ -35,5 +35,16 @@
 // Bağlantı yokken biriken olay sayısı (bağlantı dönünce sırayla gönderilir)
 #define TAMPON_BOYUTU 20
 
-// Ağırlık doğrulamasında kabul edilen sapma (sunucu tarafı da ayrıca kontrol eder)
-#define AGIRLIK_TOLERANS 0.10f
+// ─────────────────────────────────────────────────────────────────────────────
+//  Baskül (HX711 + yük hücresi) — yalnızca AGIRLIK_SENSORU=1 iken kullanılır
+//
+//  Kutunun altındaki baskül kutu İÇERİĞİNİN ağırlığını ölçer (boş kap tare edilir).
+//  Sunucu ağırlık düşüşünü birim ağırlığa bölerek gerçekten alınan adedi bulur.
+// ─────────────────────────────────────────────────────────────────────────────
+#define TELEMETRI_ARALIK_MS    1000   // Ağırlık yayınının en sık aralığı
+#define TELEMETRI_KALP_MS     10000   // Değişim olmasa da bu sürede bir ağırlık yayınlanır
+#define AGIRLIK_DEGISIM_G       0.5f  // Bu kadar değişmeden (g) yeni ölçüm yayınlanmaz
+#define AGIRLIK_KARARLI_G       0.6f  // Okuma bu bandın içinde kalırsa "oturuyor" sayılır
+#define AGIRLIK_KARARLI_MS     1200   // ...ve bu süre boyunca bandı aşmazsa ölçüm "kararlı"dır
+#define AGIRLIK_OLCEK_VARSAYILAN 420.0f // Kalibrasyon yapılana kadar kullanılan ham/gram oranı
+#define BASKUL_ORNEK_SAYISI       15    // Tare ve kalibrasyonda ortalaması alınan okuma sayısı

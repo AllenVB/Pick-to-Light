@@ -36,7 +36,7 @@ public sealed class StokServisi(
             .Select(k => new
             {
                 k.KutuId, k.LedRengi, k.Miktar, SiparisNo = k.Siparis.SiparisNo, KalemId = k.Id,
-                k.IsikYanmaZamani
+                k.IsikYanmaZamani, k.BaslangicAgirligiG
             })
             .ToListAsync(ct);
 
@@ -49,10 +49,25 @@ public sealed class StokServisi(
             .Select(g => new { KutuId = g.Key, Sayi = g.Count() })
             .ToDictionaryAsync(x => x.KutuId, x => x.Sayi, ct);
 
+        // Rezerve edilmiş ama rafta hâlâ duran adet: stok düşüldü, ürün henüz alınmadı.
+        // Baskül ağırlığıyla karşılaştırma bu adet eklenerek yapılır.
+        var rezerveler = await db.SiparisKalemleri
+            .AsNoTracking()
+            .Where(k => k.StokRezerveEdildi && k.KutuId != null
+                        && (k.Durum == KalemDurumu.IsikYandi || k.Durum == KalemDurumu.Sirada))
+            .GroupBy(k => k.KutuId!.Value)
+            .Select(g => new { KutuId = g.Key, Adet = g.Sum(x => x.Miktar) })
+            .ToDictionaryAsync(x => x.KutuId, x => x.Adet, ct);
+
         return kutular.Select(k =>
         {
             var yanan = yananKalemler.FirstOrDefault(y => y.KutuId == k.Id);
             var adet = k.Stok?.Adet ?? 0;
+            var birim = k.Urun?.BirimAgirlikG is > 0 ? k.Urun.BirimAgirlikG : null;
+            var agirlik = k.Stok?.SonAgirlikG;
+            int? tahmini = agirlik.HasValue && birim.HasValue
+                ? (int)Math.Round(agirlik.Value / birim.Value, MidpointRounding.AwayFromZero)
+                : null;
             var guvenlik = k.Urun?.GuvenlikStogu ?? 0;
 
             // Işık yanmıyorsa kutunun "sağlık rengi": 1 adetlik talep varsayımıyla önizleme.
@@ -68,7 +83,10 @@ public sealed class StokServisi(
                 k.FirmwareSurumu, k.Rssi, k.IpAdresi,
                 siradakiler.GetValueOrDefault(k.Id),
                 yanan?.IsikYanmaZamani?.AddSeconds(_ayar.TeyitZamanAsimiSaniye),
-                k.Aktif);
+                k.Aktif,
+                birim, agirlik, k.Stok?.AgirlikZamani, tahmini,
+                adet + rezerveler.GetValueOrDefault(k.Id),
+                yanan?.BaslangicAgirligiG);
         }).ToList();
     }
 
@@ -98,6 +116,35 @@ public sealed class StokServisi(
         var sonuc = await stokDeposu.SayimAsync(kutuId, yeniAdet, oturum.PersonelId, aciklama ?? "Fiziksel sayım", ct);
         await bildirim.StokGuncellendiAsync(kutuId, sonuc.SonrakiAdet, null, ct);
         return sonuc.SonrakiAdet;
+    }
+
+    /// <summary>
+    /// Baskülün saydığı adedi stoka uygular (sayım düzeltmesi). Rafta duran ama rezerve edilmiş
+    /// adet stoktan zaten düşüldüğü için ölçülen adetten çıkarılır.
+    /// </summary>
+    public async Task<int> AgirliktanSayimAsync(long kutuId, CancellationToken ct = default)
+    {
+        var kutu = await db.Kutular.AsNoTracking()
+                       .Include(k => k.Urun).Include(k => k.Stok)
+                       .FirstOrDefaultAsync(k => k.Id == kutuId, ct)
+                   ?? throw new KayitBulunamadiException("Kutu", kutuId);
+
+        if (kutu.Urun?.BirimAgirlikG is not > 0)
+            throw new DomainException("birim-agirlik-yok", "Ürünün birim ağırlığı tanımlı değil; ağırlıktan sayım yapılamaz.");
+
+        if (kutu.Stok?.SonAgirlikG is not { } agirlik)
+            throw new DomainException("agirlik-yok", "Bu kutudan henüz baskül ölçümü gelmedi.");
+
+        var rezerve = await db.SiparisKalemleri
+            .Where(k => k.KutuId == kutuId && k.StokRezerveEdildi
+                        && (k.Durum == KalemDurumu.IsikYandi || k.Durum == KalemDurumu.Sirada))
+            .SumAsync(k => (int?)k.Miktar, ct) ?? 0;
+
+        var olculen = (int)Math.Round(agirlik / kutu.Urun.BirimAgirlikG.Value, MidpointRounding.AwayFromZero);
+        var yeniAdet = Math.Max(olculen - rezerve, 0);
+
+        return await SayimAsync(kutuId, yeniAdet,
+            $"Baskül sayımı: {agirlik:0.#} g ÷ {kutu.Urun.BirimAgirlikG:0.##} g = {olculen} adet", ct);
     }
 
     /// <summary>

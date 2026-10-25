@@ -7,13 +7,15 @@ import { useKorumaliSayfa } from "@/hooks/useKorumaliSayfa";
 import { useToast } from "@/components/Toast";
 import { BosDurum, IskeletKart } from "@/components/Durumlar";
 import { GecenSure, Kopyala, Sinyal } from "@/components/Cihaz";
+import { BaskulSatiri, baskulVar, canliKutular, useCanliAgirlik } from "@/components/Baskul";
 import type { Kutu, LedRengi, Urun } from "@/types";
 
 export default function KutularSayfasi() {
-  const oturum = useKorumaliSayfa();
+  const oturum = useKorumaliSayfa("Admin");
   const yonetici = oturum?.rol === "Admin";
 
-  const [kutular, setKutular] = useState<Kutu[]>([]);
+  const [hamKutular, setKutular] = useState<Kutu[]>([]);
+  const kutular = canliKutular(hamKutular, useCanliAgirlik());
   const [urunler, setUrunler] = useState<Urun[]>([]);
   const [hata, setHata] = useState<string | null>(null);
   const [formAcik, setFormAcik] = useState(false);
@@ -110,6 +112,16 @@ export default function KutularSayfasi() {
             <CihazKarti key={k.id} kutu={k} yonetici={yonetici}
               onDuzenle={() => { setFormAcik(false); setDuzenlenen(k); }}
               onTest={(renk) => isikTesti(k, renk)}
+              onTare={() => {
+                if (confirm(`${k.kod}: kutu BOŞ ve baskülün üstünde yalnızca boş kap var mı?\nAğırlık sıfırlanacak.`))
+                  calistir(() => api.baskulTare(k.id), `${k.kod}: tare komutu gönderildi.`);
+              }}
+              onKalibre={() => {
+                const g = prompt(`${k.kod} — baskülün üstüne konan bilinen ağırlık kaç gram?`, "100");
+                const referans = Number((g ?? "").replace(",", "."));
+                if (g && referans > 0)
+                  calistir(() => api.baskulKalibrasyon(k.id, referans), `${k.kod}: kalibrasyon komutu gönderildi.`);
+              }}
               onArsiv={() => calistir(
                 () => api.kutuAktiflik(k.id, k.aktif === false),
                 k.aktif === false ? `${k.kod} yeniden devreye alındı.` : `${k.kod} arşivlendi.`)} />
@@ -206,12 +218,14 @@ function KutuFormu({ urunler, mevcut, onKaydet, onVazgec }: {
  * yeterli mi, doğru firmware mi, hangi topic'i dinliyor. Hepsi tek kartta
  * toplanır; topic ve MAC tıklanarak kopyalanır.
  */
-function CihazKarti({ kutu, yonetici, onDuzenle, onTest, onArsiv }: {
+function CihazKarti({ kutu, yonetici, onDuzenle, onTest, onArsiv, onTare, onKalibre }: {
   kutu: Kutu;
   yonetici: boolean;
   onDuzenle: () => void;
   onTest: (renk: LedRengi) => void;
   onArsiv: () => void;
+  onTare: () => void;
+  onKalibre: () => void;
 }) {
   const cevrimici = kutu.baglantiDurumu === "Online";
   const arsivli = kutu.aktif === false;
@@ -278,6 +292,27 @@ function CihazKarti({ kutu, yonetici, onDuzenle, onTest, onArsiv }: {
           <div className="flex items-center gap-2">
             <span className="etiket w-14 shrink-0">IP</span>
             <Kopyala deger={kutu.ipAdresi} />
+          </div>
+        )}
+      </div>
+
+      {/* Baskül: kutu içeriğinin ağırlığı. Tare boş kapla, kalibrasyon bilinen ağırlıkla yapılır. */}
+      <div className="space-y-2 border-b border-zemin-cizgi/60 pb-3" data-test="baskul-bolumu">
+        <div className="flex items-center justify-between gap-2">
+          <p className="etiket">Baskül</p>
+          {!kutu.birimAgirlikG && kutu.urunId != null && (
+            <span className="ipucu">ürünün birim ağırlığı tanımlı değil</span>
+          )}
+        </div>
+        {baskulVar(kutu)
+          ? <BaskulSatiri kutu={kutu} />
+          : <p className="ipucu">Ölçüm gelmedi — kutuda baskül yok ya da firmware baskülsüz derlendi.</p>}
+        {yonetici && (
+          <div className="flex gap-2">
+            <button className="dugme-ikincil dugme-kucuk" onClick={onTare}
+              title="Boş kapla sıfırla (kutu boşken)" data-test="baskul-tare">Sıfırla (tare)</button>
+            <button className="dugme-ikincil dugme-kucuk" onClick={onKalibre}
+              title="Bilinen bir ağırlıkla ölçeği ayarla" data-test="baskul-kalibre">Kalibre et</button>
           </div>
         )}
       </div>

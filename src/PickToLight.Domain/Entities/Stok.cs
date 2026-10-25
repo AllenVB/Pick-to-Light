@@ -12,8 +12,14 @@ public class Stok
     /// <summary>Mevcut adet (s). Veritabanında CHECK (adet &gt;= 0) kısıtı vardır.</summary>
     public int Adet { get; set; }
 
-    /// <summary>HX711 ağırlık sensöründen gelen son ölçüm (gram).</summary>
+    /// <summary>
+    /// Kutunun altındaki baskülden (ESP32 + HX711) gelen son ölçüm: kutunun <b>içeriğinin</b>
+    /// ağırlığı, gram (kap tare edilmiştir). Adet = ağırlık ÷ ürünün birim ağırlığı.
+    /// </summary>
     public decimal? SonAgirlikG { get; set; }
+
+    /// <summary>Son baskül ölçümünün geldiği an; null ise kutuda baskül yok / hiç ölçüm gelmedi.</summary>
+    public DateTimeOffset? AgirlikZamani { get; set; }
 
     /// <summary>Optimistic concurrency için sürüm sayacı; her değişimde artar.</summary>
     public int Versiyon { get; set; }

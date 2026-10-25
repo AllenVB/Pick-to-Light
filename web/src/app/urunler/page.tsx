@@ -10,7 +10,7 @@ interface Form { sku: string; ad: string; birimAgirlikG: string; guvenlikStogu: 
 const BOS: Form = { sku: "", ad: "", birimAgirlikG: "", guvenlikStogu: 5 };
 
 export default function UrunlerSayfasi() {
-  const oturum = useKorumaliSayfa();
+  const oturum = useKorumaliSayfa("Admin");
   const yonetici = oturum?.rol === "Admin";
 
   const [urunler, setUrunler] = useState<Urun[]>([]);
@@ -124,7 +124,7 @@ export default function UrunlerSayfasi() {
               <label className="etiket">Birim ağırlık (g)</label>
               <input className="girdi mt-1" type="number" step="0.1" min="0" value={form.birimAgirlikG}
                 onChange={(e) => setForm({ ...form, birimAgirlikG: e.target.value })} placeholder="48.5" />
-              <p className="mt-1 text-[11px] text-slate-500">ağırlık sensörüyle doğrulama için</p>
+              <p className="mt-1 text-[11px] text-slate-500">baskül adedi bundan sayar: 100 g düşüş ÷ 10 g = 10 adet</p>
             </div>
             <div>
               <label className="etiket">Güvenlik stoğu (b)</label>

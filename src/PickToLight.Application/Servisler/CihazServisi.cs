@@ -12,6 +12,7 @@ namespace PickToLight.Application.Servisler;
 public sealed class CihazServisi(
     IAppDbContext db,
     IMqttYayinci mqtt,
+    IStokDeposu stokDeposu,
     IBildirimYayinci bildirim,
     AlarmServisi alarmServisi,
     IZamanSaglayici zaman,
@@ -81,6 +82,42 @@ public sealed class CihazServisi(
             await bildirim.CihazDurumDegistiAsync(kutu.Id, durum, ct);
             log.LogInformation("Kutu {Kod} → {Durum}", kutu.Kod, durum);
         }
+    }
+
+    /// <summary>
+    /// Baskülden gelen ölçümü kaydeder ve canlı olarak arayüze iletir. Stok satırının
+    /// eşzamanlılık belirteci yalnızca StokDeposu'nun SQL'iyle ilerlediği için güncelleme
+    /// EF izleyicisinden geçmeden, tek bir UPDATE ile yapılır.
+    /// </summary>
+    public async Task AgirlikGuncelleAsync(long kutuId, decimal agirlikG, bool kararli, CancellationToken ct = default)
+    {
+        if (!await stokDeposu.AgirlikYazAsync(kutuId, agirlikG, zaman.Simdi, ct))
+            return;
+
+        await bildirim.AgirlikGuncellendiAsync(kutuId, agirlikG, kararli, ct);
+    }
+
+    /// <summary>
+    /// Baskül bakımı (yalnızca yönetici): kutu boşken sıfırlama (TARE) veya bilinen ağırlıkla
+    /// kalibrasyon. Işığı yanan kutuda yapılamaz — ölçüm ve teyit eşiği bozulur.
+    /// </summary>
+    public async Task<BaskulKomutSonucu> BaskulKomutuAsync(long kutuId, BaskulKomutTipi tip, decimal? referansG,
+        CancellationToken ct = default)
+    {
+        var kutu = await db.Kutular.FirstOrDefaultAsync(k => k.Id == kutuId, ct)
+                   ?? throw new KayitBulunamadiException("Kutu", kutuId);
+
+        if (tip == BaskulKomutTipi.Kalibre && referansG is not > 0)
+            throw new DomainException("gecersiz-agirlik", "Kalibrasyon için üstteki bilinen ağırlığı (g) girin.");
+
+        var mesgul = await db.SiparisKalemleri.AnyAsync(k => k.KutuId == kutuId && k.Durum == KalemDurumu.IsikYandi, ct);
+        if (mesgul)
+            throw new DomainException("kutu-mesgul", "Kutunun ışığı yanıyor; toplama bitmeden baskül ayarı yapılamaz.");
+
+        await mqtt.BaskulKomutuAsync(kutu.Id, kutu.MqttTopic, tip, referansG, ct);
+        log.LogInformation("Baskül komutu: kutu {Kod} → {Tip} ({Referans} g)", kutu.Kod, tip, referansG);
+
+        return new BaskulKomutSonucu($"{kutu.MqttTopic}/komut", tip.ToString().ToUpperInvariant(), kutu.CevrimiciMi);
     }
 
     public async Task<long?> MacIleKutuIdAsync(string cihazMac, CancellationToken ct = default)

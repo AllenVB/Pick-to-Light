@@ -55,6 +55,7 @@ public sealed class SiparislerController(SiparisServisi siparisler, SiparisIceAk
     /// Biçim: <c>siparisNo;sku;miktar</c> — hatalı sipariş atlanır, kalanlar oluşturulur.
     /// </summary>
     [HttpPost("ice-aktar")]
+    [Authorize(Roles = "ADMIN")]
     public async Task<ActionResult<IceAktarSonucu>> IceAktar(SiparisIceAktarIstek istek, CancellationToken ct)
         => Ok(await iceAktarma.AktarAsync(istek, ct));
 }

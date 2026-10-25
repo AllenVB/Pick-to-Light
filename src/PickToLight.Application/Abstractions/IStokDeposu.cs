@@ -24,6 +24,12 @@ public interface IStokDeposu
     Task<StokDusSonucu> ArtirAsync(long kutuId, int miktar, long? siparisKalemiId, long? personelId,
         string? aciklama = null, CancellationToken ct = default);
 
+    /// <summary>
+    /// Baskül ölçümünü yazar. Adet ve sürüm sayacına dokunmaz (hareket üretmez); yalnızca
+    /// ağırlık ve zaman alanlarını tek bir UPDATE ile günceller. Kutu yoksa <c>false</c> döner.
+    /// </summary>
+    Task<bool> AgirlikYazAsync(long kutuId, decimal agirlikG, DateTimeOffset zaman, CancellationToken ct = default);
+
     /// <summary>Fiziksel sayım düzeltmesi: adet doğrudan yeni değere çekilir, fark loglanır.</summary>
     Task<StokDusSonucu> SayimAsync(long kutuId, int yeniAdet, long? personelId,
         string? aciklama = null, CancellationToken ct = default);

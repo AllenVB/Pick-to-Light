@@ -32,4 +32,8 @@ public sealed class SignalRBildirimYayinci(IHubContext<DepoHub> hub) : IBildirim
     public Task CihazDurumDegistiAsync(long kutuId, BaglantiDurumu durum, CancellationToken ct = default)
         => hub.Clients.All.SendAsync("CihazDurumDegisti",
             new { kutuId, baglanti = durum.ToString() }, ct);
+
+    public Task AgirlikGuncellendiAsync(long kutuId, decimal agirlikG, bool kararli, CancellationToken ct = default)
+        => hub.Clients.All.SendAsync("AgirlikGuncellendi",
+            new { kutuId, agirlikG, kararli, zaman = DateTimeOffset.UtcNow }, ct);
 }

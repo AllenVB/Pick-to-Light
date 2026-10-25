@@ -186,8 +186,22 @@ public sealed class SahteMqttYayinci : IMqttYayinci
         return Task.CompletedTask;
     }
 
+    private readonly List<(long KutuId, BaskulKomutTipi Tip, decimal? ReferansG)> _baskul = [];
+
+    public IReadOnlyList<(long KutuId, BaskulKomutTipi Tip, decimal? ReferansG)> BaskulKomutlari
+    {
+        get { lock (_kilit) return [.. _baskul]; }
+    }
+
+    public Task BaskulKomutuAsync(long kutuId, string mqttTopic, BaskulKomutTipi tip, decimal? referansG,
+        CancellationToken ct = default)
+    {
+        lock (_kilit) _baskul.Add((kutuId, tip, referansG));
+        return Task.CompletedTask;
+    }
+
     public void Temizle()
     {
-        lock (_kilit) { _yakilanlar.Clear(); _sondurulenler.Clear(); }
+        lock (_kilit) { _yakilanlar.Clear(); _sondurulenler.Clear(); _baskul.Clear(); }
     }
 }

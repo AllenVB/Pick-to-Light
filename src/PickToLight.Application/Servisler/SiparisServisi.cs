@@ -270,20 +270,10 @@ public sealed class SiparisServisi(
             return new TeyitSonucu(false, "Bu kalem için aktif bir ışık komutu yok.", kalem.Id);
         }
 
-        // Ağırlık yöntemiyle teyitte beklenen ağırlıkla karşılaştır (yalnızca uyarı üretir).
+        // Baskül: ölçülen ağırlık düşüşü birim ağırlığa bölünür → gerçekten alınan adet.
+        // Sipariş miktarından farklıysa stok gerçek adede göre düzeltilir ve alarm üretilir.
         if (yontem == TeyitYontemi.Agirlik && olculenFark.HasValue && kalem.Urun.BirimAgirlikG is > 0)
-        {
-            var beklenen = kalem.Urun.BirimAgirlikG!.Value * kalem.Miktar;
-            var olculen = Math.Abs(olculenFark.Value);
-            var sapma = Math.Abs(olculen - beklenen) / beklenen;
-
-            if (sapma > _ayar.AgirlikToleransOrani)
-            {
-                await alarmServisi.UretAsync(AlarmTipi.AgirlikUyusmazligi,
-                    $"{kalem.Kutu?.Kod}: beklenen {beklenen:0.#} g, ölçülen {olculen:0.#} g — sayım önerilir.",
-                    kalem.KutuId, kalem.SiparisId, ct);
-            }
-        }
+            await AgirlikTeyidiniIsleAsync(kalem, Math.Abs(olculenFark.Value), ct);
 
         DurumGecisleri.KalemGecisiDogrula(kalem.Durum, KalemDurumu.Alindi);
         kalem.Durum = KalemDurumu.Alindi;
@@ -308,6 +298,68 @@ public sealed class SiparisServisi(
 
         log.LogInformation("Kalem teyit edildi: {KalemId} ({Yontem})", kalem.Id, yontem);
         return new TeyitSonucu(true, "Teyit alındı, stok güncel.", kalem.Id);
+    }
+
+    /// <summary>
+    /// Baskül ölçümünü kaleme işler. Stok sipariş başlarken <c>Miktar</c> kadar rezerve edildiği
+    /// için fark kadar düzeltme yapılır: fazla alınan ek olarak düşülür, eksik alınan iade edilir.
+    /// Ölçüm sıfıra yakınsa (gürültü / sensör sorunu) stok olduğu gibi bırakılır, yalnızca alarm üretilir.
+    /// </summary>
+    private async Task AgirlikTeyidiniIsleAsync(SiparisKalemi kalem, decimal olculenG, CancellationToken ct)
+    {
+        var birim = kalem.Urun.BirimAgirlikG!.Value;
+        var olculenAdet = (int)Math.Round(olculenG / birim, MidpointRounding.AwayFromZero);
+        var kutuKod = kalem.Kutu?.Kod ?? "?";
+
+        kalem.OlculenAgirlikG = olculenG;
+
+        if (olculenAdet <= 0)
+        {
+            await alarmServisi.UretAsync(AlarmTipi.AgirlikUyusmazligi,
+                $"{kutuKod}: baskül ağırlık düşüşü algılamadı ({olculenG:0.#} g); stok sipariş miktarı ({kalem.Miktar}) kadar düşülmüş kaldı — sayım önerilir.",
+                kalem.KutuId, kalem.SiparisId, ct);
+            return;
+        }
+
+        kalem.OlculenAdet = olculenAdet;
+
+        var fark = olculenAdet - kalem.Miktar;
+        if (fark == 0 || kalem.KutuId is null)
+            return;
+
+        var aciklama = $"Baskül düzeltmesi: istenen {kalem.Miktar}, ölçülen {olculenAdet} ({olculenG:0.#} g)";
+        StokDusSonucu sonuc;
+        string sonucMetni;
+
+        if (fark < 0)
+        {
+            sonuc = await stokDeposu.ArtirAsync(kalem.KutuId.Value, -fark, kalem.Id, oturum.PersonelId, aciklama, ct);
+            sonucMetni = $"{-fark} adet stoğa iade edildi";
+        }
+        else
+        {
+            sonuc = await stokDeposu.DusAsync(kalem.KutuId.Value, fark, kalem.Id, oturum.PersonelId, aciklama, ct);
+
+            if (!sonuc.Basarili)
+            {
+                // Stokta fazlasının karşılığı yok: eldeki kadarını düş, kalanı alarmda belirt.
+                var dusulebilir = Math.Max(sonuc.OncekiAdet, 0);
+                sonuc = dusulebilir > 0
+                    ? await stokDeposu.DusAsync(kalem.KutuId.Value, dusulebilir, kalem.Id, oturum.PersonelId, aciklama, ct)
+                    : sonuc;
+                sonucMetni = $"{fark} adet fazla alındı, stokta yalnızca {dusulebilir} adet düşülebildi — sayım şart";
+            }
+            else
+            {
+                sonucMetni = $"{fark} adet ek olarak stoktan düşüldü";
+            }
+        }
+
+        await alarmServisi.UretAsync(AlarmTipi.AgirlikUyusmazligi,
+            $"{kutuKod} / {kalem.Urun.Ad}: istenen {kalem.Miktar}, baskül {olculenAdet} adet ölçtü ({olculenG:0.#} g) — {sonucMetni}.",
+            kalem.KutuId, kalem.SiparisId, ct);
+
+        await bildirim.StokGuncellendiAsync(kalem.KutuId.Value, sonuc.SonrakiAdet, null, ct);
     }
 
     /// <summary>MQTT'den gelen teyit olayını kalemle eşleştirir (mesajId veya kutu üzerinden).</summary>
@@ -440,9 +492,18 @@ public sealed class SiparisServisi(
         kalem.MesajId = Guid.NewGuid();
         kalem.IsikYanmaZamani = zaman.Simdi;
 
+        // Baskül: ışık yandığı andaki içerik ağırlığı kaydedilir; "alınan gram" ondan hesaplanır.
+        // Birim ağırlığı tanımlı üründe cihaza beklenen gram da gönderilir (otomatik teyit eşiği).
+        var birim = kalem.Urun?.BirimAgirlikG is > 0 ? kalem.Urun.BirimAgirlikG : null;
+        kalem.BaslangicAgirligiG = await db.Stoklar
+            .Where(st => st.KutuId == kutu.Id)
+            .Select(st => st.SonAgirlikG)
+            .FirstOrDefaultAsync(ct);
+
         await mqtt.LedYakAsync(new LedKomutu(
             kalem.MesajId.Value, kutu.Id, kutu.MqttTopic, renk, kalem.Miktar, kalem.Id,
-            _ayar.TeyitZamanAsimiSaniye, oturum.KorelasyonId), ct);
+            _ayar.TeyitZamanAsimiSaniye, oturum.KorelasyonId,
+            birim, birim * kalem.Miktar), ct);
 
         await bildirim.KutuIsikDegistiAsync(kutu.Id, renk, kalem.Miktar, kalem.Id, ct);
         await bildirim.StokGuncellendiAsync(kutu.Id, kalanStok, renk, ct);
@@ -457,6 +518,7 @@ public sealed class SiparisServisi(
         var siradaki = await db.SiparisKalemleri
             .Include(k => k.Kutu)
             .Include(k => k.Siparis)
+            .Include(k => k.Urun)
             .Where(k => k.KutuId == kutuId && k.Durum == KalemDurumu.Sirada)
             // Acil siparişler öne geçer; eşit öncelikte ilk giren ilk çıkar.
             // Öncelik veritabanında metin olarak saklandığı için enum'a göre sıralamak
@@ -584,7 +646,11 @@ public sealed class SiparisServisi(
                 TeyitEden: k.TeyitEdenPersonel?.AdSoyad,
                 ToplamaSuresiSn: k.AlinmaZamani is not null && k.IsikYanmaZamani is not null
                     ? (int)Math.Round((k.AlinmaZamani.Value - k.IsikYanmaZamani.Value).TotalSeconds)
-                    : null))
+                    : null,
+                OlculenAgirlikG: k.OlculenAgirlikG,
+                OlculenAdet: k.OlculenAdet,
+                BaslangicAgirligiG: k.Durum == KalemDurumu.IsikYandi ? k.BaslangicAgirligiG : null,
+                BirimAgirlikG: k.Urun.BirimAgirlikG))
             .ToList();
 
         return new SiparisDetayDto(siparis.Id, siparis.SiparisNo, siparis.Durum, siparis.Olusturma,

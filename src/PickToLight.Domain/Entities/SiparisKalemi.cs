@@ -47,6 +47,18 @@ public class SiparisKalemi
     public long? TeyitEdenPersonelId { get; set; }
     public Personel? TeyitEdenPersonel { get; set; }
 
+    /// <summary>Işık yandığı anda baskülün gösterdiği içerik ağırlığı (g); alınan gram buna göre hesaplanır.</summary>
+    public decimal? BaslangicAgirligiG { get; set; }
+
+    /// <summary>Baskülün teyit anında ölçtüğü ağırlık düşüşü (g). Buton/manuel teyitte null.</summary>
+    public decimal? OlculenAgirlikG { get; set; }
+
+    /// <summary>
+    /// Ölçülen düşüşten hesaplanan gerçek adet (düşüş ÷ birim ağırlık). İstenenden
+    /// farklıysa stok bu adede göre düzeltilmiştir. Baskül ölçümü yoksa null.
+    /// </summary>
+    public int? OlculenAdet { get; set; }
+
     /// <summary>Stok bu kalem için rezerve edildi mi? (iptal/zaman aşımında iade gerekir)</summary>
     public bool StokRezerveEdildi { get; set; }
 }

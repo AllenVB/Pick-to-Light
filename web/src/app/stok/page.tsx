@@ -7,11 +7,13 @@ import { useKorumaliSayfa } from "@/hooks/useKorumaliSayfa";
 import { useToast } from "@/components/Toast";
 import { BosDurum, IskeletSatir } from "@/components/Durumlar";
 import { RenkRozeti } from "@/components/Rozet";
+import { BaskulSatiri, baskulVar, canliKutular, sayimSapmasi, useCanliAgirlik } from "@/components/Baskul";
 import type { Kutu } from "@/types";
 
 export default function StokSayfasi() {
   const oturum = useKorumaliSayfa();
-  const [kutular, setKutular] = useState<Kutu[]>([]);
+  const [hamKutular, setKutular] = useState<Kutu[]>([]);
+  const kutular = canliKutular(hamKutular, useCanliAgirlik());
   const [hata, setHata] = useState<string | null>(null);
   const [yukleniyor, setYukleniyor] = useState(true);
   const toast = useToast();
@@ -57,14 +59,14 @@ export default function StokSayfasi() {
           <thead>
             <tr>
               <th>Kutu</th><th>Ürün</th><th>Raf</th><th>Stok</th><th>Güvenlik</th>
-              <th>Durum</th><th>Bağlantı</th>{yonetici && <th>İşlem</th>}
+              <th>Baskül</th><th>Durum</th><th>Bağlantı</th>{yonetici && <th>İşlem</th>}
             </tr>
           </thead>
           <tbody>
-            {yukleniyor && <><IskeletSatir sutun={6} /><IskeletSatir sutun={6} /><IskeletSatir sutun={6} /></>}
+            {yukleniyor && <><IskeletSatir sutun={7} /><IskeletSatir sutun={7} /><IskeletSatir sutun={7} /></>}
 
             {!yukleniyor && kutular.length === 0 && (
-              <tr><td colSpan={8}>
+              <tr><td colSpan={9}>
                 <BosDurum simge="▤" baslik="Stok kaydı yok"
                   aciklama="Önce Kutu & Cihaz ekranından kutu tanımlayın; stok kutuya bağlı tutulur." />
               </td></tr>
@@ -77,6 +79,7 @@ export default function StokSayfasi() {
                 <td className="text-xs text-slate-400">{k.rafKonumu ?? "—"}</td>
                 <td className="text-lg font-bold">{k.adet}</td>
                 <td className="text-slate-400">{k.guvenlikStogu}</td>
+                <td><BaskulSatiri kutu={k} />{!baskulVar(k) && <span className="text-slate-600">—</span>}</td>
                 <td><RenkRozeti renk={k.anlikRenk} /></td>
                 <td>
                   <span className={k.baglantiDurumu === "Online" ? "text-durum-yesil" : "text-durum-gri"}>
@@ -95,6 +98,14 @@ export default function StokSayfasi() {
                         const m = prompt(`${k.kod} — sayım sonucu kaç adet?`, String(k.adet));
                         if (m) calistir(() => api.stokSayim(k.id, Number(m), "Fiziksel sayım"), `${k.kod}: sayım kaydedildi.`);
                       }}>Sayım</button>
+                    {baskulVar(k) && k.birimAgirlikG != null && sayimSapmasi(k) != null && (
+                      <button className="dugme-ikincil px-2 py-1 text-xs" data-test="agirliktan-sayim"
+                        title="Baskülün saydığı adedi stoka yaz (rezerve edilen adet düşülür)"
+                        onClick={() => {
+                          if (confirm(`${k.kod}: baskül ${k.tahminiAdet} adet sayıyor. Stok ağırlığa göre düzeltilsin mi?`))
+                            calistir(() => api.agirliktanSayim(k.id), `${k.kod}: baskül sayımı uygulandı.`);
+                        }}>⚖ Ağırlıktan say</button>
+                    )}
                     <button className="dugme-ikincil px-2 py-1 text-xs"
                       onClick={() => calistir(() => api.ledTest(k.id), `${k.kod}: test ışığı gönderildi.`)}>
                       LED test

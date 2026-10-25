@@ -111,7 +111,9 @@ public sealed class MqttIstemciServisi : IHostedService, IMqttYayinci, IAsyncDis
             komut.KalemId,
             komut.TtlSn,
             DateTimeOffset.UtcNow,
-            komut.KorelasyonId);
+            komut.KorelasyonId,
+            komut.BirimAgirlikG,
+            komut.BeklenenGram);
 
         await YayinlaAsync($"{komut.MqttTopic}/komut", mesaj, ct);
         _log.LogInformation("LED komutu: kutu {KutuId} → {Renk} ({Miktar} adet)", komut.KutuId, komut.Renk, komut.Miktar);
@@ -121,6 +123,14 @@ public sealed class MqttIstemciServisi : IHostedService, IMqttYayinci, IAsyncDis
     {
         var mesaj = new LedKomutMesaji(Guid.NewGuid().ToString(), "LED_SONDUR", null, 0, null, 0,
             DateTimeOffset.UtcNow);
+        await YayinlaAsync($"{mqttTopic}/komut", mesaj, ct);
+    }
+
+    public async Task BaskulKomutuAsync(long kutuId, string mqttTopic, BaskulKomutTipi tip, decimal? referansG,
+        CancellationToken ct = default)
+    {
+        var mesaj = new BaskulKomutMesaji(Guid.NewGuid().ToString(), tip.ToString().ToUpperInvariant(),
+            referansG, DateTimeOffset.UtcNow);
         await YayinlaAsync($"{mqttTopic}/komut", mesaj, ct);
     }
 
@@ -157,10 +167,15 @@ public sealed class MqttIstemciServisi : IHostedService, IMqttYayinci, IAsyncDis
             using var scope = _scopeFactory.CreateScope();
             var cihazServisi = scope.ServiceProvider.GetRequiredService<CihazServisi>();
 
-            // Ham mesaj her durumda loglanır — hata ayıklamanın tek kaynağı (Bölüm 12.2).
-            await cihazServisi.HamOlayKaydetAsync(kutuId, topic, payload);
+            // Ham mesaj loglanır — hata ayıklamanın tek kaynağı (Bölüm 12.2). Baskül telemetrisi
+            // saniyede bir gelebildiği için hariçtir; aksi halde olay tablosunu doldurur.
+            var telemetri = topic.EndsWith("/telemetri", StringComparison.Ordinal);
+            if (!telemetri)
+                await cihazServisi.HamOlayKaydetAsync(kutuId, topic, payload);
 
-            if (topic.EndsWith("/durum", StringComparison.Ordinal))
+            if (telemetri)
+                await TelemetriIsleAsync(cihazServisi, kutuId, payload);
+            else if (topic.EndsWith("/durum", StringComparison.Ordinal))
                 await DurumIsleAsync(scope.ServiceProvider, kutuId, payload);
             else if (topic.EndsWith("/olay", StringComparison.Ordinal))
                 await OlayIsleAsync(scope.ServiceProvider, kutuId, payload);
@@ -171,6 +186,18 @@ public sealed class MqttIstemciServisi : IHostedService, IMqttYayinci, IAsyncDis
         {
             _log.LogError(hata, "MQTT mesajı işlenemedi. Topic: {Topic}, Payload: {Payload}", topic, payload);
         }
+    }
+
+    private async Task TelemetriIsleAsync(CihazServisi cihazServisi, long? kutuId, string payload)
+    {
+        if (kutuId is null)
+            return;
+
+        await cihazServisi.SonGorulmeGuncelleAsync(kutuId.Value);
+
+        var mesaj = JsonSerializer.Deserialize<CihazTelemetriMesaji>(payload, JsonAyar);
+        if (mesaj?.AgirlikG is { } agirlik)
+            await cihazServisi.AgirlikGuncelleAsync(kutuId.Value, agirlik, mesaj.Kararli);
     }
 
     private async Task DurumIsleAsync(IServiceProvider sp, long? kutuId, string payload)

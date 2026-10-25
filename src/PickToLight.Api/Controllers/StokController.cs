@@ -26,4 +26,10 @@ public sealed class StokController(StokServisi stok) : ControllerBase
     [Authorize(Roles = "ADMIN")]
     public async Task<ActionResult> Sayim(long kutuId, SayimIstek istek, CancellationToken ct)
         => Ok(new { kutuId, yeniAdet = await stok.SayimAsync(kutuId, istek.YeniAdet, istek.Aciklama, ct) });
+
+    /// <summary>Baskülün saydığı adedi stoka uygular (SAYIM hareketi).</summary>
+    [HttpPost("{kutuId:long}/agirliktan-sayim")]
+    [Authorize(Roles = "ADMIN")]
+    public async Task<ActionResult> AgirliktanSayim(long kutuId, CancellationToken ct)
+        => Ok(new { kutuId, yeniAdet = await stok.AgirliktanSayimAsync(kutuId, ct) });
 }

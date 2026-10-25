@@ -107,6 +107,8 @@ public sealed class SiparisKalemiConfig : IEntityTypeConfiguration<SiparisKalemi
         b.Property(x => x.LedRengi).HasConversion<string>().HasMaxLength(10);
         b.Property(x => x.Durum).HasConversion<string>().HasMaxLength(12);
         b.Property(x => x.TeyitYontemi).HasConversion<string>().HasMaxLength(10);
+        b.Property(x => x.BaslangicAgirligiG).HasPrecision(10, 2);
+        b.Property(x => x.OlculenAgirlikG).HasPrecision(10, 2);
 
         // İdempotenlik anahtarı: aynı teyit iki kez işlenemez (NFR-03).
         b.HasIndex(x => x.MesajId).IsUnique().HasFilter("mesaj_id IS NOT NULL");

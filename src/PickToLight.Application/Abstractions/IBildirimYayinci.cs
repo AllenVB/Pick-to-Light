@@ -11,4 +11,7 @@ public interface IBildirimYayinci
     Task SiparisDurumDegistiAsync(long siparisId, string siparisNo, SiparisDurumu durum, CancellationToken ct = default);
     Task AlarmOlustuAsync(AlarmTipi tip, string mesaj, long? kutuId, CancellationToken ct = default);
     Task CihazDurumDegistiAsync(long kutuId, BaglantiDurumu durum, CancellationToken ct = default);
+
+    /// <summary>Kutunun baskülünden yeni ölçüm geldi (canlı ağırlık / adet göstergesi için).</summary>
+    Task AgirlikGuncellendiAsync(long kutuId, decimal agirlikG, bool kararli, CancellationToken ct = default);
 }

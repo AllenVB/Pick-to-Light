@@ -12,7 +12,7 @@ SIP-2026-001;ESP-32;1
 SIP-2026-002;LED-RGB;10`;
 
 export default function IceAktarSayfasi() {
-  const oturum = useKorumaliSayfa();
+  const oturum = useKorumaliSayfa("Admin");
   const [csv, setCsv] = useState("");
   const [hemenBaslat, setHemenBaslat] = useState(false);
   const [oncelik, setOncelik] = useState<SiparisOnceligi>("Normal");

@@ -8,7 +8,7 @@ import { BosDurum } from "@/components/Durumlar";
 import type { Personel } from "@/types";
 
 export default function PersonellerSayfasi() {
-  const oturum = useKorumaliSayfa();
+  const oturum = useKorumaliSayfa("Admin");
   const yonetici = oturum?.rol === "Admin";
 
   const [personeller, setPersoneller] = useState<Personel[]>([]);

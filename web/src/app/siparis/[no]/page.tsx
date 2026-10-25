@@ -112,6 +112,25 @@ function KalemKarti({ kalem, sira, islem, onTeyit }: {
         </div>
       </dl>
 
+      {/* Baskül ölçümü: gram düşüşü birim ağırlığa bölünerek gerçekten alınan adet bulunur. */}
+      {kalem.olculenAdet != null && (
+        <p className="mt-3 flex flex-wrap items-center gap-2 border-t border-kenar/60 pt-3 text-xs text-slate-400"
+          data-test="olculen-adet">
+          <span aria-hidden>⚖</span>
+          <span>
+            Baskül: <b className="text-slate-200">{kalem.olculenAdet} adet</b>
+            {kalem.olculenAgirlikG != null && ` (${kalem.olculenAgirlikG.toLocaleString("tr-TR", { maximumFractionDigits: 1 })} g)`}
+          </span>
+          {kalem.olculenAdet === kalem.miktar ? (
+            <span className="rozet bg-durum-yesil/15 text-durum-yesil">istenenle aynı</span>
+          ) : (
+            <span className="rozet bg-durum-sari/20 text-durum-sari">
+              istenen {kalem.miktar} · stok {kalem.olculenAdet > kalem.miktar ? "ek düşüldü" : "iade edildi"}
+            </span>
+          )}
+        </p>
+      )}
+
       {yaniyor && (
         <p className="mt-3 flex flex-wrap items-center gap-2 border-t border-kenar/60 pt-3 text-xs text-slate-400">
           <span className="font-semibold text-marka-metin">Işık yanıyor</span>

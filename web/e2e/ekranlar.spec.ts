@@ -28,13 +28,36 @@ test.describe("Ekranlar", () => {
     await expect(page.locator("text=Kutu performansı")).toBeVisible();
   });
 
-  test("operatör rolü yönetici işlemlerini göremez", async ({ page }) => {
+  test("operatör rolü yönetim menüsünü ve sayfalarını göremez", async ({ page }) => {
     await girisYap(page, "operator", "operator123");
-    await page.goto("/personeller");
-    await expect(page.locator("text=yalnızca yönetici")).toBeVisible();
+
+    const kenar = page.locator("aside");
+    await expect(kenar).toContainText("Operatör Ekranı");
+    await expect(kenar.getByTestId("rol-rozeti")).toHaveText("Operatör");
+    for (const yol of ["/personeller", "/raporlar", "/urunler", "/kutular", "/hareketler", "/cihaz-olaylari", "/siparis/ice-aktar"]) {
+      await expect(kenar.locator(`a[href="${yol}"]`)).toHaveCount(0);
+    }
+    await expect(kenar.getByTestId("menu-yonetim")).toHaveCount(0);
+
+    // Adresi elle yazsa da yönetim sayfası açılmaz, panoya döner.
+    for (const yol of ["/personeller", "/raporlar", "/kutular"]) {
+      await page.goto(yol);
+      await expect(page).toHaveURL(/\/$/);
+    }
 
     await page.goto("/stok");
     await expect(page.locator('button:has-text("Sayım")')).toHaveCount(0);
+  });
+
+  test("yönetici rolü yönetim menüsünü görür", async ({ page }) => {
+    await girisYap(page);
+
+    const kenar = page.locator("aside");
+    await expect(kenar.getByTestId("rol-rozeti")).toHaveText("Yönetici");
+    await expect(kenar.getByTestId("menu-yonetim")).toBeVisible();
+    for (const yol of ["/personeller", "/raporlar", "/urunler", "/kutular", "/hareketler", "/cihaz-olaylari", "/siparis/ice-aktar"]) {
+      await expect(kenar.locator(`a[href="${yol}"]`)).toHaveCount(1);
+    }
   });
 
   test("giriş ekranından oturum açılabilir", async ({ page }) => {

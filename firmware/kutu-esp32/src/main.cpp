@@ -72,7 +72,19 @@ static TamponKaydi tampon[TAMPON_BOYUTU];
 static int tamponAdedi = 0;
 
 #if AGIRLIK_SENSORU
-static float isikYanarkenAgirlik = 0.0f;
+static float isikBaslangicAgirlik = 0.0f;   // ışık yandığı andaki (oturmuş) içerik ağırlığı
+static float aktifBirimGram = 0.0f;         // ürünün birim ağırlığı (komutla gelir)
+static float aktifBeklenenGram = 0.0f;      // bu kalemden düşmesi beklenen toplam gram
+
+static float anlikAgirlik = 0.0f;           // son okuma (g)
+static float sonYayinlananAgirlik = -1e9f;
+static bool  kararli = false;
+static bool  sonYayinlananKararli = false;
+static float kararliReferans = 0.0f;
+static unsigned long kararsizBaslangic = 0;
+static unsigned long sonOkuma = 0;
+static unsigned long sonTelemetri = 0;
+static bool  telemetriZorla = false;
 #endif
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -104,6 +116,10 @@ static void isikSondur() {
   aktifMesajId[0] = '\0';
   aktifMiktar = 0;
   isikBitisZamani = 0;
+#if AGIRLIK_SENSORU
+  aktifBeklenenGram = 0.0f;
+  aktifBirimGram = 0.0f;
+#endif
   ledYaz(Renk::Yok);
 
   // Bağlantı kopmuşken ışık sönerse bağlantı durumunu ezmeyelim.
@@ -195,6 +211,113 @@ static void teyitGonder(const char *yontem, float olculenFark = NAN) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+//  Baskül (HX711)
+// ─────────────────────────────────────────────────────────────────────────────
+
+#if AGIRLIK_SENSORU
+
+/** Ağırlık ölçümünü QoS 0 ile yayınlar. Telemetri kayıp olabilir; tamponlanmaz. */
+static void agirlikYayinla() {
+  if (!mqtt.connected()) return;
+
+  JsonDocument d;
+  d["agirlikG"] = roundf(anlikAgirlik * 10.0f) / 10.0f;
+  d["kararli"] = kararli;
+
+  char payload[64];
+  serializeJson(d, payload, sizeof(payload));
+  mqtt.publish(topicTelemetri, 0, false, payload);
+
+  sonYayinlananAgirlik = anlikAgirlik;
+  sonYayinlananKararli = kararli;
+  sonTelemetri = millis();
+  telemetriZorla = false;
+}
+
+/**
+ * Ofset ve ölçek NVS'te saklanır: kutu içeriği doluyken yeniden başlarsa içerik
+ * "tare" edilip silinmesin. İlk açılışta (kayıt yoksa) kutunun boş olduğu varsayılır.
+ */
+static void baskulBaslat() {
+  terazi.begin(PIN_HX711_DT, PIN_HX711_SCK);
+  terazi.set_scale(nvs.getFloat("olcek", AGIRLIK_OLCEK_VARSAYILAN));
+
+  if (nvs.isKey("ofset")) {
+    terazi.set_offset(nvs.getLong("ofset", 0));
+  } else {
+    terazi.tare(BASKUL_ORNEK_SAYISI);
+    nvs.putLong("ofset", terazi.get_offset());
+    Serial.println(F("[baskul] ilk açılış: boş kap tare edildi"));
+  }
+}
+
+/** Kutu boşken (yalnızca boş kap baskülün üstündeyken) sıfırlar. */
+static void baskulTare() {
+  terazi.tare(BASKUL_ORNEK_SAYISI);
+  nvs.putLong("ofset", terazi.get_offset());
+  telemetriZorla = true;
+  Serial.println(F("[baskul] TARE tamam"));
+}
+
+/** Baskülün üstündeki bilinen ağırlıkla (g) ölçek katsayısını hesaplar. */
+static void baskulKalibre(float referansG) {
+  if (referansG <= 0.0f) {
+    Serial.println(F("[baskul] KALIBRE: geçersiz referans ağırlığı"));
+    return;
+  }
+
+  const long ham = terazi.read_average(BASKUL_ORNEK_SAYISI) - terazi.get_offset();
+  const float olcek = (float)ham / referansG;
+  if (olcek == 0.0f) {
+    Serial.println(F("[baskul] KALIBRE: ham değer sıfır, yük hücresi bağlı mı?"));
+    return;
+  }
+
+  terazi.set_scale(olcek);
+  nvs.putFloat("olcek", olcek);
+  telemetriZorla = true;
+  Serial.printf("[baskul] KALIBRE tamam · ölçek %.3f\n", olcek);
+}
+
+/**
+ * Ölçümü okur, kararlılığı izler, telemetriyi yayınlar. Işık yanıkken baskül düşüşü
+ * beklenen grama ulaşıp ölçüm oturunca teyit kendiliğinden gönderilir (buton gerekmez).
+ */
+static void baskulIsle() {
+  if (millis() - sonOkuma < 100 || !terazi.is_ready()) return;
+  sonOkuma = millis();
+
+  anlikAgirlik = terazi.get_units(1);
+
+  // Kararlılık: okuma referans bandının dışına çıkarsa sayaç sıfırlanır.
+  if (fabsf(anlikAgirlik - kararliReferans) > AGIRLIK_KARARLI_G) {
+    kararliReferans = anlikAgirlik;
+    kararsizBaslangic = millis();
+  }
+  kararli = (millis() - kararsizBaslangic) >= AGIRLIK_KARARLI_MS;
+
+  const bool degisti = fabsf(anlikAgirlik - sonYayinlananAgirlik) >= AGIRLIK_DEGISIM_G
+                       || kararli != sonYayinlananKararli;
+  const unsigned long gecen = millis() - sonTelemetri;
+  if (telemetriZorla || (gecen >= TELEMETRI_ARALIK_MS && (degisti || gecen >= TELEMETRI_KALP_MS))) {
+    agirlikYayinla();
+  }
+
+  // Otomatik teyit: yalnızca ölçüm oturduğunda ve düşüş en az (beklenen - yarım adet) ise.
+  // Daha az düşerse operatör ürün almaya devam ediyor olabilir; beklenir (buton yedek yoldur).
+  if (aktifMesajId[0] != '\0' && aktifBeklenenGram > 0.0f && kararli) {
+    const float dusus = isikBaslangicAgirlik - anlikAgirlik;
+    const float esik = aktifBeklenenGram - (aktifBirimGram > 0.0f ? aktifBirimGram * 0.5f : 0.0f);
+    if (dusus >= esik && dusus > 0.0f) {
+      agirlikYayinla();               // sunucu son ağırlığı teyitten önce görsün
+      teyitGonder("AGIRLIK", -dusus);
+    }
+  }
+}
+
+#endif  // AGIRLIK_SENSORU
+
+// ─────────────────────────────────────────────────────────────────────────────
 //  Gelen komutlar
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -210,6 +333,23 @@ static void komutIsle(const char *payload) {
   if (strcmp(tip, "LED_SONDUR") == 0) {
     Serial.println(F("[komut] LED_SONDUR"));
     isikSondur();
+    return;
+  }
+
+  if (strcmp(tip, "TARE") == 0 || strcmp(tip, "KALIBRE") == 0) {
+#if AGIRLIK_SENSORU
+    if (aktifMesajId[0] != '\0') {
+      Serial.println(F("[baskul] ışık yanıkken ayar yapılamaz"));
+      return;
+    }
+    if (strcmp(tip, "TARE") == 0) {
+      baskulTare();
+    } else {
+      baskulKalibre(d["referansG"] | 0.0f);
+    }
+#else
+    Serial.println(F("[baskul] bu firmware baskülsüz derlendi (AGIRLIK_SENSORU=0)"));
+#endif
     return;
   }
 
@@ -236,7 +376,10 @@ static void komutIsle(const char *payload) {
   if (aktifMiktar > 0) miktariGoster(renk, aktifMiktar);
 
 #if AGIRLIK_SENSORU
-  if (terazi.is_ready()) isikYanarkenAgirlik = terazi.get_units(5);
+  aktifBirimGram = d["birimAgirlikG"] | 0.0f;
+  aktifBeklenenGram = d["beklenenGram"] | 0.0f;
+  if (terazi.is_ready()) isikBaslangicAgirlik = terazi.get_units(5);
+  else isikBaslangicAgirlik = anlikAgirlik;
 #endif
 
   Serial.printf("[komut] %s yandı · %d adet · ttl %d sn\n", renkMetni, aktifMiktar, ttlSn);
@@ -373,7 +516,7 @@ static void butonuOku() {
   if (seviye == LOW && aktifMesajId[0] != '\0') {
 #if AGIRLIK_SENSORU
     if (terazi.is_ready()) {
-      const float fark = terazi.get_units(5) - isikYanarkenAgirlik;
+      const float fark = terazi.get_units(5) - isikBaslangicAgirlik;
       teyitGonder("AGIRLIK", fark);
       return;
     }
@@ -410,12 +553,11 @@ void setup() {
 
   pinMode(PIN_BUTON, INPUT_PULLUP);
 
-#if AGIRLIK_SENSORU
-  terazi.begin(PIN_HX711_DT, PIN_HX711_SCK);
-  terazi.tare();
-#endif
-
   kutuKimligiYukle();
+
+#if AGIRLIK_SENSORU
+  baskulBaslat();
+#endif
   Serial.printf("Kutu %lu · komut topic: %s\n", kutuId, topicKomut);
 
   // Son Will: kutu beklenmedik şekilde koparsa broker OFFLINE yayınlar (FR-12).
@@ -474,6 +616,9 @@ void loop() {
   if (WiFi.status() != WL_CONNECTED && durum != Durum::WifiBaglan) durum = Durum::WifiBaglan;
 
   butonuOku();
+#if AGIRLIK_SENSORU
+  baskulIsle();
+#endif
   kalpAtisi();
   delay(5);
 }

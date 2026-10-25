@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ApiHata, api } from "@/lib/api";
 import { useCanliOlaylar } from "@/hooks/useCanliOlaylar";
 import { useKorumaliSayfa } from "@/hooks/useKorumaliSayfa";
+import { AlinanGram, baskulVar, canliKutular, useCanliAgirlik } from "@/components/Baskul";
 import type { Alarm, Kutu, LedRengi } from "@/types";
 
 /**
@@ -19,7 +20,8 @@ const RENK: Record<LedRengi, { cerceve: string; lamba: string; metin: string; ad
 
 export default function OperatorEkrani() {
   const oturum = useKorumaliSayfa();
-  const [kutular, setKutular] = useState<Kutu[]>([]);
+  const [hamKutular, setKutular] = useState<Kutu[]>([]);
+  const kutular = canliKutular(hamKutular, useCanliAgirlik());
   const [sonAlarm, setSonAlarm] = useState<Alarm | null>(null);
   const [saat, setSaat] = useState("");
   const [islemdeki, setIslemdeki] = useState<number | null>(null);
@@ -178,6 +180,9 @@ export default function OperatorEkrani() {
                     </div>
                   </div>
 
+                  {/* Baskül varsa: alınan gram/adet canlı izlenir, ağırlık oturunca teyit otomatiktir. */}
+                  <AlinanGram kutu={k} />
+
                   <div className="mt-6 flex items-center justify-between gap-4 border-t border-zemin-cizgi pt-4">
                     <div>
                       <p className={`text-xl font-black tracking-wide ${r.metin}`}>{r.ad}</p>
@@ -191,10 +196,13 @@ export default function OperatorEkrani() {
                                    transition hover:bg-marka-acik active:scale-95 disabled:opacity-40"
                         disabled={islemdeki === k.aktifKalemId}
                         onClick={() => teyitEt(k.aktifKalemId!)}>
-                        {islemdeki === k.aktifKalemId ? "Gönderiliyor…" : "ALDIM ✓"}
+                        {islemdeki === k.aktifKalemId ? "Gönderiliyor…"
+                          : baskulVar(k) && k.birimAgirlikG ? "ELLE TEYİT" : "ALDIM ✓"}
                       </button>
                     ) : (
-                      <p className="text-sm text-slate-500">ürünü al → butona bas</p>
+                      <p className="text-sm text-slate-500">
+                        {baskulVar(k) && k.birimAgirlikG ? "ürünü al → baskül otomatik teyit eder" : "ürünü al → butona bas"}
+                      </p>
                     )}
                   </div>
                 </div>

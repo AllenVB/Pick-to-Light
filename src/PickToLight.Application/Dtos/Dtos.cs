@@ -52,7 +52,15 @@ public sealed record KalemDto(
     /// <summary>Kalemi teyit eden kişi; kutu butonundan gelen teyitlerde null (kimlik yok).</summary>
     string? TeyitEden = null,
     /// <summary>Işığın yanmasından teyide kadar geçen süre (sn) — toplama hızı göstergesi.</summary>
-    int? ToplamaSuresiSn = null);
+    int? ToplamaSuresiSn = null,
+    /// <summary>Teyit anında baskülün ölçtüğü ağırlık düşüşü (g).</summary>
+    decimal? OlculenAgirlikG = null,
+    /// <summary>Baskülden hesaplanan gerçek adet; istenenden farklıysa stok bu adede göre düzeltilmiştir.</summary>
+    int? OlculenAdet = null,
+    /// <summary>Işık yandığındaki kutu ağırlığı (g) — canlı "alınan gram" hesabının başlangıcı.</summary>
+    decimal? BaslangicAgirligiG = null,
+    /// <summary>Ürünün birim ağırlığı (g); baskül gösterimi için.</summary>
+    decimal? BirimAgirlikG = null);
 
 public sealed record SiparisDto(
     long Id,
@@ -112,7 +120,19 @@ public sealed record KutuDto(
     /// <summary>Yanan ışık için teyit son tarihi — kiosk ekranında geri sayım.</summary>
     DateTimeOffset? TeyitSonTarihi = null,
     /// <summary>Arşivlenen kutu toplamaya girmez.</summary>
-    bool Aktif = true);
+    bool Aktif = true,
+    /// <summary>Atanan ürünün birim ağırlığı (g); baskül adet hesabı için.</summary>
+    decimal? BirimAgirlikG = null,
+    /// <summary>Baskülün son ölçtüğü içerik ağırlığı (g); null ise kutuda baskül yok.</summary>
+    decimal? AgirlikG = null,
+    /// <summary>Son baskül ölçümünün zamanı.</summary>
+    DateTimeOffset? AgirlikZamani = null,
+    /// <summary>Ağırlıktan hesaplanan adet (ağırlık ÷ birim ağırlık).</summary>
+    int? TahminiAdet = null,
+    /// <summary>Rafta fiziksel olarak olması gereken adet: stok + rezerve edilip henüz alınmamış adet.</summary>
+    int? BeklenenFizikselAdet = null,
+    /// <summary>Işığı yanan kalemin başladığı andaki kutu ağırlığı (g) — canlı "alınan gram" göstergesi için.</summary>
+    decimal? BaslangicAgirligiG = null);
 
 public sealed record KutuIstek(string Kod, long? UrunId, string CihazMac, string? RafKonumu, int BaslangicStogu);
 
@@ -132,6 +152,12 @@ public sealed record StokHareketDto(
 public sealed record StokIslemIstek(int Miktar, string? Aciklama);
 
 public sealed record SayimIstek(int YeniAdet, string? Aciklama);
+
+/// <summary>Baskül kalibrasyonu: üstüne konan bilinen ağırlık (g).</summary>
+public sealed record BaskulKalibrasyonIstek(decimal ReferansG);
+
+/// <summary>Baskül komutunun sonucu — hangi topic'e ne gönderildiğini gösterir.</summary>
+public sealed record BaskulKomutSonucu(string Topic, string Tip, bool CihazCevrimici);
 
 // ───────────────────────── Alarm / tedarik ─────────────────────────
 

@@ -227,6 +227,15 @@ export const api = {
   cihazOlaylari: (kutuId?: number, limit = 100) =>
     istek<CihazOlay[]>(`/api/kutular/olaylar?limit=${limit}${kutuId ? `&kutuId=${kutuId}` : ""}`),
 
+  baskulTare: (kutuId: number) =>
+    istek<{ topic: string; tip: string; cihazCevrimici: boolean }>(
+      `/api/kutular/${kutuId}/baskul/tare`, { method: "POST" }),
+  baskulKalibrasyon: (kutuId: number, referansG: number) =>
+    istek<{ topic: string; tip: string; cihazCevrimici: boolean }>(
+      `/api/kutular/${kutuId}/baskul/kalibrasyon`, { method: "POST", body: JSON.stringify({ referansG }) }),
+  agirliktanSayim: (kutuId: number) =>
+    istek<{ kutuId: number; yeniAdet: number }>(`/api/stok/${kutuId}/agirliktan-sayim`, { method: "POST" }),
+
   ledTest: (kutuId: number, renk = "Yesil", saniye = 8) =>
     istek<IsikTestiSonucu>(`/api/kutular/${kutuId}/led-test?renk=${renk}&saniye=${saniye}`,
       { method: "POST" }),

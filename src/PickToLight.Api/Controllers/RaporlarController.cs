@@ -6,7 +6,7 @@ using PickToLight.Application.Servisler;
 namespace PickToLight.Api.Controllers;
 
 [ApiController]
-[Authorize]
+[Authorize(Roles = "ADMIN")]
 [Route("api/raporlar")]
 public sealed class RaporlarController(RaporServisi raporlar) : ControllerBase
 {

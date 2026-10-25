@@ -37,6 +37,19 @@ export interface Kutu {
   firmwareSurumu?: string | null;
   rssi?: number | null;
   ipAdresi?: string | null;
+  /** Atanan ürünün birim ağırlığı (g). */
+  birimAgirlikG?: number | null;
+  /** Baskülün son ölçtüğü içerik ağırlığı (g); null ise kutuda baskül yok / ölçüm gelmedi. */
+  agirlikG?: number | null;
+  agirlikZamani?: string | null;
+  /** Ağırlıktan hesaplanan adet (ağırlık ÷ birim ağırlık). */
+  tahminiAdet?: number | null;
+  /** Rafta olması gereken adet: stok + rezerve edilip henüz alınmamış adet. */
+  beklenenFizikselAdet?: number | null;
+  /** Işığı yanan kalemin başladığı andaki kutu ağırlığı (g). */
+  baslangicAgirligiG?: number | null;
+  /** Son ölçüm oturdu mu (yalnızca canlı SignalR güncellemesiyle dolar). */
+  agirlikKararli?: boolean;
 }
 
 export interface Kalem {
@@ -62,6 +75,12 @@ export interface Kalem {
   teyitEden?: string;
   /** Işığın yanmasından teyide kadar geçen süre (sn). */
   toplamaSuresiSn?: number;
+  /** Teyit anında baskülün ölçtüğü ağırlık düşüşü (g). */
+  olculenAgirlikG?: number | null;
+  /** Baskülden hesaplanan gerçek adet; istenenden farklıysa stok bu adede göre düzeltilmiştir. */
+  olculenAdet?: number | null;
+  baslangicAgirligiG?: number | null;
+  birimAgirlikG?: number | null;
 }
 
 export interface Alarm {

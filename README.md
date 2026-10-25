@@ -103,6 +103,36 @@ bash tools/demo.sh durum      # kutuların anlık durumu
 | `operator` | `operator123` | Sipariş toplama, teyit, alarm okuma |
 | `admin` | `admin123` | + ürün/kutu yönetimi, mal kabul, sayım, LED test |
 
+### Roller: operatör ve yönetici
+
+| | Operatör | Yönetici |
+|---|---|---|
+| Canlı pano, sipariş girişi/başlatma/iptal, siparişler, operatör ekranı, alarmlar | ✔ | ✔ |
+| Stok durumunu görme | ✔ (salt okunur) | ✔ |
+| Mal kabul, sayım, ağırlıktan sayım | ✘ | ✔ |
+| Ürün, kutu & cihaz yönetimi, LED testi, baskül tare/kalibrasyon | ✘ | ✔ |
+| Toplu aktarma, hareket defteri, raporlar, cihaz olayları, personel | ✘ | ✔ |
+
+Kenar çubuğu role göre çizilir (yönetici ek olarak **Yönetim** bölümünü görür); yetkisiz bir
+sayfa adresle açılmaya çalışılırsa panoya dönülür. Asıl denetim backend'dedir (`403`).
+
+### Baskül (kutunun altında HX711 + yük hücresi)
+
+Baskül kutu **içeriğinin** gramını ölçer; adet = gram ÷ ürünün birim ağırlığı.
+Ürün tanımında *Birim ağırlık (g)* doldurulmalıdır.
+
+- **Otomatik teyit:** LED komutu `birimAgirlikG` ve `beklenenGram` taşır. Düşüş beklenen grama
+  ulaşıp ölçüm oturunca cihaz teyidi kendisi gönderir (`yontem: AGIRLIK`, `olculenFark`); buton yedektir.
+- **Gerçek adet:** sunucu düşüşü birim ağırlığa böler (100 g ÷ 10 g = 10 adet). Sipariş miktarından
+  farklıysa stok gerçek adede göre düzeltilir (fazla alınan ek düşülür, eksik olan iade edilir)
+  ve `AgirlikUyusmazligi` alarmı üretilir.
+- **Canlı sayım:** cihaz `depo/kutu/{id}/telemetri` üzerinden `{agirlikG, kararli}` yayınlar (QoS 0);
+  panoda ağırlık ve ≈ adet görünür, sistem stoğuyla (rezerve dahil) fark olursa *sayım farkı* rozeti çıkar.
+  Yönetici **Ağırlıktan say** ile baskül adedini stoka yazabilir.
+- **Bakım:** Kutu & Cihaz ekranından *Sıfırla (tare)* (boş kapla) ve *Kalibre et* (bilinen gramla);
+  ofset/ölçek ESP32'nin NVS'inde saklanır. Firmware: `pio run -t upload -e kutu-baskul`.
+- **Simülatör:** her kutu bir içerik ağırlığı tutar. `--alinan-fark 2` fazla, `-1` eksik alımı dener.
+
 ---
 
 ## Proje yapısı
@@ -173,7 +203,7 @@ her kutuya ayrı kullanıcı/parola ve ACL üretir (kutu yalnızca kendi topic'l
 ## Testler
 
 ```bash
-dotnet test                     # 145 test: birim (74) + entegrasyon (71)
+dotnet test                     # 169 test: birim (87) + entegrasyon (82)
 cd web && npm run test:e2e      # 10 uçtan uca tarayıcı testi (Playwright)
 ```
 

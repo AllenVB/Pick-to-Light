@@ -10,7 +10,7 @@ Her kutuya aynı firmware yüklenir. Kutu, sunucudan gelen `LED_YAK` komutuyla d
 | WS2812B RGB LED (önerilen) | GPIO 5 | 330 Ω seri direnç, 5 V besleme |
 | Ayrı LED: yeşil / sarı / kırmızı | GPIO 18 / 19 / 21 | her biri 220 Ω üzerinden |
 | Onay butonu | GPIO 4 | `INPUT_PULLUP`, diğer ucu GND |
-| HX711 (opsiyonel) | GPIO 32 (DT) / 33 (SCK) | ağırlıkla doğrulama |
+| HX711 (opsiyonel) | GPIO 32 (DT) / 33 (SCK) | kutu altı baskül: ağırlıktan adet sayımı ve otomatik teyit (`-e kutu-baskul`) |
 | Güç | 5 V ortak hat | kutular paralel, **ortak GND şart** |
 
 ## Yükleme

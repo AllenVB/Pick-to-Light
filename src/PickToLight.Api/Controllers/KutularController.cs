@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PickToLight.Application.Abstractions;
 using PickToLight.Application.Dtos;
 using PickToLight.Application.Servisler;
 using PickToLight.Domain.Enums;
@@ -33,6 +34,7 @@ public sealed class KutularController(CihazServisi cihaz, StokServisi stok) : Co
 
     /// <summary>Cihazlardan gelen ham MQTT mesajları — hata ayıklama kaynağı (Bölüm 12.2).</summary>
     [HttpGet("olaylar")]
+    [Authorize(Roles = "ADMIN")]
     public async Task<ActionResult<IReadOnlyList<CihazOlayDto>>> Olaylar(
         [FromQuery] long? kutuId, [FromQuery] int limit = 100, CancellationToken ct = default)
         => Ok(await cihaz.HamOlaylarAsync(kutuId, limit, ct));
@@ -53,4 +55,17 @@ public sealed class KutularController(CihazServisi cihaz, StokServisi stok) : Co
         [FromQuery] LedRengi renk = LedRengi.Yesil, [FromQuery] int saniye = 10,
         CancellationToken ct = default)
         => Ok(await cihaz.LedTestAsync(id, renk, saniye, ct));
+
+    /// <summary>Baskülü sıfırlar (TARE): kutu boşken, yalnızca boş kap baskülün üstündeyken kullanılır.</summary>
+    [HttpPost("{id:long}/baskul/tare")]
+    [Authorize(Roles = "ADMIN")]
+    public async Task<ActionResult<BaskulKomutSonucu>> BaskulTare(long id, CancellationToken ct)
+        => Ok(await cihaz.BaskulKomutuAsync(id, BaskulKomutTipi.Tare, null, ct));
+
+    /// <summary>Baskülü kalibre eder: üstüne bilinen bir ağırlık (g) konulup girilir.</summary>
+    [HttpPost("{id:long}/baskul/kalibrasyon")]
+    [Authorize(Roles = "ADMIN")]
+    public async Task<ActionResult<BaskulKomutSonucu>> BaskulKalibrasyon(long id, BaskulKalibrasyonIstek istek,
+        CancellationToken ct)
+        => Ok(await cihaz.BaskulKomutuAsync(id, BaskulKomutTipi.Kalibre, istek.ReferansG, ct));
 }

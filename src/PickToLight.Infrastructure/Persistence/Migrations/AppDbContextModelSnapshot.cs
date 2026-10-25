@@ -321,6 +321,11 @@ namespace PickToLight.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("alinma_zamani");
 
+                    b.Property<decimal?>("BaslangicAgirligiG")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)")
+                        .HasColumnName("baslangic_agirligi_g");
+
                     b.Property<string>("Durum")
                         .IsRequired()
                         .HasMaxLength(12)
@@ -347,6 +352,15 @@ namespace PickToLight.Infrastructure.Persistence.Migrations
                     b.Property<int>("Miktar")
                         .HasColumnType("integer")
                         .HasColumnName("miktar");
+
+                    b.Property<int?>("OlculenAdet")
+                        .HasColumnType("integer")
+                        .HasColumnName("olculen_adet");
+
+                    b.Property<decimal?>("OlculenAgirlikG")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)")
+                        .HasColumnName("olculen_agirlik_g");
 
                     b.Property<long>("SiparisId")
                         .HasColumnType("bigint")
@@ -412,6 +426,10 @@ namespace PickToLight.Infrastructure.Persistence.Migrations
                     b.Property<int>("Adet")
                         .HasColumnType("integer")
                         .HasColumnName("adet");
+
+                    b.Property<DateTimeOffset?>("AgirlikZamani")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("agirlik_zamani");
 
                     b.Property<DateTimeOffset>("Guncelleme")
                         .HasColumnType("timestamp with time zone")

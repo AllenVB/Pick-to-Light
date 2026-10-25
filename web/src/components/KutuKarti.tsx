@@ -1,5 +1,6 @@
 "use client";
 
+import { BaskulSatiri } from "@/components/Baskul";
 import { GecenSure, Sinyal } from "@/components/Cihaz";
 import type { Kutu, LedRengi } from "@/types";
 
@@ -81,6 +82,8 @@ export function KutuKarti({ kutu }: { kutu: Kutu }) {
           <div className={`h-full rounded-full transition-all ${DOLGU[renk]}`}
             style={{ width: `${Math.max(doluluk, kutu.adet > 0 ? 4 : 0)}%` }} />
         </div>
+        {/* Baskül varsa kutunun gerçek ağırlığı ve saydığı adet — sistem stoğuyla karşılaştırılır. */}
+        <div className="mt-2"><BaskulSatiri kutu={kutu} /></div>
       </div>
 
       {/* Durum satırı: toplama talimatı veya cihaz sağlığı */}

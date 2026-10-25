@@ -14,7 +14,7 @@ const TIP_SINIF: Record<string, string> = {
 };
 
 export default function HareketlerSayfasi() {
-  const oturum = useKorumaliSayfa();
+  const oturum = useKorumaliSayfa("Admin");
   const [hareketler, setHareketler] = useState<StokHareket[]>([]);
   const [kutular, setKutular] = useState<Kutu[]>([]);
   const [toplam, setToplam] = useState(0);

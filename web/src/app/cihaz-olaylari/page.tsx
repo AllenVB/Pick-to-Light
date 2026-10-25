@@ -42,7 +42,7 @@ function ozet(payload: string): { etiket: string; deger: string }[] {
 }
 
 export default function CihazOlaylariSayfasi() {
-  const oturum = useKorumaliSayfa();
+  const oturum = useKorumaliSayfa("Admin");
   const [olaylar, setOlaylar] = useState<CihazOlay[]>([]);
   const [kutular, setKutular] = useState<Kutu[]>([]);
   const [kutuId, setKutuId] = useState<number | "">("");

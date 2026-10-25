@@ -42,6 +42,15 @@ public sealed class SahteMqtt : IMqttYayinci
         Sondurulenler.Add(kutuId);
         return Task.CompletedTask;
     }
+
+    public List<(long KutuId, BaskulKomutTipi Tip, decimal? ReferansG)> BaskulKomutlari { get; } = [];
+
+    public Task BaskulKomutuAsync(long kutuId, string mqttTopic, BaskulKomutTipi tip, decimal? referansG,
+        CancellationToken ct = default)
+    {
+        BaskulKomutlari.Add((kutuId, tip, referansG));
+        return Task.CompletedTask;
+    }
 }
 
 public sealed class SahteBildirim : IBildirimYayinci
@@ -65,6 +74,9 @@ public sealed class SahteBildirim : IBildirimYayinci
 
     public Task CihazDurumDegistiAsync(long kutuId, BaglantiDurumu durum, CancellationToken ct = default)
         => Ekle($"CihazDurumDegisti:{kutuId}:{durum}");
+
+    public Task AgirlikGuncellendiAsync(long kutuId, decimal agirlikG, bool kararli, CancellationToken ct = default)
+        => Ekle($"AgirlikGuncellendi:{kutuId}:{agirlikG}");
 
     private Task Ekle(string olay)
     {
@@ -128,6 +140,19 @@ public sealed class SahteTedarikDeposu(AppDbContext db, IZamanSaglayici zaman) :
 /// </summary>
 public sealed class SahteStokDeposu(AppDbContext db, IZamanSaglayici zaman) : IStokDeposu
 {
+    public async Task<bool> AgirlikYazAsync(long kutuId, decimal agirlikG, DateTimeOffset zamani,
+        CancellationToken ct = default)
+    {
+        var stok = await db.Stoklar.FirstOrDefaultAsync(s => s.KutuId == kutuId, ct);
+        if (stok is null)
+            return false;
+
+        stok.SonAgirlikG = agirlikG;
+        stok.AgirlikZamani = zamani;
+        await db.SaveChangesAsync(ct);
+        return true;
+    }
+
     public async Task<StokDusSonucu> DusAsync(long kutuId, int miktar, long? siparisKalemiId, long? personelId,
         string? aciklama = null, CancellationToken ct = default)
     {

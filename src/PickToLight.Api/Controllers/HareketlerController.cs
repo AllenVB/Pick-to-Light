@@ -7,7 +7,7 @@ using PickToLight.Domain.Enums;
 namespace PickToLight.Api.Controllers;
 
 [ApiController]
-[Authorize]
+[Authorize(Roles = "ADMIN")]
 [Route("api/hareketler")]
 public sealed class HareketlerController(StokServisi stok) : ControllerBase
 {

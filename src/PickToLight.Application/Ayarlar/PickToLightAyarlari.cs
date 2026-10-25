@@ -13,9 +13,6 @@ public sealed class PickToLightAyarlari
     /// <summary>Cihaz bu süre boyunca mesaj göndermezse çevrimdışı sayılır.</summary>
     public int CihazOfflineEsigiSaniye { get; set; } = 60;
 
-    /// <summary>Ağırlık doğrulamasında kabul edilen sapma oranı (0.10 = %10).</summary>
-    public decimal AgirlikToleransOrani { get; set; } = 0.10m;
-
     /// <summary>Tedarik talebi açılırken istenecek miktar çarpanı (güvenlik stoğunun katı).</summary>
     public int TedarikKatsayisi { get; set; } = 3;
 }
