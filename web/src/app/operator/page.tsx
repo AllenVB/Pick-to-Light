@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ApiHata, api } from "@/lib/api";
 import { useCanliOlaylar } from "@/hooks/useCanliOlaylar";
@@ -18,6 +18,15 @@ const RENK: Record<LedRengi, { cerceve: string; lamba: string; metin: string; ad
   Kirmizi: { cerceve: "border-durum-kirmizi", lamba: "bg-led-kirmizi nabiz-kirmizi", metin: "text-durum-kirmizi", ad: "ALMA · STOK YOK" },
 };
 
+const ALARM_BASLIGI: Record<string, string> = {
+  StokYok: "STOK YOK",
+  CihazOffline: "KUTU ÇEVRİMDIŞI",
+  AgirlikUyusmazligi: "AĞIRLIK UYUŞMAZLIĞI",
+  StokAzaldi: "STOK AZALDI",
+  TeyitZamanAsimi: "TEYİT ZAMAN AŞIMI",
+  BeklenmeyenTeyit: "BEKLENMEYEN TEYİT",
+};
+
 export default function OperatorEkrani() {
   const oturum = useKorumaliSayfa();
   const [hamKutular, setKutular] = useState<Kutu[]>([]);
@@ -26,6 +35,14 @@ export default function OperatorEkrani() {
   const [saat, setSaat] = useState("");
   const [islemdeki, setIslemdeki] = useState<number | null>(null);
   const [hata, setHata] = useState<string | null>(null);
+  const [tamamlanan, setTamamlanan] = useState<{ kod: string; urun: string; miktar: number } | null>(null);
+
+  // Işığı yanan kutular kalem kimliğine göre hatırlanır: teyit olayı geldiğinde kart
+  // çoktan kaybolmuş olabilir, bildirimde yine de kutu ve ürün adı gösterilebilsin.
+  const yananKalemler = useRef(new Map<number, Kutu>());
+  useEffect(() => {
+    for (const k of kutular) if (k.isikYaniyor && k.aktifKalemId) yananKalemler.current.set(k.aktifKalemId, k);
+  }, [kutular]);
 
   const yenile = useCallback(() => {
     api.kutular().then(setKutular).catch(() => undefined);
@@ -48,7 +65,15 @@ export default function OperatorEkrani() {
   useCanliOlaylar({
     KutuIsikDegisti: yenile,
     StokGuncellendi: yenile,
-    KalemTeyitEdildi: yenile,
+    KalemTeyitEdildi: (veri) => {
+      const kalemId = (veri as { kalemId: number }).kalemId;
+      const k = yananKalemler.current.get(kalemId);
+      if (k) {
+        setTamamlanan({ kod: k.kod, urun: k.urunAdi ?? "", miktar: k.alinacakMiktar ?? 0 });
+        setTimeout(() => setTamamlanan(null), 4000);
+      }
+      yenile();
+    },
     AlarmOlustu: yenile,
     CihazDurumDegisti: yenile,
   });
@@ -104,9 +129,19 @@ export default function OperatorEkrani() {
         <div className="mt-4 rounded-xl border-2 border-durum-kirmizi bg-durum-kirmizi/10 px-6 py-4 nabiz-kirmizi"
           data-test="kiosk-alarm">
           <p className="text-xs font-bold uppercase tracking-widest text-durum-kirmizi">
-            {gosterilecekAlarm.tip}
+            {ALARM_BASLIGI[gosterilecekAlarm.tip] ?? gosterilecekAlarm.tip}
           </p>
           <p className="mt-1 text-xl font-bold">{gosterilecekAlarm.mesaj}</p>
+        </div>
+      )}
+
+      {tamamlanan && (
+        <div className="mt-4 flex items-center gap-4 rounded-xl border-2 border-durum-yesil bg-durum-yesil/10 px-6 py-4"
+          role="status" data-test="kiosk-tamam">
+          <span aria-hidden className="text-4xl text-durum-yesil">✓</span>
+          <p className="text-xl font-bold text-durum-yesil">
+            {tamamlanan.kod} · {tamamlanan.urun} — {tamamlanan.miktar} adet teyit edildi
+          </p>
         </div>
       )}
 

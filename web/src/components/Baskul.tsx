@@ -134,7 +134,7 @@ export function AlinanGram({ kutu }: { kutu: Kutu }) {
           </span>
         </p>
       </div>
-      <div className="mt-2 h-3 overflow-hidden rounded-full bg-slate-50/[0.08]">
+      <div className={`mt-2 h-3 overflow-hidden rounded-full bg-slate-50/[0.08] ${fazla ? "nabiz-kirmizi" : ""}`}>
         <div className={`h-full rounded-full transition-all duration-300 ${renk}`}
           style={{ width: `${Math.round((oran / 1.25) * 100)}%` }} />
       </div>

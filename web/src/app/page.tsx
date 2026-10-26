@@ -6,7 +6,7 @@ import { api } from "@/lib/api";
 import { useCanliOlaylar } from "@/hooks/useCanliOlaylar";
 import { useKorumaliSayfa } from "@/hooks/useKorumaliSayfa";
 import { KutuKarti } from "@/components/KutuKarti";
-import { canliKutular, useCanliAgirlik } from "@/components/Baskul";
+import { canliKutular, sayimSapmasi, useCanliAgirlik } from "@/components/Baskul";
 import { OncelikRozeti, SiparisRozeti } from "@/components/Rozet";
 import { BosDurum, IskeletKart } from "@/components/Durumlar";
 import type { Alarm, Kutu, SiparisOzet } from "@/types";
@@ -57,6 +57,11 @@ export default function PanoSayfasi() {
   const zayifSinyal = kutular.filter((k) => k.baglantiDurumu === "Online" && (k.rssi ?? 0) < -78).length;
   const cihazSorunu = cevrimdisi + zayifSinyal;
 
+  // Baskül saydığı adet ile sistem stoğu (rezerve dahil) uyuşmayan kutular: sayım önerilir.
+  const sapmalilar = kutular
+    .map((k) => ({ k, fark: sayimSapmasi(k) }))
+    .filter((x): x is { k: Kutu; fark: number } => x.fark !== null);
+
   return (
     <div className="space-y-6">
       <header className="flex items-end justify-between">
@@ -66,6 +71,20 @@ export default function PanoSayfasi() {
         </div>
         <Link href="/siparis/yeni" className="dugme">Yeni sipariş</Link>
       </header>
+
+      {sapmalilar.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-durum-sari/40
+                        bg-durum-sari/10 px-4 py-3" data-test="baskul-sapma-bandi">
+          <p className="text-sm text-durum-sari">
+            <span aria-hidden className="mr-2">⚖</span>
+            <b>Baskül ile stok uyuşmuyor:</b>{" "}
+            {sapmalilar.map(({ k, fark }) =>
+              `${k.kod} (baskül ${k.tahminiAdet}, sistem ${k.beklenenFizikselAdet}, fark ${fark > 0 ? "+" : ""}${fark})`
+            ).join(" · ")}
+          </p>
+          <Link href="/stok" className="dugme-ikincil dugme-kucuk">Stok ekranında düzelt</Link>
+        </div>
+      )}
 
       {hata && (
         <p className="rounded-lg border border-durum-kirmizi/40 bg-durum-kirmizi/10 px-4 py-3 text-sm text-durum-kirmizi">
