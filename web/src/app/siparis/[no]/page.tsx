@@ -112,6 +112,22 @@ function KalemKarti({ kalem, sira, islem, onTeyit }: {
         </div>
       </dl>
 
+      {kalem.tespitEdilenUrunAdi && (
+        <p className="mt-3 flex flex-wrap items-center gap-2 border-t border-kenar/60 pt-3 text-xs text-slate-400"
+          data-test="kamera-tespiti">
+          <span aria-hidden>◉</span>
+          <span>
+            Kamera: <b className="text-slate-200">{kalem.tespitEdilenUrunAdi}</b>
+            {kalem.tespitGuveni != null && ` (%${Math.round(kalem.tespitGuveni * 100)})`}
+          </span>
+          {kalem.tespitEdilenUrunAdi === kalem.urunAdi ? (
+            <span className="rozet bg-durum-yesil/15 text-durum-yesil">ürün doğrulandı</span>
+          ) : (
+            <span className="rozet bg-durum-kirmizi/15 text-durum-kirmizi">farklı ürün alındı</span>
+          )}
+        </p>
+      )}
+
       {/* Baskül ölçümü: gram düşüşü birim ağırlığa bölünerek gerçekten alınan adet bulunur. */}
       {kalem.olculenAdet != null && (
         <p className="mt-3 flex flex-wrap items-center gap-2 border-t border-kenar/60 pt-3 text-xs text-slate-400"

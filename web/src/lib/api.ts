@@ -1,7 +1,7 @@
 "use client";
 
 import type {
-  Alarm, ApiHatasi, CihazOlay, GunlukHareket, Kutu, KutuPerformans, Oturum, RaporOzet,
+  Alarm, ApiHatasi, Bolme, CihazOlay, GunlukHareket, Kutu, KutuPerformans, Oturum, RaporOzet,
   IceAktarSonucu, IsikTestiSonucu, Personel, SiparisDetay, SiparisOnceligi, SiparisOzet, StokHareket, TedarikTalebi,
   Urun, UrunHareket,
 } from "@/types";
@@ -236,7 +236,10 @@ export const api = {
   agirliktanSayim: (kutuId: number) =>
     istek<{ kutuId: number; yeniAdet: number }>(`/api/stok/${kutuId}/agirliktan-sayim`, { method: "POST" }),
 
-  ledTest: (kutuId: number, renk = "Yesil", saniye = 8) =>
+  bolmeEkle: (kutuId: number, bolme: { kod: string; urunId: number; rafKonumu?: string; baslangicStogu: number }) =>
+    istek<Bolme>(`/api/kutular/${kutuId}/bolmeler`, { method: "POST", body: JSON.stringify(bolme) }),
+
+  ledTest: (kutuId: number, renk = "Yesil", saniye = 30) =>
     istek<IsikTestiSonucu>(`/api/kutular/${kutuId}/led-test?renk=${renk}&saniye=${saniye}`,
       { method: "POST" }),
 };

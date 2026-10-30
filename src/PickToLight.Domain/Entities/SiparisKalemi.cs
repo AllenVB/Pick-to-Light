@@ -59,6 +59,13 @@ public class SiparisKalemi
     /// </summary>
     public int? OlculenAdet { get; set; }
 
+    /// <summary>Kameranın teyit anında tespit ettiği ürün (görüntü işleme kapalıysa veya emin değilse null).</summary>
+    public long? TespitEdilenUrunId { get; set; }
+    public Urun? TespitEdilenUrun { get; set; }
+
+    /// <summary>Tespitin güveni, 0–1 arası.</summary>
+    public decimal? TespitGuveni { get; set; }
+
     /// <summary>Stok bu kalem için rezerve edildi mi? (iptal/zaman aşımında iade gerekir)</summary>
     public bool StokRezerveEdildi { get; set; }
 }

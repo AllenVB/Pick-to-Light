@@ -113,6 +113,69 @@ public class RolVeBaskulTestleri(TestUygulamasi uygulama) : IClassFixture<TestUy
         gecersiz.IsSuccessStatusCode.Should().BeFalse("referans ağırlığı sıfır olamaz");
     }
 
+    [SkippableFact]
+    public async Task Led_testi_suresince_kutu_listesinde_test_isigi_olarak_gorunur()
+    {
+        Skip.If(!uygulama.Hazir, uygulama.AtlamaSebebi);
+        var istemci = await uygulama.GirisYapAsync();
+
+        var yanit = await istemci.PostAsync("/api/kutular/4/led-test?renk=Yesil&saniye=30", null);
+        yanit.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var kutular = await istemci.GetFromJsonAsync<List<TestKutusu>>("/api/kutular", TestUygulamasi.JsonAyar);
+        var kutu = kutular!.Single(k => k.Id == 4);
+
+        kutu.IsikYaniyor.Should().BeTrue("operatör ekranı test ışığını da göstermeli");
+        kutu.TestIsigi.Should().BeTrue();
+        kutu.AnlikRenk.Should().Be("Yesil");
+        kutu.TeyitSonTarihi.Should().BeAfter(DateTimeOffset.UtcNow.AddSeconds(20), "test 30 sn açık kalır");
+        kutular!.Where(k => k.Id != 4).Should().OnlyContain(k => !k.TestIsigi);
+    }
+
+    [SkippableFact]
+    public async Task Yonetici_karisik_kutuya_bolme_ekler_ve_liste_bolmeleriyle_doner()
+    {
+        Skip.If(!uygulama.Hazir, uygulama.AtlamaSebebi);
+        var istemci = await uygulama.GirisYapAsync();
+
+        var yanit = await istemci.PostAsJsonAsync("/api/kutular/5/bolmeler",
+            new { kod = "K-05-X", urunId = 1, baslangicStogu = 7 });
+        yanit.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var kutular = await istemci.GetFromJsonAsync<List<BolmeliKutu>>("/api/kutular", TestUygulamasi.JsonAyar);
+        kutular!.Should().NotContain(k => k.Kod == "K-05-X", "bölme ayrı kart almaz");
+        var ana = kutular!.Single(k => k.Id == 5);
+        ana.Bolmeler.Should().HaveCount(2);
+        ana.Bolmeler!.Should().Contain(b => b.Kod == "K-05-X" && b.Adet == 7);
+
+        var ayniUrun = await istemci.PostAsJsonAsync("/api/kutular/5/bolmeler",
+            new { kod = "K-05-Y", urunId = 1, baslangicStogu = 1 });
+        ayniUrun.IsSuccessStatusCode.Should().BeFalse("aynı ürün aynı kutuda iki bölmede tutulamaz");
+
+        var icIce = await istemci.PostAsJsonAsync($"/api/kutular/{ana.Bolmeler.Single(b => b.Kod == "K-05-X").Id}/bolmeler",
+            new { kod = "K-05-Z", urunId = 2, baslangicStogu = 1 });
+        icIce.IsSuccessStatusCode.Should().BeFalse("bölmeye bölme eklenemez");
+    }
+
+    [SkippableFact]
+    public async Task Operator_bolme_ekleyemez()
+    {
+        Skip.If(!uygulama.Hazir, uygulama.AtlamaSebebi);
+        var operatorIstemci = await uygulama.GirisYapAsync("operator", "operator123");
+
+        var yanit = await operatorIstemci.PostAsJsonAsync("/api/kutular/4/bolmeler",
+            new { kod = "K-04-X", urunId = 1, baslangicStogu = 1 });
+
+        yanit.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    private sealed record BolmeSatiri(long Id, string Kod, int Adet);
+
+    private sealed record BolmeliKutu(long Id, string Kod, List<BolmeSatiri>? Bolmeler);
+
+    private sealed record TestKutusu(long Id, bool IsikYaniyor, bool TestIsigi, string? AnlikRenk,
+        DateTimeOffset? TeyitSonTarihi);
+
     private sealed record BaskulKutusu(long Id, decimal? BirimAgirlikG, decimal? AgirlikG, DateTimeOffset? AgirlikZamani,
         int? TahminiAdet);
 }

@@ -10,9 +10,23 @@ export type TeyitYontemi = "Buton" | "Ir" | "Agirlik" | "Manuel";
 export type BaglantiDurumu = "Online" | "Offline";
 export type AlarmTipi =
   | "StokAzaldi" | "StokYok" | "CihazOffline" | "TeyitZamanAsimi"
-  | "BeklenmeyenTeyit" | "AgirlikUyusmazligi";
+  | "BeklenmeyenTeyit" | "AgirlikUyusmazligi" | "YanlisUrun";
 export type TedarikDurumu = "Acik" | "Verildi" | "Kapandi";
 export type PersonelRolu = "Operator" | "Admin";
+
+/** Karışık kutunun bir bölmesi: kendi ürünü ve stoğu vardır, cihaz ana kutuyla ortaktır. */
+export interface Bolme {
+  id: number;
+  kod: string;
+  urunId?: number | null;
+  urunAdi?: string | null;
+  birimAgirlikG?: number | null;
+  adet: number;
+  guvenlikStogu: number;
+  rezerveAdet: number;
+  renk?: LedRengi | null;
+  anaKutu: boolean;
+}
 
 export interface Kutu {
   id: number;
@@ -48,6 +62,16 @@ export interface Kutu {
   beklenenFizikselAdet?: number | null;
   /** Işığı yanan kalemin başladığı andaki kutu ağırlığı (g). */
   baslangicAgirligiG?: number | null;
+  /** Karışık kutu: ana kutu dahil tüm bölmeler (tek ürünlü kutuda yok). */
+  bolmeler?: Bolme[] | null;
+  /** Yanan ışığın ürünü (karışık kutuda kutunun ürününden farklı olabilir). */
+  aktifUrunId?: number | null;
+  aktifUrunAdi?: string | null;
+  aktifBirimAgirlikG?: number | null;
+  /** Karışık kutuda olması gereken toplam ağırlık: Σ (stok + rezerve) × birim ağırlık. */
+  beklenenAgirlikG?: number | null;
+  /** Işık bir sipariş için değil, yöneticinin LED testi için yanıyor (süre dolunca söner). */
+  testIsigi?: boolean;
   /** Son ölçüm oturdu mu (yalnızca canlı SignalR güncellemesiyle dolar). */
   agirlikKararli?: boolean;
 }
@@ -81,6 +105,9 @@ export interface Kalem {
   olculenAdet?: number | null;
   baslangicAgirligiG?: number | null;
   birimAgirlikG?: number | null;
+  /** Kameranın teyit anında tespit ettiği ürün. */
+  tespitEdilenUrunAdi?: string | null;
+  tespitGuveni?: number | null;
 }
 
 export interface Alarm {

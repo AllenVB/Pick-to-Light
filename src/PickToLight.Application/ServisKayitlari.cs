@@ -9,6 +9,7 @@ public static class ServisKayitlari
 {
     public static IServiceCollection ApplicationEkle(this IServiceCollection services)
     {
+        services.AddSingleton<LedTestDurumu>();
         services.AddScoped<SiparisServisi>();
         services.AddScoped<StokServisi>();
         services.AddScoped<AlarmServisi>();

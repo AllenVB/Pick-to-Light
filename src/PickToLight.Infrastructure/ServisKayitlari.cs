@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using PickToLight.Application.Abstractions;
 using PickToLight.Application.Ayarlar;
 using PickToLight.Infrastructure.ArkaPlan;
+using PickToLight.Infrastructure.Goruntu;
 using PickToLight.Infrastructure.Kimlik;
 using PickToLight.Infrastructure.Mqtt;
 using PickToLight.Infrastructure.Persistence;
@@ -23,6 +24,8 @@ public static class ServisKayitlari
         services.Configure<PickToLightAyarlari>(config.GetSection(PickToLightAyarlari.Bolum));
         services.Configure<MqttAyarlari>(config.GetSection(MqttAyarlari.Bolum));
         services.Configure<JwtAyarlari>(config.GetSection(JwtAyarlari.Bolum));
+        services.Configure<GoruntuAyarlari>(config.GetSection(GoruntuAyarlari.Bolum));
+        services.AddHttpClient<IGoruntuTanima, GoruntuTanimaIstemcisi>();
 
         services.AddDbContext<AppDbContext>(opt =>
             opt.UseNpgsql(config.GetConnectionString("Postgres"),

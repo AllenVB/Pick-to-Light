@@ -23,3 +23,8 @@ docker/mosquitto/kimlikler.txt
 web/test-results/
 web/playwright-report/
 web/.playwright/
+
+# Görüntü işleme servisi
+vision/.venv/
+vision/__pycache__/
+vision/.pytest_cache/

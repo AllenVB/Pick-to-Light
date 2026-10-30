@@ -60,7 +60,11 @@ public sealed record KalemDto(
     /// <summary>Işık yandığındaki kutu ağırlığı (g) — canlı "alınan gram" hesabının başlangıcı.</summary>
     decimal? BaslangicAgirligiG = null,
     /// <summary>Ürünün birim ağırlığı (g); baskül gösterimi için.</summary>
-    decimal? BirimAgirlikG = null);
+    decimal? BirimAgirlikG = null,
+    /// <summary>Kameranın teyit anında tespit ettiği ürünün adı.</summary>
+    string? TespitEdilenUrunAdi = null,
+    /// <summary>Tespit güveni, 0–1.</summary>
+    decimal? TespitGuveni = null);
 
 public sealed record SiparisDto(
     long Id,
@@ -132,7 +136,34 @@ public sealed record KutuDto(
     /// <summary>Rafta fiziksel olarak olması gereken adet: stok + rezerve edilip henüz alınmamış adet.</summary>
     int? BeklenenFizikselAdet = null,
     /// <summary>Işığı yanan kalemin başladığı andaki kutu ağırlığı (g) — canlı "alınan gram" göstergesi için.</summary>
-    decimal? BaslangicAgirligiG = null);
+    decimal? BaslangicAgirligiG = null,
+    /// <summary>Işık bir sipariş için değil, yöneticinin LED testi için yanıyor.</summary>
+    bool TestIsigi = false,
+    /// <summary>Karışık kutu: ana kutu dahil tüm bölmeler (tek ürünlü kutuda null).</summary>
+    IReadOnlyList<BolmeDto>? Bolmeler = null,
+    /// <summary>Yanan ışığın hangi ürün için yandığı (karışık kutuda kutu ürünü değil kalemin ürünü).</summary>
+    long? AktifUrunId = null,
+    string? AktifUrunAdi = null,
+    decimal? AktifBirimAgirlikG = null,
+    /// <summary>Karışık kutuda rafta olması gereken toplam ağırlık: Σ (stok + rezerve) × birim ağırlık.</summary>
+    decimal? BeklenenAgirlikG = null);
+
+/// <summary>Karışık kutunun bir bölmesi: kendi ürünü ve stoğu vardır, cihazı ana kutuyla paylaşır.</summary>
+public sealed record BolmeDto(
+    long Id,
+    string Kod,
+    long? UrunId,
+    string? UrunAdi,
+    decimal? BirimAgirlikG,
+    int Adet,
+    int GuvenlikStogu,
+    /// <summary>Rezerve edilip henüz raftan alınmamış adet.</summary>
+    int RezerveAdet,
+    LedRengi? Renk,
+    /// <summary>true ise cihazı taşıyan ana kutunun kendi ürünüdür.</summary>
+    bool AnaKutu);
+
+public sealed record BolmeIstek(string Kod, long UrunId, string? RafKonumu, int BaslangicStogu);
 
 public sealed record KutuIstek(string Kod, long? UrunId, string CihazMac, string? RafKonumu, int BaslangicStogu);
 

@@ -8,7 +8,7 @@ import { useToast } from "@/components/Toast";
 import { BosDurum, IskeletSatir } from "@/components/Durumlar";
 import { RenkRozeti } from "@/components/Rozet";
 import { BaskulSatiri, baskulVar, canliKutular, sayimSapmasi, useCanliAgirlik } from "@/components/Baskul";
-import type { Kutu } from "@/types";
+import type { Bolme, Kutu } from "@/types";
 
 export default function StokSayfasi() {
   const oturum = useKorumaliSayfa();
@@ -42,6 +42,12 @@ export default function StokSayfasi() {
 
   if (!oturum) return null;
 
+  // Karışık kutu her bölmesiyle ayrı satırdır (stok bölme başınadır); LED ve baskül cihaza aittir.
+  const satirlar = kutular.flatMap((k): { k: Kutu; uye: Bolme | undefined; ilk: boolean }[] =>
+    k.bolmeler
+      ? k.bolmeler.map((uye, i) => ({ k, uye, ilk: i === 0 }))
+      : [{ k, uye: undefined, ilk: true }]);
+
   return (
     <div className="space-y-6">
       <header>
@@ -72,15 +78,20 @@ export default function StokSayfasi() {
               </td></tr>
             )}
 
-            {!yukleniyor && kutular.map((k) => (
-              <tr key={k.id} data-test="stok-satiri" data-kutu={k.kod}>
-                <td className="font-mono text-xs">{k.kod}</td>
-                <td>{k.urunAdi ?? "—"}</td>
+            {!yukleniyor && satirlar.map(({ k, uye, ilk }) => (
+              <tr key={uye?.id ?? k.id} data-test="stok-satiri" data-kutu={uye?.kod ?? k.kod}>
+                <td className="font-mono text-xs">{uye?.kod ?? k.kod}</td>
+                <td>{uye ? (uye.urunAdi ?? "—") : (k.urunAdi ?? "—")}</td>
                 <td className="text-xs text-slate-400">{k.rafKonumu ?? "—"}</td>
-                <td className="text-lg font-bold">{k.adet}</td>
-                <td className="text-slate-400">{k.guvenlikStogu}</td>
-                <td><BaskulSatiri kutu={k} />{!baskulVar(k) && <span className="text-slate-600">—</span>}</td>
-                <td><RenkRozeti renk={k.anlikRenk} /></td>
+                <td className="text-lg font-bold">{uye ? uye.adet : k.adet}</td>
+                <td className="text-slate-400">{uye ? uye.guvenlikStogu : k.guvenlikStogu}</td>
+                <td>
+                  {/* Karışık kutuda baskül kutunun toplamını ölçer: yalnızca ilk satırda gösterilir. */}
+                  {ilk && <BaskulSatiri kutu={k} />}
+                  {ilk && !baskulVar(k) && <span className="text-slate-600">—</span>}
+                  {!ilk && <span className="ipucu">kutu toplamı üstte</span>}
+                </td>
+                <td><RenkRozeti renk={(uye ? uye.renk : k.anlikRenk) ?? undefined} /></td>
                 <td>
                   <span className={k.baglantiDurumu === "Online" ? "text-durum-yesil" : "text-durum-gri"}>
                     ● {k.baglantiDurumu === "Online" ? "Çevrimiçi" : "Çevrimdışı"}
@@ -90,15 +101,15 @@ export default function StokSayfasi() {
                   <td className="space-x-1 whitespace-nowrap">
                     <button className="dugme-ikincil px-2 py-1 text-xs"
                       onClick={() => {
-                        const m = prompt(`${k.kod} — kaç adet giriş yapılacak?`, "10");
-                        if (m) calistir(() => api.stokGiris(k.id, Number(m), "Mal kabul"), `${k.kod}: giriş yapıldı.`);
+                        const m = prompt(`${uye?.kod ?? k.kod} — kaç adet giriş yapılacak?`, "10");
+                        if (m) calistir(() => api.stokGiris(uye?.id ?? k.id, Number(m), "Mal kabul"), `${uye?.kod ?? k.kod}: giriş yapıldı.`);
                       }}>+ Giriş</button>
                     <button className="dugme-ikincil px-2 py-1 text-xs"
                       onClick={() => {
-                        const m = prompt(`${k.kod} — sayım sonucu kaç adet?`, String(k.adet));
-                        if (m) calistir(() => api.stokSayim(k.id, Number(m), "Fiziksel sayım"), `${k.kod}: sayım kaydedildi.`);
+                        const m = prompt(`${uye?.kod ?? k.kod} — sayım sonucu kaç adet?`, String(uye ? uye.adet : k.adet));
+                        if (m) calistir(() => api.stokSayim(uye?.id ?? k.id, Number(m), "Fiziksel sayım"), `${uye?.kod ?? k.kod}: sayım kaydedildi.`);
                       }}>Sayım</button>
-                    {baskulVar(k) && k.birimAgirlikG != null && sayimSapmasi(k) != null && (
+                    {!k.bolmeler && baskulVar(k) && k.birimAgirlikG != null && sayimSapmasi(k) != null && (
                       <button className="dugme-ikincil px-2 py-1 text-xs" data-test="agirliktan-sayim"
                         title="Baskülün saydığı adedi stoka yaz (rezerve edilen adet düşülür)"
                         onClick={() => {
@@ -106,10 +117,10 @@ export default function StokSayfasi() {
                             calistir(() => api.agirliktanSayim(k.id), `${k.kod}: baskül sayımı uygulandı.`);
                         }}>⚖ Ağırlıktan say</button>
                     )}
-                    <button className="dugme-ikincil px-2 py-1 text-xs"
+                    {ilk && <button className="dugme-ikincil px-2 py-1 text-xs"
                       onClick={() => calistir(() => api.ledTest(k.id), `${k.kod}: test ışığı gönderildi.`)}>
                       LED test
-                    </button>
+                    </button>}
                   </td>
                 )}
               </tr>

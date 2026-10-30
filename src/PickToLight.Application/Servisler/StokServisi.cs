@@ -16,7 +16,9 @@ public sealed class StokServisi(
     IStokDeposu stokDeposu,
     IBildirimYayinci bildirim,
     IOturumKullanicisi oturum,
-    IOptions<PickToLightAyarlari> ayarlar)
+    IOptions<PickToLightAyarlari> ayarlar,
+    IZamanSaglayici? zaman = null,
+    LedTestDurumu? ledTestDurumu = null)
 {
     private readonly PickToLightAyarlari _ayar = ayarlar.Value;
 
@@ -36,7 +38,8 @@ public sealed class StokServisi(
             .Select(k => new
             {
                 k.KutuId, k.LedRengi, k.Miktar, SiparisNo = k.Siparis.SiparisNo, KalemId = k.Id,
-                k.IsikYanmaZamani, k.BaslangicAgirligiG
+                k.IsikYanmaZamani, k.BaslangicAgirligiG,
+                k.UrunId, UrunAdi = k.Urun.Ad, UrunBirimi = k.Urun.BirimAgirlikG
             })
             .ToListAsync(ct);
 
@@ -59,34 +62,80 @@ public sealed class StokServisi(
             .Select(g => new { KutuId = g.Key, Adet = g.Sum(x => x.Miktar) })
             .ToDictionaryAsync(x => x.KutuId, x => x.Adet, ct);
 
-        return kutular.Select(k =>
+        var simdi = zaman?.Simdi ?? DateTimeOffset.UtcNow;
+        var bolmelerAna = kutular.Where(k => k.AnaKutuId != null)
+            .GroupBy(k => k.AnaKutuId!.Value)
+            .ToDictionary(g => g.Key, g => g.OrderBy(k => k.Kod).ToList());
+
+        // Bir kutunun "sağlık rengi": ışık yanmıyorsa 1 adetlik talep varsayımıyla önizleme.
+        LedRengi? SaglikRengi(Kutu k)
         {
-            var yanan = yananKalemler.FirstOrDefault(y => y.KutuId == k.Id);
             var adet = k.Stok?.Adet ?? 0;
-            var birim = k.Urun?.BirimAgirlikG is > 0 ? k.Urun.BirimAgirlikG : null;
+            if (adet == 0) return LedRengi.Kirmizi;
+            return k.Urun is null ? null : IsikKarari.Belirle(Math.Max(adet, 0), 1, k.Urun.GuvenlikStogu);
+        }
+
+        // Pano cihaz bazlıdır: bölmeler kendi kartını almaz, ana kutunun kartında listelenir.
+        return kutular.Where(k => k.AnaKutuId == null).Select(k =>
+        {
+            bolmelerAna.TryGetValue(k.Id, out var bolmeler);
+            var uyeler = new List<Kutu> { k };
+            if (bolmeler is not null) uyeler.AddRange(bolmeler);
+            var uyeIdleri = uyeler.Select(u => u.Id).ToHashSet();
+            var karisik = bolmeler is { Count: > 0 };
+
+            // Işık cihaza ait: grubun herhangi bir bölmesi için yanan kalem kartı yakar.
+            var yanan = yananKalemler.FirstOrDefault(y => y.KutuId is { } id && uyeIdleri.Contains(id));
+            var adet = uyeler.Sum(u => u.Stok?.Adet ?? 0);
+
+            // Gerçek bir sipariş ışığı varsa o önceliklidir; yoksa süresi dolmamış LED testi gösterilir.
+            var test = yanan is null && ledTestDurumu is not null
+                ? ledTestDurumu.Aktif(k.Id, simdi)
+                : null;
+
+            var birim = !karisik && k.Urun?.BirimAgirlikG is > 0 ? k.Urun.BirimAgirlikG : null;
             var agirlik = k.Stok?.SonAgirlikG;
             int? tahmini = agirlik.HasValue && birim.HasValue
                 ? (int)Math.Round(agirlik.Value / birim.Value, MidpointRounding.AwayFromZero)
                 : null;
             var guvenlik = k.Urun?.GuvenlikStogu ?? 0;
 
-            // Işık yanmıyorsa kutunun "sağlık rengi": 1 adetlik talep varsayımıyla önizleme.
-            LedRengi? renk = yanan?.LedRengi
-                             ?? (k.Urun is null ? null : IsikKarari.Belirle(Math.Max(adet, 0) , 1, guvenlik));
+            // Karışık kutuda en kritik bölmenin rengi kartın rengidir.
+            var saglik = uyeler.Select(SaglikRengi).Where(r => r is not null).Select(r => r!.Value)
+                .DefaultIfEmpty().Max();
+            LedRengi? onizleme = uyeler.All(u => u.Urun is null && (u.Stok?.Adet ?? 0) != 0)
+                ? null
+                : karisik ? saglik : SaglikRengi(k);
 
-            if (yanan is null && adet == 0)
-                renk = LedRengi.Kirmizi;
+            LedRengi? renk = yanan?.LedRengi ?? test?.Renk ?? onizleme;
+
+            decimal? beklenenAgirlik = null;
+            IReadOnlyList<BolmeDto>? bolmeListesi = null;
+            if (karisik)
+            {
+                beklenenAgirlik = uyeler.Sum(u =>
+                    ((u.Stok?.Adet ?? 0) + rezerveler.GetValueOrDefault(u.Id)) * (u.Urun?.BirimAgirlikG ?? 0m));
+
+                bolmeListesi = uyeler.Select(u => new BolmeDto(
+                    u.Id, u.Kod, u.UrunId, u.Urun?.Ad, u.Urun?.BirimAgirlikG, u.Stok?.Adet ?? 0,
+                    u.Urun?.GuvenlikStogu ?? 0, rezerveler.GetValueOrDefault(u.Id), SaglikRengi(u),
+                    u.Id == k.Id)).ToList();
+            }
+
+            var aktifBirim = yanan?.UrunBirimi is > 0 ? yanan.UrunBirimi : null;
 
             return new KutuDto(k.Id, k.Kod, k.UrunId, k.Urun?.Ad, k.CihazMac, k.MqttTopic, k.RafKonumu,
-                k.BaglantiDurumu, k.SonGorulme, adet, guvenlik, renk, yanan is not null,
+                k.BaglantiDurumu, k.SonGorulme, adet, guvenlik, renk, yanan is not null || test is not null,
                 yanan?.Miktar, yanan?.SiparisNo, yanan?.KalemId,
                 k.FirmwareSurumu, k.Rssi, k.IpAdresi,
-                siradakiler.GetValueOrDefault(k.Id),
-                yanan?.IsikYanmaZamani?.AddSeconds(_ayar.TeyitZamanAsimiSaniye),
+                uyeIdleri.Sum(id => siradakiler.GetValueOrDefault(id)),
+                test?.Bitis ?? yanan?.IsikYanmaZamani?.AddSeconds(_ayar.TeyitZamanAsimiSaniye),
                 k.Aktif,
                 birim, agirlik, k.Stok?.AgirlikZamani, tahmini,
-                adet + rezerveler.GetValueOrDefault(k.Id),
-                yanan?.BaslangicAgirligiG);
+                karisik ? null : adet + rezerveler.GetValueOrDefault(k.Id),
+                yanan?.BaslangicAgirligiG,
+                test is not null,
+                bolmeListesi, yanan?.UrunId, yanan?.UrunAdi, aktifBirim, beklenenAgirlik);
         }).ToList();
     }
 
@@ -128,6 +177,10 @@ public sealed class StokServisi(
                        .Include(k => k.Urun).Include(k => k.Stok)
                        .FirstOrDefaultAsync(k => k.Id == kutuId, ct)
                    ?? throw new KayitBulunamadiException("Kutu", kutuId);
+
+        if (kutu.AnaKutuId is not null || await db.Kutular.AnyAsync(k => k.AnaKutuId == kutuId, ct))
+            throw new DomainException("karisik-kutu",
+                "Karışık kutuda ağırlık birden çok ürünün toplamıdır; ürün bazında sayım yapılamaz. Her bölmeyi ayrı sayın.");
 
         if (kutu.Urun?.BirimAgirlikG is not > 0)
             throw new DomainException("birim-agirlik-yok", "Ürünün birim ağırlığı tanımlı değil; ağırlıktan sayım yapılamaz.");

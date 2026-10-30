@@ -62,7 +62,10 @@ public enum AlarmTipi
     CihazOffline = 3,
     TeyitZamanAsimi = 4,
     BeklenmeyenTeyit = 5,
-    AgirlikUyusmazligi = 6
+    AgirlikUyusmazligi = 6,
+
+    /// <summary>Kamera, sipariş edilenden farklı bir ürünün alındığını tespit etti.</summary>
+    YanlisUrun = 7
 }
 
 public enum TeyitYontemi

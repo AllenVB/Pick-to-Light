@@ -10,6 +10,98 @@ import { GecenSure, Kopyala, Sinyal } from "@/components/Cihaz";
 import { BaskulSatiri, baskulVar, canliKutular, useCanliAgirlik } from "@/components/Baskul";
 import type { Kutu, LedRengi, Urun } from "@/types";
 
+/**
+ * Karışık kutu: aynı cihazda (LED, baskül, kamera) farklı ürünlerin bölmeleri. Her bölmenin kendi stoğu
+ * vardır; kamera hangi ürünün alındığını söyler, baskül gramı o ürünün birim ağırlığına böler.
+ */
+function BolmeBolumu({ kutu, yonetici, urunler, onEkle }: {
+  kutu: Kutu;
+  yonetici: boolean;
+  urunler: Urun[];
+  onEkle: (b: { kod: string; urunId: number; baslangicStogu: number }) => void;
+}) {
+  const [acik, setAcik] = useState(false);
+  const [kod, setKod] = useState("");
+  const [urunId, setUrunId] = useState<number | "">("");
+  const [stok, setStok] = useState(0);
+
+  const bolmeler = kutu.bolmeler ?? [];
+  // Bu kutuda zaten tutulan ürünler tekrar seçilemez.
+  const kullanilan = new Set(bolmeler.map((b) => b.urunId));
+  if (kutu.urunId != null) kullanilan.add(kutu.urunId);
+  const secenekler = urunler.filter((u) => u.aktif !== false && !kullanilan.has(u.id));
+
+  if (bolmeler.length === 0 && !yonetici) return null;
+
+  return (
+    <div className="space-y-2 border-b border-zemin-cizgi/60 pb-3" data-test="bolme-bolumu">
+      <div className="flex items-center justify-between gap-2">
+        <p className="etiket">{bolmeler.length > 0 ? `Karışık kutu · ${bolmeler.length} ürün` : "Ürün bölmeleri"}</p>
+        {yonetici && !acik && (
+          <button className="dugme-ikincil dugme-kucuk" onClick={() => setAcik(true)} data-test="bolme-ekle-ac">
+            + Bölme ekle
+          </button>
+        )}
+      </div>
+
+      {bolmeler.length > 0 && (
+        <ul className="space-y-1">
+          {bolmeler.map((b) => (
+            <li key={b.id} className="flex items-center justify-between text-sm" data-test="bolme-satiri">
+              <span className="truncate">
+                <span className="font-mono text-xs text-slate-400">{b.kod}</span>{" "}
+                {b.urunAdi ?? "ürün yok"}
+                {b.anaKutu && <span className="ipucu ml-1">(ana)</span>}
+              </span>
+              <span className="shrink-0 tabular-nums">
+                <b>{b.adet}</b>
+                {b.birimAgirlikG ? <span className="ipucu ml-1">× {b.birimAgirlikG} g</span> : null}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {yonetici && acik && (
+        <div className="space-y-2 rounded-lg border border-zemin-cizgi p-3" data-test="bolme-formu">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="etiket">Bölme kodu</label>
+              <input className="girdi mt-1" value={kod} placeholder={`${kutu.kod}-B`}
+                onChange={(e) => setKod(e.target.value)} />
+            </div>
+            <div>
+              <label className="etiket">Başlangıç stoğu</label>
+              <input className="girdi mt-1" type="number" min={0} value={stok}
+                onChange={(e) => setStok(Number(e.target.value))} />
+            </div>
+          </div>
+          <div>
+            <label className="etiket">Ürün</label>
+            <select className="girdi mt-1" value={urunId}
+              onChange={(e) => setUrunId(e.target.value ? Number(e.target.value) : "")}>
+              <option value="">Ürün seçin…</option>
+              {secenekler.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.ad}{u.birimAgirlikG ? ` (${u.birimAgirlikG} g)` : " (birim ağırlık yok)"}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex gap-2">
+            <button className="dugme dugme-kucuk" disabled={!kod.trim() || !urunId} data-test="bolme-kaydet"
+              onClick={() => {
+                onEkle({ kod: kod.trim(), urunId: Number(urunId), baslangicStogu: stok });
+                setAcik(false); setKod(""); setUrunId(""); setStok(0);
+              }}>Ekle</button>
+            <button className="dugme-ikincil dugme-kucuk" onClick={() => setAcik(false)}>Vazgeç</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function KutularSayfasi() {
   const oturum = useKorumaliSayfa("Admin");
   const yonetici = oturum?.rol === "Admin";
@@ -47,7 +139,7 @@ export default function KutularSayfasi() {
 
   async function isikTesti(kutu: Kutu, renk: LedRengi) {
     try {
-      const sonuc = await api.ledTest(kutu.id, renk, 8);
+      const sonuc = await api.ledTest(kutu.id, renk, 30);
       toast(
         sonuc.cihazCevrimici
           ? `${kutu.kod}: ${sonuc.saniye} sn test ışığı gönderildi (${sonuc.topic}).`
@@ -116,6 +208,8 @@ export default function KutularSayfasi() {
                 if (confirm(`${k.kod}: kutu BOŞ ve baskülün üstünde yalnızca boş kap var mı?\nAğırlık sıfırlanacak.`))
                   calistir(() => api.baskulTare(k.id), `${k.kod}: tare komutu gönderildi.`);
               }}
+              urunler={urunler}
+              onBolmeEkle={(b) => calistir(() => api.bolmeEkle(k.id, b), `${k.kod}: ${b.kod} bölmesi eklendi.`)}
               onKalibre={() => {
                 const g = prompt(`${k.kod} — baskülün üstüne konan bilinen ağırlık kaç gram?`, "100");
                 const referans = Number((g ?? "").replace(",", "."));
@@ -218,9 +312,11 @@ function KutuFormu({ urunler, mevcut, onKaydet, onVazgec }: {
  * yeterli mi, doğru firmware mi, hangi topic'i dinliyor. Hepsi tek kartta
  * toplanır; topic ve MAC tıklanarak kopyalanır.
  */
-function CihazKarti({ kutu, yonetici, onDuzenle, onTest, onArsiv, onTare, onKalibre }: {
+function CihazKarti({ kutu, yonetici, onDuzenle, onTest, onArsiv, onTare, onKalibre, urunler, onBolmeEkle }: {
   kutu: Kutu;
   yonetici: boolean;
+  urunler: Urun[];
+  onBolmeEkle: (b: { kod: string; urunId: number; baslangicStogu: number }) => void;
   onDuzenle: () => void;
   onTest: (renk: LedRengi) => void;
   onArsiv: () => void;
@@ -296,6 +392,8 @@ function CihazKarti({ kutu, yonetici, onDuzenle, onTest, onArsiv, onTare, onKali
         )}
       </div>
 
+      <BolmeBolumu kutu={kutu} yonetici={yonetici} urunler={urunler} onEkle={onBolmeEkle} />
+
       {/* Baskül: kutu içeriğinin ağırlığı. Tare boş kapla, kalibrasyon bilinen ağırlıkla yapılır. */}
       <div className="space-y-2 border-b border-zemin-cizgi/60 pb-3" data-test="baskul-bolumu">
         <div className="flex items-center justify-between gap-2">
@@ -327,7 +425,7 @@ function CihazKarti({ kutu, yonetici, onDuzenle, onTest, onArsiv, onTare, onKali
             ["Kirmizi", "bg-led-kirmizi"],
           ] as [LedRengi, string][]).map(([renk, sinif]) => (
             <button key={renk} onClick={() => onTest(renk)}
-              title={`${renk} ışığı 8 saniye yak`}
+              title={`${renk} ışığı 30 saniye yak (operatör ekranında da görünür)`}
               data-test={`isik-test-${renk}`}
               className="flex h-8 w-8 items-center justify-center rounded-lg border border-zemin-cizgi
                          transition hover:border-marka-acik active:scale-95">

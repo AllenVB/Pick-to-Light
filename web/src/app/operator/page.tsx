@@ -6,6 +6,7 @@ import { ApiHata, api } from "@/lib/api";
 import { useCanliOlaylar } from "@/hooks/useCanliOlaylar";
 import { useKorumaliSayfa } from "@/hooks/useKorumaliSayfa";
 import { AlinanGram, baskulVar, canliKutular, useCanliAgirlik } from "@/components/Baskul";
+import { KameraRozeti } from "@/components/KameraRozeti";
 import type { Alarm, Kutu, LedRengi } from "@/types";
 
 /**
@@ -56,6 +57,15 @@ export default function OperatorEkrani() {
   }, []);
 
   useEffect(() => { if (oturum) yenile(); }, [oturum, yenile]);
+
+  // LED testi süresi dolunca ışık söner ama sunucudan olay gelmez; kartın kaybolması için
+  // test ışığı varken kutu listesi periyodik tazelenir.
+  const testVar = kutular.some((k) => k.testIsigi);
+  useEffect(() => {
+    if (!testVar) return;
+    const t = setInterval(yenile, 3000);
+    return () => clearInterval(t);
+  }, [testVar, yenile]);
 
   useEffect(() => {
     const t = setInterval(() => setSaat(new Date().toLocaleTimeString("tr-TR")), 1000);
@@ -201,26 +211,33 @@ export default function OperatorEkrani() {
 
                   <div className="mt-6 flex items-end gap-6">
                     <div>
-                      <p className="text-xs uppercase tracking-widest text-slate-500">alınacak</p>
-                      <p className={`text-7xl font-black leading-none ${r.metin}`}>
-                        {k.alinacakMiktar ?? "—"}
+                      <p className="text-xs uppercase tracking-widest text-slate-500">{k.testIsigi ? "bakım" : "alınacak"}</p>
+                      <p className={`font-black leading-none ${r.metin} ${k.testIsigi ? "text-5xl" : "text-7xl"}`}>
+                        {k.testIsigi ? "TEST" : k.alinacakMiktar ?? "—"}
                       </p>
-                      <p className="mt-1 text-sm text-slate-500">adet</p>
+                      <p className="mt-1 text-sm text-slate-500">{k.testIsigi ? "LED testi" : "adet"}</p>
                     </div>
                     <div className="flex-1">
-                      <p className="text-3xl font-bold">{k.urunAdi ?? "—"}</p>
+                      <p className="text-3xl font-bold">{k.aktifUrunAdi ?? k.urunAdi ?? "—"}</p>
                       <p className="mt-2 text-sm text-slate-400">
-                        {k.siparisNo ? `sipariş ${k.siparisNo} · ` : ""}kutuda {k.adet} adet kaldı
+                        {k.testIsigi
+                          ? `Yönetici LED testi · ${k.rafKonumu ?? "raf tanımsız"} · kutuda ${k.adet} adet`
+                          : `${k.siparisNo ? `sipariş ${k.siparisNo} · ` : ""}${k.bolmeler
+                              ? `bölmede ${k.bolmeler.find((b) => b.urunId === k.aktifUrunId)?.adet ?? "?"} adet kaldı`
+                              : `kutuda ${k.adet} adet kaldı`}`}
                       </p>
                     </div>
                   </div>
+
+                  {/* Kamera: görüntü işleme servisi açıksa kutudan alınan ürünü doğrular. */}
+                  {!k.testIsigi && <KameraRozeti beklenenUrunId={k.aktifUrunId ?? k.urunId} beklenenUrunAdi={k.aktifUrunAdi ?? k.urunAdi} />}
 
                   {/* Baskül varsa: alınan gram/adet canlı izlenir, ağırlık oturunca teyit otomatiktir. */}
                   <AlinanGram kutu={k} />
 
                   <div className="mt-6 flex items-center justify-between gap-4 border-t border-zemin-cizgi pt-4">
                     <div>
-                      <p className={`text-xl font-black tracking-wide ${r.metin}`}>{r.ad}</p>
+                      <p className={`text-xl font-black tracking-wide ${r.metin}`}>{k.testIsigi ? "LED TESTİ" : r.ad}</p>
                       <KioskGeriSayim sonTarih={k.teyitSonTarihi} />
                     </div>
 
@@ -232,11 +249,12 @@ export default function OperatorEkrani() {
                         disabled={islemdeki === k.aktifKalemId}
                         onClick={() => teyitEt(k.aktifKalemId!)}>
                         {islemdeki === k.aktifKalemId ? "Gönderiliyor…"
-                          : baskulVar(k) && k.birimAgirlikG ? "ELLE TEYİT" : "ALDIM ✓"}
+                          : baskulVar(k) && (k.aktifBirimAgirlikG ?? k.birimAgirlikG) ? "ELLE TEYİT" : "ALDIM ✓"}
                       </button>
                     ) : (
                       <p className="text-sm text-slate-500">
-                        {baskulVar(k) && k.birimAgirlikG ? "ürünü al → baskül otomatik teyit eder" : "ürünü al → butona bas"}
+                        {k.testIsigi ? "teste ait ışık · süre dolunca kendiliğinden söner"
+                          : baskulVar(k) && (k.aktifBirimAgirlikG ?? k.birimAgirlikG) ? "ürünü al → baskül otomatik teyit eder" : "ürünü al → butona bas"}
                       </p>
                     )}
                   </div>

@@ -74,12 +74,29 @@ export function sayimSapmasi(k: Kutu): number | null {
   return fark === 0 ? null : fark;
 }
 
+/**
+ * Karışık kutuda adet hesaplanamaz (her ürünün birim ağırlığı farklı); bunun yerine ölçülen ağırlık,
+ * olması gereken ağırlıkla (Σ (stok + rezerve) × birim) gram olarak karşılaştırılır. Fark, en hafif
+ * ürünün yarım adedinden küçükse gürültü sayılır.
+ */
+export function agirlikSapmasi(k: Kutu): number | null {
+  if (!k.bolmeler || k.agirlikG == null || k.beklenenAgirlikG == null) return null;
+  if (k.agirlikKararli === false || olcumEskiMi(k)) return null;
+
+  const birimler = k.bolmeler.map((b) => b.birimAgirlikG ?? 0).filter((g) => g > 0);
+  if (birimler.length === 0) return null;
+
+  const fark = k.agirlikG - k.beklenenAgirlikG;
+  return Math.abs(fark) >= Math.min(...birimler) / 2 ? Math.round(fark * 10) / 10 : null;
+}
+
 /** Kutu kartı ve tablolar için tek satırlık baskül özeti: ağırlık · ≈ adet · sapma. */
 export function BaskulSatiri({ kutu }: { kutu: Kutu }) {
   if (!baskulVar(kutu)) return null;
 
   const eski = olcumEskiMi(kutu);
   const sapma = sayimSapmasi(kutu);
+  const gramSapmasi = agirlikSapmasi(kutu);
   const oturuyor = kutu.agirlikKararli !== false;
 
   return (
@@ -91,12 +108,21 @@ export function BaskulSatiri({ kutu }: { kutu: Kutu }) {
       {kutu.tahminiAdet != null && (
         <span className="whitespace-nowrap text-slate-400">≈ {kutu.tahminiAdet} adet</span>
       )}
+      {kutu.bolmeler && kutu.beklenenAgirlikG != null && (
+        <span className="whitespace-nowrap text-slate-400">beklenen {gramMetni(kutu.beklenenAgirlikG)}</span>
+      )}
       {!oturuyor && <span className="text-durum-sari">ölçülüyor…</span>}
       {eski && <span className="text-durum-gri">ölçüm eski</span>}
       {sapma != null && (
         <span className="rozet bg-durum-sari/20 text-durum-sari"
           title="Baskülün saydığı adet, sistemdeki (rezerve dahil) adetle uyuşmuyor">
           sayım farkı {sapma > 0 ? `+${sapma}` : sapma}
+        </span>
+      )}
+      {gramSapmasi != null && (
+        <span className="rozet bg-durum-sari/20 text-durum-sari"
+          title="Ölçülen ağırlık, sistemdeki stokların toplam ağırlığıyla uyuşmuyor">
+          ağırlık farkı {gramSapmasi > 0 ? "+" : ""}{gramMetni(gramSapmasi)}
         </span>
       )}
     </div>
@@ -108,7 +134,7 @@ export function BaskulSatiri({ kutu }: { kutu: Kutu }) {
  * aşılırsa kırmızıya döner (fazla alım) — baskül ağırlık oturunca teyidi kendisi gönderir.
  */
 export function AlinanGram({ kutu }: { kutu: Kutu }) {
-  const birim = kutu.birimAgirlikG;
+  const birim = kutu.aktifBirimAgirlikG ?? kutu.birimAgirlikG;
   const baslangic = kutu.baslangicAgirligiG;
 
   if (!baskulVar(kutu) || !birim || birim <= 0 || baslangic == null || !kutu.alinacakMiktar) return null;

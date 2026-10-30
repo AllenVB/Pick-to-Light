@@ -23,6 +23,15 @@ public sealed class KutularController(CihazServisi cihaz, StokServisi stok) : Co
     public async Task<ActionResult<KutuDto>> Ekle(KutuIstek istek, CancellationToken ct)
         => Ok(await cihaz.KutuEkleAsync(istek, ct));
 
+    /// <summary>
+    /// Karışık kutu: kutuya yeni bir ürün bölmesi ekler. Bölme kendi ürün ve stoğuna sahiptir, ESP32/LED/baskül/kamera
+    /// ana kutuyla ortaktır.
+    /// </summary>
+    [HttpPost("{id:long}/bolmeler")]
+    [Authorize(Roles = "ADMIN")]
+    public async Task<ActionResult<BolmeDto>> BolmeEkle(long id, BolmeIstek istek, CancellationToken ct)
+        => Ok(await cihaz.BolmeEkleAsync(id, istek, ct));
+
     /// <summary>Kutu bilgilerini günceller (ürün ataması, raf, kod, cihaz MAC).</summary>
     [HttpPut("{id:long}")]
     [Authorize(Roles = "ADMIN")]
@@ -52,7 +61,7 @@ public sealed class KutularController(CihazServisi cihaz, StokServisi stok) : Co
     [HttpPost("{id:long}/led-test")]
     [Authorize(Roles = "ADMIN")]
     public async Task<ActionResult<IsikTestiSonucu>> LedTest(long id,
-        [FromQuery] LedRengi renk = LedRengi.Yesil, [FromQuery] int saniye = 10,
+        [FromQuery] LedRengi renk = LedRengi.Yesil, [FromQuery] int saniye = 30,
         CancellationToken ct = default)
         => Ok(await cihaz.LedTestAsync(id, renk, saniye, ct));
 

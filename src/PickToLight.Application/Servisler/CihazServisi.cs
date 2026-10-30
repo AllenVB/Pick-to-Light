@@ -13,6 +13,7 @@ public sealed class CihazServisi(
     IAppDbContext db,
     IMqttYayinci mqtt,
     IStokDeposu stokDeposu,
+    LedTestDurumu ledTestDurumu,
     IBildirimYayinci bildirim,
     AlarmServisi alarmServisi,
     IZamanSaglayici zaman,
@@ -63,6 +64,7 @@ public sealed class CihazServisi(
         var degisti = kutu.BaglantiDurumu != durum;
         kutu.BaglantiDurumu = durum;
         kutu.SonGorulme = zaman.Simdi;
+        await BolmeleriSenkronlaAsync(kutu, ct);
 
         // Çevrimdışı mesajı (LWT) telemetri taşımaz; son bilinen değerler korunur.
         if (firmware is not null) kutu.FirmwareSurumu = firmware;
@@ -104,13 +106,14 @@ public sealed class CihazServisi(
     public async Task<BaskulKomutSonucu> BaskulKomutuAsync(long kutuId, BaskulKomutTipi tip, decimal? referansG,
         CancellationToken ct = default)
     {
-        var kutu = await db.Kutular.FirstOrDefaultAsync(k => k.Id == kutuId, ct)
-                   ?? throw new KayitBulunamadiException("Kutu", kutuId);
+        var kutu = await CihazKutusuAsync(kutuId, ct);
+        kutuId = kutu.Id;
 
         if (tip == BaskulKomutTipi.Kalibre && referansG is not > 0)
             throw new DomainException("gecersiz-agirlik", "Kalibrasyon için üstteki bilinen ağırlığı (g) girin.");
 
-        var mesgul = await db.SiparisKalemleri.AnyAsync(k => k.KutuId == kutuId && k.Durum == KalemDurumu.IsikYandi, ct);
+        var mesgul = await db.SiparisKalemleri.AnyAsync(
+            k => (k.KutuId == kutuId || k.Kutu!.AnaKutuId == kutuId) && k.Durum == KalemDurumu.IsikYandi, ct);
         if (mesgul)
             throw new DomainException("kutu-mesgul", "Kutunun ışığı yanıyor; toplama bitmeden baskül ayarı yapılamaz.");
 
@@ -118,6 +121,96 @@ public sealed class CihazServisi(
         log.LogInformation("Baskül komutu: kutu {Kod} → {Tip} ({Referans} g)", kutu.Kod, tip, referansG);
 
         return new BaskulKomutSonucu($"{kutu.MqttTopic}/komut", tip.ToString().ToUpperInvariant(), kutu.CevrimiciMi);
+    }
+
+    /// <summary>
+    /// Bölmeler cihazı ana kutuyla paylaşır: bağlantı durumu ve son görülme ana kutudan yansıtılır.
+    /// (Toplama, kutu seçerken bağlantıyı bölme kaydından okur.)
+    /// </summary>
+    private async Task BolmeleriSenkronlaAsync(Kutu ana, CancellationToken ct)
+    {
+        if (ana.AnaKutuId is not null)
+            return;
+
+        var bolmeler = await db.Kutular.Where(k => k.AnaKutuId == ana.Id).ToListAsync(ct);
+        foreach (var bolme in bolmeler)
+        {
+            bolme.BaglantiDurumu = ana.BaglantiDurumu;
+            bolme.SonGorulme = ana.SonGorulme;
+        }
+    }
+
+    /// <summary>
+    /// Karışık kutu: mevcut bir kutuya yeni bir ürün bölmesi ekler. Bölme kendi ürününe ve stoğuna sahiptir;
+    /// ESP32, LED, baskül ve kamera ana kutuyla ortaktır. Siparişte bölmenin ürünü istendiğinde ana kutunun
+    /// ışığı yanar, kamera hangi ürünün alındığını söyler ve stok o bölmeden düşer.
+    /// </summary>
+    public async Task<BolmeDto> BolmeEkleAsync(long anaKutuId, BolmeIstek istek, CancellationToken ct = default)
+    {
+        var ana = await db.Kutular.Include(k => k.Urun).FirstOrDefaultAsync(k => k.Id == anaKutuId, ct)
+                  ?? throw new KayitBulunamadiException("Kutu", anaKutuId);
+
+        if (ana.AnaKutuId is not null)
+            throw new DomainException("ic-ice-bolme", "Bölmeye bölme eklenemez; ana kutuyu seçin.");
+
+        var kod = istek.Kod.Trim();
+        if (string.IsNullOrWhiteSpace(kod))
+            throw new DomainException("gecersiz-kod", "Bölme kodu boş olamaz.");
+        if (await db.Kutular.AnyAsync(k => k.Kod == kod, ct))
+            throw new DomainException("mukerrer-kutu", "Bu kodla kayıtlı bir kutu zaten var.");
+
+        var urun = await db.Urunler.FirstOrDefaultAsync(u => u.Id == istek.UrunId, ct)
+                   ?? throw new KayitBulunamadiException("Ürün", istek.UrunId);
+
+        if (ana.UrunId == urun.Id || await db.Kutular.AnyAsync(k => k.AnaKutuId == ana.Id && k.UrunId == urun.Id, ct))
+            throw new DomainException("mukerrer-urun", "Bu ürün bu kutuda zaten bir bölmede tutuluyor.");
+
+        // MAC benzersizdir; bölme, ana kutunun MAC'ine sıra eki alır (ör. "AA:BB:...:01#B1").
+        var sira = await db.Kutular.CountAsync(k => k.AnaKutuId == ana.Id, ct) + 1;
+        string mac;
+        while (true)
+        {
+            mac = $"{ana.CihazMac}#B{sira}";
+            var aday = mac;
+            if (!await db.Kutular.AnyAsync(k => k.CihazMac == aday, ct)) break;
+            sira++;
+        }
+
+        var bolme = new Kutu
+        {
+            Kod = kod,
+            UrunId = urun.Id,
+            AnaKutuId = ana.Id,
+            CihazMac = mac,
+            MqttTopic = ana.MqttTopic,
+            RafKonumu = istek.RafKonumu ?? ana.RafKonumu,
+            BaglantiDurumu = ana.BaglantiDurumu,
+            SonGorulme = ana.SonGorulme
+        };
+
+        db.Kutular.Add(bolme);
+        await db.SaveChangesAsync(ct);
+
+        bolme.Stok = new Stok { KutuId = bolme.Id, Adet = Math.Max(istek.BaslangicStogu, 0), Guncelleme = zaman.Simdi };
+        await db.SaveChangesAsync(ct);
+
+        await bildirim.CihazDurumDegistiAsync(ana.Id, ana.BaglantiDurumu, ct);
+        log.LogInformation("Bölme eklendi: {Ana} → {Bolme} ({Urun})", ana.Kod, bolme.Kod, urun.Ad);
+
+        return new BolmeDto(bolme.Id, bolme.Kod, urun.Id, urun.Ad, urun.BirimAgirlikG, bolme.Stok.Adet,
+            urun.GuvenlikStogu, 0, null, false);
+    }
+
+    /// <summary>Verilen kutu bir bölmeyse cihazı taşıyan ana kutuyu, değilse kutunun kendisini döndürür.</summary>
+    private async Task<Kutu> CihazKutusuAsync(long kutuId, CancellationToken ct)
+    {
+        var kutu = await db.Kutular.FirstOrDefaultAsync(k => k.Id == kutuId, ct)
+                   ?? throw new KayitBulunamadiException("Kutu", kutuId);
+
+        if (kutu.AnaKutuId is null)
+            return kutu;
+
+        return await db.Kutular.FirstAsync(k => k.Id == kutu.AnaKutuId, ct);
     }
 
     public async Task<long?> MacIleKutuIdAsync(string cihazMac, CancellationToken ct = default)
@@ -139,6 +232,8 @@ public sealed class CihazServisi(
             await bildirim.CihazDurumDegistiAsync(kutu.Id, BaglantiDurumu.Online, ct);
         }
 
+        await BolmeleriSenkronlaAsync(kutu, ct);
+
         await db.SaveChangesAsync(ct);
     }
 
@@ -153,11 +248,13 @@ public sealed class CihazServisi(
     public async Task<IsikTestiSonucu> LedTestAsync(long kutuId, LedRengi renk, int saniye = 10,
         CancellationToken ct = default)
     {
-        var kutu = await db.Kutular.FirstOrDefaultAsync(k => k.Id == kutuId, ct)
-                   ?? throw new KayitBulunamadiException("Kutu", kutuId);
+        var kutu = await CihazKutusuAsync(kutuId, ct);
 
         var sure = Math.Clamp(saniye, 1, 30);
         var mesajId = Guid.NewGuid();
+
+        // Test ışığı kutu listesinde de görünsün (operatör ekranı, pano): süre dolana kadar kayıtlı kalır.
+        ledTestDurumu.Baslat(kutu.Id, renk, zaman.Simdi.AddSeconds(sure));
 
         await mqtt.LedYakAsync(new LedKomutu(mesajId, kutu.Id, kutu.MqttTopic, renk, 0, null, sure), ct);
         await bildirim.KutuIsikDegistiAsync(kutu.Id, renk, 0, null, ct);
@@ -179,7 +276,7 @@ public sealed class CihazServisi(
         if (!aktif)
         {
             var mesgul = await db.SiparisKalemleri
-                .AnyAsync(k => k.KutuId == kutuId
+                .AnyAsync(k => (k.KutuId == kutuId || k.Kutu!.AnaKutuId == kutuId)
                                && (k.Durum == KalemDurumu.IsikYandi || k.Durum == KalemDurumu.Sirada), ct);
 
             if (mesgul)
@@ -188,6 +285,14 @@ public sealed class CihazServisi(
         }
 
         kutu.Aktif = aktif;
+
+        // Ana kutu devreden çıkınca bölmeleri de çıkar: cihaz olmadan bölmeden toplama yapılamaz.
+        if (kutu.AnaKutuId is null)
+        {
+            foreach (var bolme in await db.Kutular.Where(k => k.AnaKutuId == kutu.Id).ToListAsync(ct))
+                bolme.Aktif = aktif;
+        }
+
         await db.SaveChangesAsync(ct);
 
         log.LogInformation("Kutu {Kod} {Durum}.", kutu.Kod, aktif ? "yeniden devreye alındı" : "arşivlendi");
@@ -272,7 +377,7 @@ public sealed class CihazServisi(
         var sinir = zaman.Simdi.AddSeconds(-esikSaniye);
 
         var sessizler = await db.Kutular
-            .Where(k => k.BaglantiDurumu == BaglantiDurumu.Online
+            .Where(k => k.AnaKutuId == null && k.BaglantiDurumu == BaglantiDurumu.Online
                         && (k.SonGorulme == null || k.SonGorulme < sinir))
             .ToListAsync(ct);
 

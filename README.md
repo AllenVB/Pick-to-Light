@@ -133,6 +133,28 @@ Baskül kutu **içeriğinin** gramını ölçer; adet = gram ÷ ürünün birim 
   ofset/ölçek ESP32'nin NVS'inde saklanır. Firmware: `pio run -t upload -e kutu-baskul`.
 - **Simülatör:** her kutu bir içerik ağırlığı tutar. `--alinan-fark 2` fazla, `-1` eksik alımı dener.
 
+### Kamera (görüntü işleme) ve karışık kutu
+
+Kamera **hangi ürünün alındığını** tanır, baskül gram düşüşünü o ürünün birim ağırlığına böler:
+civata 10 g, somun 20 g → 100 g düşüş = 10 civata **ya da** 5 somun.
+
+- **Görüntü servisi** (`vision/`, Python + OpenCV, port 5100): düz zemindeki nesneleri ayırır; renk, delik, en-boy
+  oranı ve boyutla tanır. Eğitim verisi gerekmez; ürün kameraya gösterilip **Kamera & Tanıma** sayfasından öğretilir
+  (3–5 örnek). Kamera yoksa **sanal sahne** (civata/somun/rondela çizimi) aynı akışı gösterir.
+- **Karışık kutu:** bir kutuya **bölme** eklenir (Kutu & Cihaz → *+ Bölme ekle*). Bölme kendi ürün ve stoğuna sahiptir;
+  ESP32, LED, baskül ve kamera ana kutuyla ortaktır. Pano tek kart gösterir, içinde ürün başına satır vardır.
+- **Teyit:** kamera sipariş edilen ürünü görürse adet o ürünün birim ağırlığından hesaplanır. **Başka bir ürün**
+  görürse (yanlış bölmeden alma) sipariş edilenin rezervasyonu iade edilir, stok alınan ürünün bölmesinden düşer
+  ve `YanlisUrun` alarmı çıkar. Kamera kapalı ya da emin değilse sistem yalnızca baskülle, eskisi gibi çalışır.
+- **Kurulum:** `python -m venv vision\.venv` → `vision\.venv\Scripts\pip install -r vision/requirements.txt`.
+  `sunum-baslat.cmd` servisi sanal sahneyle açar; gerçek kamera için önce `set VISION_KAYNAK=kamera:0`.
+- **Demo:** `bash tools/kamera-demo.sh` (Civata/Somun ürünleri, K-06 karışık kutusu, öğretme) →
+  `bash tools/kamera-demo.sh senaryo` (somun siparişi) · `... yanlis` (simülatör `--kamera-urun somun` ile).
+- **Testler:** `cd vision && .venv\Scripts\python -m pytest` · doğruluk ölçümü: `.venv\Scripts\python olcum.py`.
+
+> Sanal sahnede tanıma doğruluğu %100'dür (şekiller belirgin); gerçek kamerada ışık ve zemin etkiler, ürün
+> öğretilirken sahnenin gerçek koşullarda olması gerekir.
+
 ---
 
 ## Proje yapısı
@@ -203,7 +225,7 @@ her kutuya ayrı kullanıcı/parola ve ACL üretir (kutu yalnızca kendi topic'l
 ## Testler
 
 ```bash
-dotnet test                     # 169 test: birim (87) + entegrasyon (82)
+dotnet test                     # 189 test: birim (104) + entegrasyon (85)
 cd web && npm run test:e2e      # 10 uçtan uca tarayıcı testi (Playwright)
 ```
 

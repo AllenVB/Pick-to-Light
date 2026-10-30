@@ -28,12 +28,18 @@ public sealed class KutuConfig : IEntityTypeConfiguration<Kutu>
         b.HasKey(x => x.Id);
         b.Property(x => x.Kod).HasMaxLength(20).IsRequired();
         b.HasIndex(x => x.Kod).IsUnique();
-        b.Property(x => x.CihazMac).HasMaxLength(17).IsRequired();
+        // 17 karakter MAC + bölme eki ("#B2"): bölmeler ana kutunun MAC'ine ek alarak benzersiz kalır.
+        b.Property(x => x.CihazMac).HasMaxLength(24).IsRequired();
         b.HasIndex(x => x.CihazMac).IsUnique();
         b.Property(x => x.MqttTopic).HasMaxLength(60).HasDefaultValue(string.Empty);
         b.Property(x => x.RafKonumu).HasMaxLength(30);
         b.Property(x => x.BaglantiDurumu).HasConversion<string>().HasMaxLength(10);
         b.HasIndex(x => x.UrunId);
+        b.HasIndex(x => x.AnaKutuId);
+
+        // Bölme, ana kutu silinirse sahipsiz kalmasın: ana kutu zaten silinmez (arşivlenir), kısıt yine de Restrict.
+        b.HasOne(x => x.AnaKutu).WithMany(k => k.Bolmeler).HasForeignKey(x => x.AnaKutuId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         b.HasOne(x => x.Urun)
             .WithMany(u => u.Kutular)
@@ -109,6 +115,9 @@ public sealed class SiparisKalemiConfig : IEntityTypeConfiguration<SiparisKalemi
         b.Property(x => x.TeyitYontemi).HasConversion<string>().HasMaxLength(10);
         b.Property(x => x.BaslangicAgirligiG).HasPrecision(10, 2);
         b.Property(x => x.OlculenAgirlikG).HasPrecision(10, 2);
+        b.Property(x => x.TespitGuveni).HasPrecision(5, 4);
+        b.HasOne(x => x.TespitEdilenUrun).WithMany().HasForeignKey(x => x.TespitEdilenUrunId)
+            .OnDelete(DeleteBehavior.SetNull);
 
         // İdempotenlik anahtarı: aynı teyit iki kez işlenemez (NFR-03).
         b.HasIndex(x => x.MesajId).IsUnique().HasFilter("mesaj_id IS NOT NULL");

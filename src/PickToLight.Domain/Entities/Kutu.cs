@@ -40,6 +40,18 @@ public class Kutu
     /// <summary>Cihazın yerel ağdaki adresi (durum mesajındaki <c>ip</c>).</summary>
     public string? IpAdresi { get; set; }
 
+    /// <summary>
+    /// Karışık kutu: bu kayıt başka bir kutunun <b>bölmesi</b> ise ana kutunun kimliği. Bölme kendi ürününe
+    /// ve stoğuna sahiptir ama cihazı (ESP32, LED, baskül, kamera) ana kutuyla paylaşır. Ana kutunun
+    /// kendisi bu alanı boş bırakır; iç içe bölme yoktur.
+    /// </summary>
+    public long? AnaKutuId { get; set; }
+    public Kutu? AnaKutu { get; set; }
+    public ICollection<Kutu> Bolmeler { get; set; } = new List<Kutu>();
+
+    /// <summary>Cihazı temsil eden kutunun kimliği: bölmede ana kutu, aksi halde kendisi.</summary>
+    public long CihazKutuId => AnaKutuId ?? Id;
+
     public Stok? Stok { get; set; }
 
     public bool CevrimiciMi => BaglantiDurumu == BaglantiDurumu.Online;

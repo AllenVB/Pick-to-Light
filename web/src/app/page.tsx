@@ -6,7 +6,7 @@ import { api } from "@/lib/api";
 import { useCanliOlaylar } from "@/hooks/useCanliOlaylar";
 import { useKorumaliSayfa } from "@/hooks/useKorumaliSayfa";
 import { KutuKarti } from "@/components/KutuKarti";
-import { canliKutular, sayimSapmasi, useCanliAgirlik } from "@/components/Baskul";
+import { agirlikSapmasi, canliKutular, gramMetni, sayimSapmasi, useCanliAgirlik } from "@/components/Baskul";
 import { OncelikRozeti, SiparisRozeti } from "@/components/Rozet";
 import { BosDurum, IskeletKart } from "@/components/Durumlar";
 import type { Alarm, Kutu, SiparisOzet } from "@/types";
@@ -36,6 +36,14 @@ export default function PanoSayfasi() {
 
   useEffect(() => { if (oturum) yenile(); }, [oturum, yenile]);
 
+  // LED testi süresi dolunca sunucudan olay gelmez; test ışığı varken pano periyodik tazelenir.
+  const testVar = hamKutular.some((k) => k.testIsigi);
+  useEffect(() => {
+    if (!testVar) return;
+    const t = setInterval(yenile, 3000);
+    return () => clearInterval(t);
+  }, [testVar, yenile]);
+
   // Canlı akış: stok, ışık, alarm ve cihaz olayları panoyu anında tazeler (FR-10).
   useCanliOlaylar({
     StokGuncellendi: yenile,
@@ -59,8 +67,8 @@ export default function PanoSayfasi() {
 
   // Baskül saydığı adet ile sistem stoğu (rezerve dahil) uyuşmayan kutular: sayım önerilir.
   const sapmalilar = kutular
-    .map((k) => ({ k, fark: sayimSapmasi(k) }))
-    .filter((x): x is { k: Kutu; fark: number } => x.fark !== null);
+    .map((k) => ({ k, fark: sayimSapmasi(k), gram: agirlikSapmasi(k) }))
+    .filter((x) => x.fark !== null || x.gram !== null);
 
   return (
     <div className="space-y-6">
@@ -78,8 +86,9 @@ export default function PanoSayfasi() {
           <p className="text-sm text-durum-sari">
             <span aria-hidden className="mr-2">⚖</span>
             <b>Baskül ile stok uyuşmuyor:</b>{" "}
-            {sapmalilar.map(({ k, fark }) =>
-              `${k.kod} (baskül ${k.tahminiAdet}, sistem ${k.beklenenFizikselAdet}, fark ${fark > 0 ? "+" : ""}${fark})`
+            {sapmalilar.map(({ k, fark, gram }) => gram !== null
+              ? `${k.kod} (ölçülen ${gramMetni(k.agirlikG ?? 0)}, beklenen ${gramMetni(k.beklenenAgirlikG ?? 0)}, fark ${gram > 0 ? "+" : ""}${gramMetni(gram)})`
+              : `${k.kod} (baskül ${k.tahminiAdet}, sistem ${k.beklenenFizikselAdet}, fark ${(fark ?? 0) > 0 ? "+" : ""}${fark})`
             ).join(" · ")}
           </p>
           <Link href="/stok" className="dugme-ikincil dugme-kucuk">Stok ekranında düzelt</Link>

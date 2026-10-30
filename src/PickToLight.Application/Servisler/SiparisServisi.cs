@@ -27,7 +27,8 @@ public sealed class SiparisServisi(
     IZamanSaglayici zaman,
     IOturumKullanicisi oturum,
     IOptions<PickToLightAyarlari> ayarlar,
-    ILogger<SiparisServisi> log)
+    ILogger<SiparisServisi> log,
+    IGoruntuTanima? goruntu = null)
 {
     private readonly PickToLightAyarlari _ayar = ayarlar.Value;
 
@@ -308,10 +309,79 @@ public sealed class SiparisServisi(
     private async Task AgirlikTeyidiniIsleAsync(SiparisKalemi kalem, decimal olculenG, CancellationToken ct)
     {
         var birim = kalem.Urun.BirimAgirlikG!.Value;
-        var olculenAdet = (int)Math.Round(olculenG / birim, MidpointRounding.AwayFromZero);
         var kutuKod = kalem.Kutu?.Kod ?? "?";
 
         kalem.OlculenAgirlikG = olculenG;
+
+        // Kamera: ne alındığını görüntüden tespit eder. Adet, tespit edilen ürünün birim
+        // ağırlığına bölünerek bulunur (civata 10 g, somun 20 g → aynı düşüş farklı adet eder).
+        var tespit = goruntu is null || kalem.KutuId is null
+            ? null
+            : await goruntu.SonTespitAsync(kalem.KutuId.Value, ct);
+
+        if (tespit?.UrunId is { } tespitId)
+        {
+            kalem.TespitEdilenUrunId = tespitId;
+            kalem.TespitGuveni = tespit.Guven;
+
+            if (tespitId != kalem.UrunId)
+            {
+                // Beklenenden farklı ürün alındı: adet, ALINAN ürünün birim ağırlığına bölünerek bulunur.
+                var alinan = await db.Urunler.FirstOrDefaultAsync(u => u.Id == tespitId, ct);
+                var alinanBirim = alinan?.BirimAgirlikG is > 0 ? alinan.BirimAgirlikG!.Value : (decimal?)null;
+                var alinanAdet = alinanBirim is null
+                    ? (int?)null
+                    : (int)Math.Round(olculenG / alinanBirim.Value, MidpointRounding.AwayFromZero);
+                kalem.OlculenAdet = alinanAdet;
+
+                // Karışık kutu: alınan ürün aynı cihazın başka bir bölmesindeyse stok o bölmeden düşer ve
+                // sipariş edilen ürünün rezervasyonu geri verilir. Başka yerde tutuluyorsa stok değişmez.
+                var cihazId = kalem.Kutu?.CihazKutuId;
+                var bolme = alinanAdet is > 0 && cihazId is not null && kalem.KutuId is not null
+                    ? await db.Kutular.FirstOrDefaultAsync(
+                        k => (k.Id == cihazId || k.AnaKutuId == cihazId) && k.UrunId == tespitId, ct)
+                    : null;
+
+                if (bolme is not null && alinanAdet is { } adet)
+                {
+                    var kameraAciklama = $"Kamera düzeltmesi: {kalem.Urun.Ad} istendi, {tespit.UrunAdi} alındı ({olculenG:0.#} g = {adet} adet)";
+
+                    var iade = await stokDeposu.ArtirAsync(kalem.KutuId!.Value, kalem.Miktar, kalem.Id,
+                        oturum.PersonelId, kameraAciklama, ct);
+                    kalem.StokRezerveEdildi = false;
+
+                    var dus = await stokDeposu.DusAsync(bolme.Id, adet, kalem.Id, oturum.PersonelId, kameraAciklama, ct);
+                    var dusulen = adet;
+                    if (!dus.Basarili)
+                    {
+                        // Alınan ürünün stoğu yetmiyor: eldeki kadarı düşülür, fark sayım gerektirir.
+                        dusulen = Math.Max(dus.OncekiAdet, 0);
+                        if (dusulen > 0)
+                            dus = await stokDeposu.DusAsync(bolme.Id, dusulen, kalem.Id, oturum.PersonelId, kameraAciklama, ct);
+                    }
+
+                    await alarmServisi.UretAsync(AlarmTipi.YanlisUrun,
+                        $"{kutuKod}: {kalem.Urun.Ad} bekleniyordu, kamera {tespit.UrunAdi} tespit etti (%{tespit.Guven * 100:0}). " +
+                        $"Baskül {olculenG:0.#} g = {adet} adet {tespit.UrunAdi}; stok {bolme.Kod} bölmesinden düşüldü" +
+                        (dusulen < adet ? $" (yalnızca {dusulen} adet düşülebildi — sayım şart)." : ".") +
+                        $" {kalem.Urun.Ad} rezervasyonu iade edildi, sipariş kalemini kontrol edin.",
+                        kalem.KutuId, kalem.SiparisId, ct);
+
+                    await bildirim.StokGuncellendiAsync(kalem.KutuId.Value, iade.SonrakiAdet, null, ct);
+                    await bildirim.StokGuncellendiAsync(bolme.Id, dus.SonrakiAdet, null, ct);
+                    return;
+                }
+
+                await alarmServisi.UretAsync(AlarmTipi.YanlisUrun,
+                    $"{kutuKod}: {kalem.Urun.Ad} bekleniyordu, kamera {tespit.UrunAdi ?? "başka bir ürün"} tespit etti " +
+                    $"(%{tespit.Guven * 100:0}); baskül {olculenG:0.#} g" +
+                    (alinanAdet is null ? "." : $" = {alinanAdet} adet. Bu ürün kutuda tanımlı değil, stok değiştirilmedi; kontrol edin."),
+                    kalem.KutuId, kalem.SiparisId, ct);
+                return;
+            }
+        }
+
+        var olculenAdet = (int)Math.Round(olculenG / birim, MidpointRounding.AwayFromZero);
 
         if (olculenAdet <= 0)
         {
@@ -373,7 +443,8 @@ public sealed class SiparisServisi(
         if (kalem is null && olay.KutuId.HasValue)
         {
             kalem = await db.SiparisKalemleri
-                .Where(k => k.KutuId == olay.KutuId && k.Durum == KalemDurumu.IsikYandi)
+                .Where(k => (k.KutuId == olay.KutuId || k.Kutu!.AnaKutuId == olay.KutuId)
+                            && k.Durum == KalemDurumu.IsikYandi)
                 .OrderBy(k => k.IsikYanmaZamani)
                 .FirstOrDefaultAsync(ct);
         }
@@ -496,7 +567,7 @@ public sealed class SiparisServisi(
         // Birim ağırlığı tanımlı üründe cihaza beklenen gram da gönderilir (otomatik teyit eşiği).
         var birim = kalem.Urun?.BirimAgirlikG is > 0 ? kalem.Urun.BirimAgirlikG : null;
         kalem.BaslangicAgirligiG = await db.Stoklar
-            .Where(st => st.KutuId == kutu.Id)
+            .Where(st => st.KutuId == kutu.CihazKutuId)
             .Select(st => st.SonAgirlikG)
             .FirstOrDefaultAsync(ct);
 
@@ -515,11 +586,15 @@ public sealed class SiparisServisi(
     /// </summary>
     private async Task SiradakiniYakAsync(long kutuId, CancellationToken ct)
     {
+        // Karışık kutuda ışık cihazındır: aynı cihazın herhangi bir bölmesi için bekleyen kalem sırayla yanar.
+        var cihazId = await db.Kutular.Where(k => k.Id == kutuId)
+            .Select(k => k.AnaKutuId ?? k.Id).FirstOrDefaultAsync(ct);
+
         var siradaki = await db.SiparisKalemleri
             .Include(k => k.Kutu)
             .Include(k => k.Siparis)
             .Include(k => k.Urun)
-            .Where(k => k.KutuId == kutuId && k.Durum == KalemDurumu.Sirada)
+            .Where(k => (k.KutuId == cihazId || k.Kutu!.AnaKutuId == cihazId) && k.Durum == KalemDurumu.Sirada)
             // Acil siparişler öne geçer; eşit öncelikte ilk giren ilk çıkar.
             // Öncelik veritabanında metin olarak saklandığı için enum'a göre sıralamak
             // alfabetik sonuç verir ("Normal" > "Acil"); bu yüzden açık karşılaştırma yapılır.
@@ -534,11 +609,11 @@ public sealed class SiparisServisi(
             return;
 
         // Kutuyu bu kalem adına sahiplen; başka bir işlem önce davrandıysa dokunma.
-        if (!await isikKuyrugu.SahiplenAsync(kutuId, siradaki.Id, ct))
+        if (!await isikKuyrugu.SahiplenAsync(siradaki.Kutu.Id, siradaki.Id, ct))
             return;
 
         var kalanStok = await db.Stoklar
-            .Where(st => st.KutuId == kutuId)
+            .Where(st => st.KutuId == siradaki.Kutu.Id)
             .Select(st => st.Adet)
             .FirstOrDefaultAsync(ct);
 
@@ -617,6 +692,7 @@ public sealed class SiparisServisi(
             .Include(s => s.Kalemler).ThenInclude(k => k.Urun)
             .Include(s => s.Kalemler).ThenInclude(k => k.Kutu).ThenInclude(k => k!.Stok)
             .Include(s => s.Kalemler).ThenInclude(k => k.TeyitEdenPersonel)
+            .Include(s => s.Kalemler).ThenInclude(k => k.TespitEdilenUrun)
             .FirstOrDefaultAsync(s => s.SiparisNo == siparisNo, ct)
             ?? throw new KayitBulunamadiException("Sipariş", siparisNo);
 
@@ -650,7 +726,9 @@ public sealed class SiparisServisi(
                 OlculenAgirlikG: k.OlculenAgirlikG,
                 OlculenAdet: k.OlculenAdet,
                 BaslangicAgirligiG: k.Durum == KalemDurumu.IsikYandi ? k.BaslangicAgirligiG : null,
-                BirimAgirlikG: k.Urun.BirimAgirlikG))
+                BirimAgirlikG: k.Urun.BirimAgirlikG,
+                TespitEdilenUrunAdi: k.TespitEdilenUrun?.Ad,
+                TespitGuveni: k.TespitGuveni))
             .ToList();
 
         return new SiparisDetayDto(siparis.Id, siparis.SiparisNo, siparis.Durum, siparis.Olusturma,

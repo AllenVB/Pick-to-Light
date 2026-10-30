@@ -25,6 +25,15 @@ public sealed class SahteOturum : IOturumKullanicisi
     public string? KorelasyonId => "test-korelasyon";
 }
 
+/// <summary>Kameranın o an gördüğü ürünü testte elle belirlemek için.</summary>
+public sealed class SahteGoruntu : IGoruntuTanima
+{
+    public TanimaSonucu? Sonuc { get; set; }
+
+    public Task<TanimaSonucu?> SonTespitAsync(long kutuId, CancellationToken ct = default)
+        => Task.FromResult(Sonuc);
+}
+
 public sealed class SahteMqtt : IMqttYayinci
 {
     public List<LedKomutu> Yakilanlar { get; } = [];
@@ -98,8 +107,11 @@ public sealed class SahteIsikKuyrugu(AppDbContext db) : IIsikKuyrugu
 {
     public async Task<bool> SahiplenAsync(long kutuId, long kalemId, CancellationToken ct = default)
     {
+        // Işık cihaza ait: karışık kutuda ana kutu ve bölmeleri tek ışığı paylaşır.
+        var cihazId = await db.Kutular.Where(k => k.Id == kutuId).Select(k => k.AnaKutuId ?? k.Id).FirstAsync(ct);
         var mesgul = await db.SiparisKalemleri
-            .AnyAsync(k => k.KutuId == kutuId && k.Durum == KalemDurumu.IsikYandi && k.Id != kalemId, ct);
+            .AnyAsync(k => (k.KutuId == cihazId || k.Kutu!.AnaKutuId == cihazId)
+                           && k.Durum == KalemDurumu.IsikYandi && k.Id != kalemId, ct);
 
         if (mesgul) return false;
 
@@ -225,6 +237,7 @@ public sealed class TestTezgahi : IDisposable
     public AppDbContext Db { get; }
     public SahteMqtt Mqtt { get; } = new();
     public SahteBildirim Bildirim { get; } = new();
+    public SahteGoruntu Goruntu { get; } = new();
     public SahteZaman Zaman { get; } = new();
     public SahteOturum Oturum { get; } = new();
     public SiparisServisi Siparisler { get; }
@@ -246,7 +259,7 @@ public sealed class TestTezgahi : IDisposable
         var kutuSecici = new KutuSecici(Db);
 
         Siparisler = new SiparisServisi(Db, stokDeposu, new SahteIsikKuyrugu(Db), Mqtt, Bildirim, Alarmlar,
-            kutuSecici, Zaman, Oturum, ayarlar, NullLogger<SiparisServisi>.Instance);
+            kutuSecici, Zaman, Oturum, ayarlar, NullLogger<SiparisServisi>.Instance, Goruntu);
 
         Stoklar = new StokServisi(Db, stokDeposu, Bildirim, Oturum, ayarlar);
     }
@@ -316,6 +329,31 @@ public sealed class TestTezgahi : IDisposable
         Db.SaveChanges();
 
         return kutu;
+    }
+
+    /// <summary>Karışık kutu: mevcut kutuya başka bir ürünün bölmesini ekler (cihazı ana kutuyla paylaşır).</summary>
+    public (Urun Urun, Kutu Bolme) BolmeKur(Kutu ana, string sku, int stokAdedi, decimal? birimAgirlik, int guvenlikStogu = 5)
+    {
+        var urun = new Urun { Sku = sku, Ad = $"Ürün {sku}", GuvenlikStogu = guvenlikStogu, BirimAgirlikG = birimAgirlik };
+        Db.Urunler.Add(urun);
+        Db.SaveChanges();
+
+        var bolme = new Kutu
+        {
+            Kod = $"{ana.Kod}-{sku}",
+            UrunId = urun.Id,
+            AnaKutuId = ana.Id,
+            CihazMac = $"{ana.CihazMac}#B{Db.Kutular.Count()}",
+            MqttTopic = ana.MqttTopic,
+            BaglantiDurumu = ana.BaglantiDurumu,
+            RafKonumu = ana.RafKonumu
+        };
+        Db.Kutular.Add(bolme);
+        Db.SaveChanges();
+
+        bolme.Stok = new Stok { KutuId = bolme.Id, Adet = stokAdedi };
+        Db.SaveChanges();
+        return (urun, bolme);
     }
 
     public int StokAdedi(long kutuId) => Db.Stoklar.AsNoTracking().First(s => s.KutuId == kutuId).Adet;

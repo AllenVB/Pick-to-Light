@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"><title>Pick-to-Light · Sunum Notları</title>
+<style>
+@page { size: A4; margin: 16mm 15mm 18mm; }
+* { box-sizing: border-box; }
+body { font: 10.5pt/1.5 "Segoe UI", Inter, Arial, sans-serif; color: #1e293b; margin: 0; }
+h1 { font-size: 22pt; margin: 0 0 2pt; color: #0f172a; }
+.alt { color: #64748b; margin: 0 0 14pt; font-size: 10.5pt; }
+h2 { font-size: 13pt; margin: 16pt 0 6pt; padding-bottom: 3pt; border-bottom: 2px solid #0d9488; color: #0f172a; break-after: avoid; }
+ul { margin: 4pt 0 6pt; padding-left: 16pt; } li { margin: 2.5pt 0; }
+ol { margin: 4pt 0 6pt; padding-left: 18pt; } ol li { margin: 3pt 0; }
+b { color: #0f172a; }
+table { border-collapse: collapse; width: 100%; margin: 6pt 0; font-size: 10pt; }
+th, td { border: 1px solid #cbd5e1; padding: 4pt 7pt; text-align: left; vertical-align: top; }
+th { background: #f1f5f9; }
+tr { break-inside: avoid; }
+.yes { color: #15803d; font-weight: 700; } .no { color: #b91c1c; font-weight: 700; }
+.kutu { border: 1px solid #cbd5e1; border-left: 4px solid #0d9488; background: #f8fafc; padding: 6pt 10pt; margin: 8pt 0; break-inside: avoid; }
+.led { display:inline-block; width:9pt; height:9pt; border-radius:50%; margin-right:4pt; vertical-align:-1pt; }
+code { font-family: Consolas, monospace; background: #f1f5f9; padding: 0 3pt; border-radius: 3px; }
+</style></head><body>
+
+<h1>Pick-to-Light · Sunum Notları</h1>
+<p class="alt">Akıllı Depo: LED ile toplama, anlık stok yönetimi ve baskülle adet sayımı</p>
+
+<h2>1. Sistem ne yapıyor</h2>
+<ul>
+<li>Sipariş numarasına göre doğru kutuyu <b>LED ile gösteriyor</b>.</li>
+<li>Operatör ürünü alınca <b>stok otomatik düşüyor</b>.</li>
+<li>Stok yetersizse <b>alarm veriyor</b>, LED yanmıyor ve sipariş kilitleniyor.</li>
+<li>Yeni özellik: kutunun altındaki <b>baskül</b> gramajdan adet sayıyor. 100 g düşüş ÷ 10 g birim = 10 adet.</li>
+</ul>
+
+<h2>2. LED renk mantığı</h2>
+<ul>
+<li><span class="led" style="background:#22c55e"></span><b>Yeşil:</b> stok yeterli, güvenlik stoğu korunuyor.</li>
+<li><span class="led" style="background:#eab308"></span><b>Sarı:</b> sipariş karşılanır ama stok kritik seviyeye iner. Uyarı ve tedarik talebi açılır.</li>
+<li><span class="led" style="background:#ef4444"></span><b>Kırmızı:</b> stok yetersiz. LED yanmaz, alarm çıkar, sipariş kilitlenir.</li>
+</ul>
+
+<h2>3. Teknik güçlü yanlar</h2>
+<ul>
+<li><b>Atomik stok düşme:</b> İki operatör aynı kutudan aynı anda alsa bile stok negatife düşmez. Kontrol ve düşme tek bir veritabanı işleminde yapılır.</li>
+<li><b>Rezervasyon:</b> Stok sipariş başlarken ayrılır. Yanan yeşil ışık "bu ürün sana ayrıldı" demektir.</li>
+<li><b>Kalem bölme:</b> Bir ürün birden çok kutudaysa sipariş kutulara bölünür.</li>
+<li><b>Kutu kuyruğu ve öncelik:</b> Aynı kutuyu bekleyen siparişler sıraya girer, acil siparişler öne geçer.</li>
+<li><b>Zaman aşımı:</b> 5 dakika içinde teyit gelmezse ışık söner ve stok iade edilir.</li>
+<li><b>Haberleşme:</b> ESP32 ile MQTT kullanılıyor, bağlantı koparsa mesajlar kaybolmuyor.</li>
+<li><b>Canlı arayüz:</b> Sayfalar yenilenmeden anında güncelleniyor (SignalR).</li>
+</ul>
+
+<h2>4. Baskül (öne çıkan yenilik)</h2>
+<ul>
+<li>Operatör ürünü alınca ağırlık düşer ve sistem <b>teyidi kendisi verir</b>, buton gerekmez.</li>
+<li>Gerçek adet hesaplanır. İstenen 10, alınan 12 ise stok gerçek adede göre düşer ve alarm çıkar.</li>
+<li>Panoda <b>canlı gram ve ≈ adet</b> görünür. Baskül sistem stoğuyla uyuşmazsa uyarı bandı çıkar.</li>
+<li>Yönetici baskülü sıfırlayabilir (tare), kalibre edebilir ve baskül adedini stoka yazabilir.</li>
+</ul>
+
+<h2>5. Kim ne yapabilir</h2>
+<table>
+<tr><th>İşlem</th><th>Operatör</th><th>Yönetici</th></tr>
+<tr><td>Canlı pano, siparişler, operatör ekranı, alarmları görme</td><td class="yes">✔</td><td class="yes">✔</td></tr>
+<tr><td>Sipariş oluşturma, başlatma, iptal etme</td><td class="yes">✔</td><td class="yes">✔</td></tr>
+<tr><td>Elle teyit (sensör çalışmazsa)</td><td class="yes">✔</td><td class="yes">✔</td></tr>
+<tr><td>Stok durumunu görme</td><td>salt okunur</td><td class="yes">✔</td></tr>
+<tr><td>Mal kabul, sayım, ağırlıktan sayım</td><td class="no">✘</td><td class="yes">✔</td></tr>
+<tr><td>Ürün ve kutu yönetimi, LED testi, baskül tare ve kalibrasyon</td><td class="no">✘</td><td class="yes">✔</td></tr>
+<tr><td>Toplu aktarma, hareket defteri, raporlar, cihaz olayları, personel</td><td class="no">✘</td><td class="yes">✔</td></tr>
+<tr><td>Tedarik talebi durumunu değiştirme</td><td class="no">✘</td><td class="yes">✔</td></tr>
+</table>
+<p>Yönetim sayfaları operatörün menüsünde görünmez. Adres elle yazılsa panoya yönlendirilir. Yetki denetimi backend'de de vardır (403).</p>
+
+<h2>6. Sayfalar ne işe yarıyor</h2>
+<table>
+<tr><th>Sayfa</th><th>Kim</th><th>Amaç</th></tr>
+<tr><td><b>Canlı Pano</b></td><td>Herkes</td><td>Kutuların stoğu, rengi, gramı, cihaz sağlığı ve son siparişler. Anlık güncellenir.</td></tr>
+<tr><td><b>Sipariş Girişi</b></td><td>Herkes</td><td>Ürünü SKU veya barkodla seçip sipariş oluşturur. Normal ya da acil öncelik verilir.</td></tr>
+<tr><td><b>Siparişler</b></td><td>Herkes</td><td>Sipariş listesi, başlatma ve iptal. Detayda kalem durumu, teyit eden kişi, toplama süresi ve baskül ölçümü görünür.</td></tr>
+<tr><td><b>Operatör Ekranı</b></td><td>Herkes</td><td>Depoda büyük ekranda hangi kutudan kaç adet alınacağı. Alınan gram canlı dolar, teyitte bildirim çıkar.</td></tr>
+<tr><td><b>Stok Durumu</b></td><td>Herkes (yönetici düzenler)</td><td>Kutu stokları ve baskül ölçümü. Yönetici mal kabul, sayım ve ağırlıktan sayım yapar.</td></tr>
+<tr><td><b>Alarmlar</b></td><td>Herkes</td><td>Stok azaldı, stok yok, cihaz çevrimdışı, ağırlık uyuşmazlığı gibi uyarılar ve tedarik talepleri.</td></tr>
+<tr><td><b>Toplu Aktarma</b></td><td>Yönetici</td><td>CSV ile çok sayıda siparişi bir seferde yükler.</td></tr>
+<tr><td><b>Ürünler</b></td><td>Yönetici</td><td>Ürün kataloğu: birim ağırlık, güvenlik stoğu, arşivleme.</td></tr>
+<tr><td><b>Kutu &amp; Cihaz</b></td><td>Yönetici</td><td>Kutu tanımı, ürün ataması, sinyal, firmware, IP, MAC, LED testi, baskül tare ve kalibrasyon.</td></tr>
+<tr><td><b>Hareket Defteri</b></td><td>Yönetici</td><td>Her stok hareketi: kim, ne zaman, hangi sipariş için ne kadar. İzlenebilirliğin tek kaynağı.</td></tr>
+<tr><td><b>Raporlar</b></td><td>Yönetici</td><td>Toplama süreleri, en çok toplanan ürünler, kutu performansı, kırmızı oranı, günlük hareket.</td></tr>
+<tr><td><b>Cihaz Olayları</b></td><td>Yönetici</td><td>Cihazlardan gelen ham MQTT mesajları; "ışık neden yanmadı?" sorusunun cevabı.</td></tr>
+<tr><td><b>Personel</b></td><td>Yönetici</td><td>Kullanıcı ekleme, rol atama, parola sıfırlama.</td></tr>
+</table>
+
+<h2>7. Canlı demo sırası</h2>
+<ol>
+<li>Panoyu aç, kutu kartlarında gram ve adedi göster.</li>
+<li>Operatör olarak giriş yap. Sipariş oluştur ve başlat, operatör ekranında gramın dolmasını izle.</li>
+<li><code>demo.sh</code> ile yeşil, sarı ve kırmızı senaryoları göster.</li>
+<li>Aynı kutudan iki sipariş senaryosunda stoğun negatife düşmediğini göster.</li>
+<li>Simülatörü <code>--alinan-fark 2</code> ile aç. Fazla alımda stoğun gerçek adede göre düzeldiğini ve alarmın çıktığını göster.</li>
+<li>Yönetici hesabına geç. Menü farkını, raporları ve hareket defterini göster.</li>
+</ol>
+<div class="kutu"><b>Giriş bilgileri (demo):</b> yönetici <code>admin / admin123</code> · operatör <code>operator / operator123</code><br>
+Adres: <code>http://localhost:4001</code></div>
+
+<h2>8. Dürüst olunacak noktalar</h2>
+<ul>
+<li>Baskül verisi şu an simülatörden geliyor. Firmware yazıldı ama gerçek ESP32'de denenmedi.</li>
+<li>Veritabanındaki <code>E2E-</code> ve <code>DEMO-</code> kayıtları test ve demo verisidir, ileri aşamada temizlenecek.</li>
+</ul>
+</body></html>

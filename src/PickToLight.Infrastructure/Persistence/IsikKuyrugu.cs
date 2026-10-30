@@ -23,14 +23,23 @@ public sealed class IsikKuyrugu(AppDbContext db) : IIsikKuyrugu
 
             try
             {
-                // Aynı kutuyu sahiplenmeye çalışan eşzamanlı istekler burada sıraya girer.
+                // Karışık kutuda ışık cihaza aittir: bölmeler ana kutuyla tek bir ışığı paylaşır.
+                // Kilit ve doluluk kontrolü bu yüzden bölme değil cihaz (ana kutu) kimliğiyle yapılır.
+                var cihazId = await db.Database
+                    .SqlQueryRaw<long>(
+                        "SELECT COALESCE(ana_kutu_id, id) AS \"Value\" FROM kutu WHERE id = {0}", kutuId)
+                    .SingleAsync(ct);
+
+                // Aynı cihazı sahiplenmeye çalışan eşzamanlı istekler burada sıraya girer.
                 await db.Database.ExecuteSqlRawAsync(
-                    "SELECT pg_advisory_xact_lock({0})", new object[] { kutuId }, ct);
+                    "SELECT pg_advisory_xact_lock({0})", new object[] { cihazId }, ct);
 
                 var mesgul = await db.Database
                     .SqlQueryRaw<int>(
-                        "SELECT COUNT(*) AS \"Value\" FROM siparis_kalemi WHERE kutu_id = {0} AND durum = 'IsikYandi'",
-                        kutuId)
+                        "SELECT COUNT(*) AS \"Value\" FROM siparis_kalemi " +
+                        "WHERE durum = 'IsikYandi' AND kutu_id IN " +
+                        "(SELECT id FROM kutu WHERE id = {0} OR ana_kutu_id = {0})",
+                        cihazId)
                     .SingleAsync(ct);
 
                 if (mesgul > 0)

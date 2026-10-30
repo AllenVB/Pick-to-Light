@@ -15,6 +15,7 @@ const TIP_RENK: Record<string, string> = {
   TeyitZamanAsimi: "border-durum-sari/40 bg-durum-sari/10 text-durum-sari",
   BeklenmeyenTeyit: "border-durum-kirmizi/40 bg-durum-kirmizi/10 text-durum-kirmizi",
   AgirlikUyusmazligi: "border-durum-sari/40 bg-durum-sari/10 text-durum-sari",
+  YanlisUrun: "border-durum-kirmizi/40 bg-durum-kirmizi/10 text-durum-kirmizi",
 };
 
 export default function AlarmlarSayfasi() {
@@ -52,6 +53,7 @@ export default function AlarmlarSayfasi() {
             <option value="TeyitZamanAsimi">Teyit zaman aşımı</option>
             <option value="BeklenmeyenTeyit">Beklenmeyen teyit</option>
             <option value="AgirlikUyusmazligi">Ağırlık uyuşmazlığı</option>
+            <option value="YanlisUrun">Yanlış ürün (kamera)</option>
           </select>
           <label className="flex items-center gap-2 text-sm text-slate-300">
             <input type="checkbox" checked={sadeceOkunmamis}

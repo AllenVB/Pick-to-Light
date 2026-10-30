@@ -34,13 +34,13 @@ test.describe("Ekranlar", () => {
     const kenar = page.locator("aside");
     await expect(kenar).toContainText("Operatör Ekranı");
     await expect(kenar.getByTestId("rol-rozeti")).toHaveText("Operatör");
-    for (const yol of ["/personeller", "/raporlar", "/urunler", "/kutular", "/hareketler", "/cihaz-olaylari", "/siparis/ice-aktar"]) {
+    for (const yol of ["/personeller", "/raporlar", "/urunler", "/kutular", "/hareketler", "/cihaz-olaylari", "/siparis/ice-aktar", "/kamera"]) {
       await expect(kenar.locator(`a[href="${yol}"]`)).toHaveCount(0);
     }
     await expect(kenar.getByTestId("menu-yonetim")).toHaveCount(0);
 
     // Adresi elle yazsa da yönetim sayfası açılmaz, panoya döner.
-    for (const yol of ["/personeller", "/raporlar", "/kutular"]) {
+    for (const yol of ["/personeller", "/raporlar", "/kutular", "/kamera"]) {
       await page.goto(yol);
       await expect(page).toHaveURL(/\/$/);
     }
@@ -55,9 +55,19 @@ test.describe("Ekranlar", () => {
     const kenar = page.locator("aside");
     await expect(kenar.getByTestId("rol-rozeti")).toHaveText("Yönetici");
     await expect(kenar.getByTestId("menu-yonetim")).toBeVisible();
-    for (const yol of ["/personeller", "/raporlar", "/urunler", "/kutular", "/hareketler", "/cihaz-olaylari", "/siparis/ice-aktar"]) {
+    for (const yol of ["/personeller", "/raporlar", "/urunler", "/kutular", "/hareketler", "/cihaz-olaylari", "/siparis/ice-aktar", "/kamera"]) {
       await expect(kenar.locator(`a[href="${yol}"]`)).toHaveCount(1);
     }
+  });
+
+  test("kamera ve tanıma sayfası görüntü servisi açıkken önizleme, kapalıyken uyarı gösterir", async ({ page }) => {
+    await girisYap(page);
+    await page.goto("/kamera");
+    await expect(page.getByRole("heading", { name: /Kamera & Tanıma/ })).toBeVisible();
+    await expect(page.getByTestId("tespit-karti")).toBeVisible();
+    await expect(page.getByTestId("adet-hesabi")).toBeVisible();
+    // Servis (Python) ayrı bir süreçtir: açıksa canlı görüntü, kapalıysa açıklayıcı uyarı çıkmalı.
+    await expect(page.getByTestId("kamera-onizleme").or(page.getByTestId("vision-kapali"))).toBeVisible();
   });
 
   test("giriş ekranından oturum açılabilir", async ({ page }) => {

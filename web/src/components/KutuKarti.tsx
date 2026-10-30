@@ -60,7 +60,9 @@ export function KutuKarti({ kutu }: { kutu: Kutu }) {
         <div className="min-w-0">
           <p className="etiket">{kutu.kod}</p>
           <p className="mt-0.5 truncate text-sm font-semibold">
-            {kutu.urunAdi ?? <span className="text-slate-500">ürün atanmamış</span>}
+            {kutu.bolmeler
+              ? <span>Karışık kutu · {kutu.bolmeler.length} ürün</span>
+              : kutu.urunAdi ?? <span className="text-slate-500">ürün atanmamış</span>}
           </p>
           <p className="ipucu">{kutu.rafKonumu ?? "konum yok"}</p>
         </div>
@@ -72,16 +74,35 @@ export function KutuKarti({ kutu }: { kutu: Kutu }) {
         />
       </div>
 
-      {/* Stok: sayı + doluluk çubuğu */}
+      {/* Stok: tek ürünlü kutuda sayı + doluluk çubuğu; karışık kutuda ürün başına satır */}
       <div>
-        <div className="flex items-end justify-between">
-          <p className="text-3xl font-extrabold leading-none tabular-nums">{kutu.adet}</p>
-          <p className="ipucu">güvenlik {kutu.guvenlikStogu}</p>
-        </div>
-        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-50/[0.07]">
-          <div className={`h-full rounded-full transition-all ${DOLGU[renk]}`}
-            style={{ width: `${Math.max(doluluk, kutu.adet > 0 ? 4 : 0)}%` }} />
-        </div>
+        {kutu.bolmeler ? (
+          <ul className="space-y-1.5" data-test="bolme-listesi">
+            {kutu.bolmeler.map((b) => (
+              <li key={b.id} className="flex items-center justify-between gap-2 text-sm" data-test="bolme-satiri">
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className={`h-2 w-2 shrink-0 rounded-full ${b.renk ? LAMBA[b.renk] : "bg-durum-gri"}`} />
+                  <span className="truncate">{b.urunAdi ?? "ürün yok"}</span>
+                </span>
+                <span className="shrink-0 tabular-nums">
+                  <b className="text-lg">{b.adet}</b>
+                  {b.birimAgirlikG ? <span className="ipucu ml-1">× {b.birimAgirlikG} g</span> : null}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <>
+            <div className="flex items-end justify-between">
+              <p className="text-3xl font-extrabold leading-none tabular-nums">{kutu.adet}</p>
+              <p className="ipucu">güvenlik {kutu.guvenlikStogu}</p>
+            </div>
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-50/[0.07]">
+              <div className={`h-full rounded-full transition-all ${DOLGU[renk]}`}
+                style={{ width: `${Math.max(doluluk, kutu.adet > 0 ? 4 : 0)}%` }} />
+            </div>
+          </>
+        )}
         {/* Baskül varsa kutunun gerçek ağırlığı ve saydığı adet — sistem stoğuyla karşılaştırılır. */}
         <div className="mt-2"><BaskulSatiri kutu={kutu} /></div>
       </div>
@@ -90,7 +111,7 @@ export function KutuKarti({ kutu }: { kutu: Kutu }) {
       <div className="flex items-center justify-between border-t border-zemin-cizgi/60 pt-2.5">
         {kutu.isikYaniyor ? (
           <span className="rozet bg-marka/25 text-marka-metin">
-            {kutu.alinacakMiktar ? `${kutu.alinacakMiktar} ADET AL` : "IŞIK YANIYOR"}
+            {kutu.testIsigi ? "LED TESTİ" : kutu.alinacakMiktar ? `${kutu.alinacakMiktar} ADET AL` : "IŞIK YANIYOR"}
           </span>
         ) : (
           <span className={`text-[11px] font-bold ${
