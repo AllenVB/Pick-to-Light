@@ -51,7 +51,10 @@ public sealed class RaporServisi(IAppDbContext db, IZamanSaglayici zaman)
                 k.Miktar,
                 k.LedRengi,
                 k.IsikYanmaZamani,
-                k.AlinmaZamani
+                k.AlinmaZamani,
+                k.UrunId,
+                k.OlculenAdet,
+                k.TespitEdilenUrunId
             })
             .ToListAsync(ct);
 
@@ -76,7 +79,15 @@ public sealed class RaporServisi(IAppDbContext db, IZamanSaglayici zaman)
             OrtalamaToplamaSaniye: sureler.Count > 0 ? Math.Round(sureler.Average(), 1) : null,
             KirmiziOrani: renkliKalem == 0 ? 0 : Math.Round((double)kirmizi / renkliKalem * 100, 1),
             AcikTedarikTalebi: await db.TedarikTalepleri.CountAsync(t => t.Durum == TedarikDurumu.Acik, ct),
-            OkunmamisAlarm: await db.Alarmlar.CountAsync(a => !a.Okundu, ct));
+            OkunmamisAlarm: await db.Alarmlar.CountAsync(a => !a.Okundu, ct),
+            BaskulOlculenKalem: kalemler.Count(k => k.Durum == KalemDurumu.Alindi && k.OlculenAdet != null),
+            // Stok düzeltmesi: ölçülen adet istenenden farklıysa ya da kamera başka bir ürün gördüğü için
+            // stok alınan ürünün bölmesine kaydırıldıysa.
+            AgirlikDuzeltmesi: kalemler.Count(k => k.Durum == KalemDurumu.Alindi
+                                                   && ((k.OlculenAdet != null && k.OlculenAdet != k.Miktar)
+                                                       || (k.TespitEdilenUrunId != null && k.TespitEdilenUrunId != k.UrunId))),
+            KameraDogrulananKalem: kalemler.Count(k => k.TespitEdilenUrunId != null && k.TespitEdilenUrunId == k.UrunId),
+            YanlisUrunKalem: kalemler.Count(k => k.TespitEdilenUrunId != null && k.TespitEdilenUrunId != k.UrunId));
     }
 
     public async Task<IReadOnlyList<UrunHareketDto>> EnCokToplananUrunlerAsync(int gun = 30, int limit = 10,

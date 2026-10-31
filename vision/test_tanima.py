@@ -89,6 +89,25 @@ def test_profil_silinince_tanima_durur(depo):
     assert baskin is None or baskin["urunId"] != 2
 
 
+# ───────────────────────────── Kamera sağlığı ─────────────────────────────
+
+def test_ozdes_kareler_donuk_goruntu_sayilir():
+    assert kaynak.kareler_donuk([7] * 8) is True
+
+
+def test_sensor_gurultusu_olan_gercek_kamera_donuk_sayilmaz():
+    assert kaynak.kareler_donuk([1, 2, 3, 4, 5, 6, 7, 8]) is False
+    assert kaynak.kareler_donuk([7, 7, 7, 7, 7, 7, 7, 9]) is False
+
+
+def test_yeterli_kare_gelmeden_karar_verilmez():
+    assert kaynak.kareler_donuk([7, 7, 7]) is False
+
+
+def test_sanal_kaynak_sorunsuzdur():
+    assert kaynak.SimKaynak().sorun is None
+
+
 # ───────────────────────────── HTTP API ─────────────────────────────
 
 @pytest.fixture()
@@ -108,7 +127,9 @@ def _jpg(nesneler, tohum):
 
 
 def test_api_ogret_ve_tani_akisi(api):
-    assert api.get("/saglik").json()["sanal"] is True
+    saglik = api.get("/saglik").json()
+    assert saglik["sanal"] is True
+    assert saglik["kameraSorunu"] is None
 
     for tohum in range(4):
         for urun_id, tip in ((1, "civata"), (2, "somun")):

@@ -85,6 +85,8 @@ def saglik():
     return {
         "durum": "hazir", "kaynak": kaynak.ad, "sanal": kaynak.ad == "sim",
         "kareVar": kaynak.son_kare() is not None, "profilSayisi": len(depo.liste()),
+        # "donuk": kamera açık ama canlı görüntü yok (gizlilik izni / başka uygulama kullanıyor).
+        "kameraSorunu": kaynak.sorun,
     }
 
 

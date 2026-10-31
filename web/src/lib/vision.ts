@@ -36,6 +36,8 @@ export interface VisionSaglik {
   sanal: boolean;
   kareVar: boolean;
   profilSayisi: number;
+  /** "donuk": kamera açık ama canlı görüntü yok (gizlilik izni ya da başka uygulama). */
+  kameraSorunu?: "donuk" | null;
 }
 
 export interface OgretilenProfil {

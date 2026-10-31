@@ -208,6 +208,10 @@ export interface RaporOzet {
   kirmiziOrani: number;
   acikTedarikTalebi: number;
   okunmamisAlarm: number;
+  baskulOlculenKalem: number;
+  agirlikDuzeltmesi: number;
+  kameraDogrulananKalem: number;
+  yanlisUrunKalem: number;
 }
 
 export interface UrunHareket {

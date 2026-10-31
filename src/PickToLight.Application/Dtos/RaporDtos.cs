@@ -11,7 +11,15 @@ public sealed record RaporOzetDto(
     double? OrtalamaToplamaSaniye,
     double KirmiziOrani,
     int AcikTedarikTalebi,
-    int OkunmamisAlarm);
+    int OkunmamisAlarm,
+    /// <summary>Teyidi baskülle ölçülen (gram → adet) toplanmış kalem sayısı.</summary>
+    int BaskulOlculenKalem = 0,
+    /// <summary>Stoğun düzeltildiği kalem sayısı: ölçülen adet istenenden farklı ya da kamera başka ürün gördü.</summary>
+    int AgirlikDuzeltmesi = 0,
+    /// <summary>Kameranın sipariş edilen ürünü doğruladığı kalem sayısı.</summary>
+    int KameraDogrulananKalem = 0,
+    /// <summary>Kameranın sipariş edilenden farklı bir ürün tespit ettiği (yanlış bölmeden alma) kalem sayısı.</summary>
+    int YanlisUrunKalem = 0);
 
 public sealed record UrunHareketDto(long UrunId, string Sku, string UrunAdi, int ToplamCikis, int ToplamaSayisi);
 

@@ -126,6 +126,24 @@ export default function RaporlarSayfasi() {
         </section>
       )}
 
+      {ozet && (
+        <section className="space-y-2" data-test="baskul-kamera-raporu">
+          <h2 className="etiket">Baskül ve kamera</h2>
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            <AltKutucuk baslik="Baskülle ölçülen" deger={ozet.baskulOlculenKalem}
+              alt={ozet.toplananKalem > 0
+                ? `toplanan kalemin %${Math.round((ozet.baskulOlculenKalem / ozet.toplananKalem) * 100)}'i`
+                : "toplanan kalem yok"} />
+            <AltKutucuk baslik="Stok düzeltmesi" deger={ozet.agirlikDuzeltmesi}
+              alt="adet farklı çıktı ya da başka ürün alındı" uyari={ozet.agirlikDuzeltmesi > 0} />
+            <AltKutucuk baslik="Kamera doğruladı" deger={ozet.kameraDogrulananKalem}
+              alt="sipariş edilen ürün görüldü" iyi={ozet.kameraDogrulananKalem > 0} />
+            <AltKutucuk baslik="Yanlış ürün" deger={ozet.yanlisUrunKalem}
+              alt="başka bölmeden alındı" tehlike={ozet.yanlisUrunKalem > 0} />
+          </div>
+        </section>
+      )}
+
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="kart">
           <h2 className="etiket mb-3">En çok toplanan ürünler</h2>
@@ -192,6 +210,19 @@ export default function RaporlarSayfasi() {
           </tbody>
         </table>
       </section>
+    </div>
+  );
+}
+
+function AltKutucuk({ baslik, deger, alt, iyi, uyari, tehlike }: {
+  baslik: string; deger: number; alt: string; iyi?: boolean; uyari?: boolean; tehlike?: boolean;
+}) {
+  const renk = tehlike ? "text-durum-kirmizi" : uyari ? "text-durum-sari" : iyi ? "text-durum-yesil" : "";
+  return (
+    <div className="kart" data-test="rapor-baskul-kpi">
+      <p className="etiket">{baslik}</p>
+      <p className={`mt-1 text-2xl font-extrabold ${renk}`}>{deger}</p>
+      <p className="text-[11px] text-slate-400">{alt}</p>
     </div>
   );
 }

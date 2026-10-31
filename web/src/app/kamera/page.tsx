@@ -135,11 +135,17 @@ export default function KameraSayfasi() {
             )}
           </div>
 
-          {bagli && !saglik.sanal && (
-            <p className="ipucu" data-test="kamera-ipucu">
-              Görüntüde &quot;kamera yok&quot; simgesi çıkıyorsa Windows Ayarlar → Gizlilik → Kamera iznini ve kameranın
-              başka bir uygulamada açık olmadığını kontrol edin. Kamerasız denemek için servisi{" "}
+          {bagli && !saglik.sanal && saglik.kameraSorunu === "donuk" && (
+            <p className="rounded-lg border border-durum-sari/40 bg-durum-sari/10 px-3 py-2 text-sm text-durum-sari"
+              data-test="kamera-donuk">
+              Kameradan canlı görüntü gelmiyor: kare sabit kalıyor. Windows Ayarlar → Gizlilik → Kamera iznini ve
+              kameranın başka bir uygulamada açık olmadığını kontrol edin. Kamerasız denemek için servisi{" "}
               <code>VISION_KAYNAK=sim</code> ile başlatın.
+            </p>
+          )}
+          {bagli && !saglik.sanal && !saglik.kameraSorunu && (
+            <p className="ipucu" data-test="kamera-ipucu">
+              Gerçek kamera kullanılıyor. Ürünleri düz, tek renkli bir zemine koyun ve ışığı sabit tutun.
             </p>
           )}
 

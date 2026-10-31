@@ -15,6 +15,16 @@ import cv2
 import numpy as np
 
 KARE_GEN, KARE_YUK = 640, 480
+DONUK_KARE_SAYISI = 8   # üst üste bu kadar özdeş kare gelirse görüntü "donuk" sayılır
+
+
+def kareler_donuk(ozetler: list[int], pencere: int = DONUK_KARE_SAYISI) -> bool:
+    """
+    Gerçek bir kamera sensör gürültüsü yüzünden iki karesi asla birebir aynı vermez. Üst üste özdeş
+    kareler, görüntünün gerçek olmadığını gösterir: Windows gizlilik izni kapalıyken ya da kamera başka
+    uygulamada açıkken sürücü sabit bir "kamera yok" karesi döndürür.
+    """
+    return len(ozetler) >= pencere and len(set(ozetler[-pencere:])) == 1
 ZEMIN = (225, 225, 225)   # açık gri masa
 
 
@@ -90,6 +100,7 @@ def sahne_ciz(nesneler: list[dict], tohum: int | None = None, gurultu: float = 3
 
 class SimKaynak:
     ad = "sim"
+    sorun = None
 
     def __init__(self):
         self._nesneler: list[dict] = []
@@ -116,6 +127,7 @@ class KameraKaynak:
         self.ad = f"kamera:{indeks}"
         self._indeks = indeks
         self._kare: np.ndarray | None = None
+        self._ozetler: list[int] = []
         self._kilit = threading.Lock()
         self._calisiyor = True
         self._acik = False
@@ -126,6 +138,12 @@ class KameraKaynak:
     @property
     def acik(self) -> bool:
         return self._acik
+
+    @property
+    def sorun(self) -> str | None:
+        """Kamera açık görünse de canlı görüntü gelmiyorsa "donuk"; sağlıklıysa None."""
+        with self._kilit:
+            return "donuk" if kareler_donuk(self._ozetler) else None
 
     def _ac(self):
         # Windows'ta DirectShow en kararlı arka uçtur; diğer sistemlerde varsayılan.
@@ -146,8 +164,11 @@ class KameraKaynak:
                 continue
             ok, kare = self._kap.read()
             if ok:
+                # Seyrek örneklenmiş piksellerin özeti: donuk görüntü tespiti için yeterli ve ucuz.
+                ozet = hash(kare[::16, ::16].tobytes())
                 with self._kilit:
                     self._kare = kare
+                    self._ozetler = (self._ozetler + [ozet])[-DONUK_KARE_SAYISI:]
             else:
                 self._acik = False
                 time.sleep(0.2)
