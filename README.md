@@ -150,6 +150,7 @@ civata 10 g, somun 20 g → 100 g düşüş = 10 civata **ya da** 5 somun.
   `sunum-baslat.cmd` servisi sanal sahneyle açar; gerçek kamera için önce `set VISION_KAYNAK=kamera:0`.
 - **Demo:** `bash tools/kamera-demo.sh` (Civata/Somun ürünleri, K-06 karışık kutusu, öğretme) →
   `bash tools/kamera-demo.sh senaryo` (somun siparişi) · `... yanlis` (simülatör `--kamera-urun somun` ile).
+- **Sunum öncesi kontrol:** `bash tools/sunum-kontrol.sh` servisleri, kamerayı, kutuları ve demo stoklarını denetler; `bash tools/sunum-kontrol.sh hazirla` demo durumunu düzeltir (açık siparişleri iptal eder, stokları ve alarmları sıfırlar).
 - **Testler:** `cd vision && .venv\Scripts\python -m pytest` · doğruluk ölçümü: `.venv\Scripts\python olcum.py`.
 
 > Sanal sahnede tanıma doğruluğu %100'dür (şekiller belirgin); gerçek kamerada ışık ve zemin etkiler, ürün
