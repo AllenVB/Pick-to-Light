@@ -37,7 +37,9 @@ export interface VisionSaglik {
   kareVar: boolean;
   profilSayisi: number;
   /** "donuk": kamera açık ama canlı görüntü yok (gizlilik izni ya da başka uygulama). */
-  kameraSorunu?: "donuk" | null;
+  kameraSorunu?: "donuk" | "bekliyor" | null;
+  /** Seçilebilir görüntü kaynakları: sim, tarayici, kamera:0 ... */
+  kaynaklar?: string[];
 }
 
 export interface OgretilenProfil {
@@ -47,7 +49,7 @@ export interface OgretilenProfil {
 }
 
 export interface SahneNesnesi {
-  tip: "civata" | "somun" | "rondela";
+  tip: "civata" | "somun" | "rondela" | "vida";
   adet: number;
 }
 
@@ -74,7 +76,26 @@ async function cagir<T>(yol: string, secenek: RequestInit = {}, zamanAsimiMs = 3
   }
 }
 
+/** Tarayıcı kamerasının karesini (JPEG) servise gönderir; başarısızsa sessizce false döner. */
+async function kareGonder(kare: Blob): Promise<boolean> {
+  const iptal = new AbortController();
+  const sayac = setTimeout(() => iptal.abort(), 2000);
+  try {
+    const yanit = await fetch(`${VISION_URL}/kare`, {
+      method: "POST", headers: { "Content-Type": "image/jpeg" }, body: kare, signal: iptal.signal,
+    });
+    return yanit.ok;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(sayac);
+  }
+}
+
 export const vision = {
+  kareGonder,
+  kaynakSec: (tip: string) =>
+    cagir<{ kaynak: string; kaynaklar: string[] }>("/kaynak", { method: "POST", body: JSON.stringify({ tip }) }),
   onizlemeUrl: `${VISION_URL}/onizleme`,
   saglik: () => cagir<VisionSaglik>("/saglik", {}, 1500),
   tani: () => cagir<TaniYaniti>("/tani", {}, 2000),

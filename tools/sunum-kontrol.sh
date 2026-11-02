@@ -48,6 +48,9 @@ else
   PROFIL=$(echo "$SAGLIK" | js "d['profilSayisi']")
   KSORUN=$(echo "$SAGLIK" | js "d.get('kameraSorunu') or ''")
   tamam "Kamera servisi ayakta (kaynak: $KAYNAK, öğretilmiş ürün: $PROFIL)"
+  if [ "$KAYNAK" = "tarayici" ]; then
+    uyari "Kaynak tarayıcı kamerası: kareler yalnızca Kamera & Tanıma ya da Tartı & Sayım sayfası AÇIKKEN gelir; simülatör demosu (otomatik teyit) için kaynağı Sanal sahne yapın  →  bash tools/sunum-kontrol.sh hazirla"
+  fi
   [ -n "$KSORUN" ] && sorun "Kameradan canlı görüntü gelmiyor ($KSORUN)" "Windows Gizlilik > Kamera iznini açın ya da VISION_KAYNAK=sim ile başlatın"
   [ "${PROFIL:-0}" -lt 2 ] && sorun "Kamera yalnızca $PROFIL ürün tanıyor" "bash tools/kamera-demo.sh (sanal sahne) ya da Kamera & Tanıma sayfasından öğretin"
 fi
@@ -68,6 +71,7 @@ ist() { curl -s --max-time 8 -H "Authorization: Bearer $TOKEN" -H 'Content-Type:
 
 if [ "${1:-}" = "hazirla" ]; then
   baslik "Demo durumu hazırlanıyor"
+  curl -s --max-time 3 -X POST "$VISION/kaynak" -H 'Content-Type: application/json' -d '{"tip":"sim"}' > /dev/null && tamam "kamera kaynağı: sanal sahne"
   for id in $(ist "$API/api/siparisler?durum=Hazirlaniyor&boyut=100" | js "' '.join(str(s['id']) for s in (d['liste'] if isinstance(d,dict) else d))"); do
     ist -X POST "$API/api/siparisler/$id/iptal" > /dev/null
   done
@@ -77,10 +81,11 @@ if [ "${1:-}" = "hazirla" ]; then
 
   K6=$(ist "$API/api/kutular" | js "next((k['id'] for k in d if k['kod']=='K-06'), '')")
   if [ -n "$K6" ]; then
-    for u in $(ist "$API/api/kutular" | js "' '.join(str(b['id'])+':'+('100' if b['anaKutu'] else '50') for k in d if k['id']==$K6 for b in (k.get('bolmeler') or []))"); do
+    # Demo stokları ürün adına göre: Civata 100 · Somun 100 · Vida 200
+    for u in $(ist "$API/api/kutular" | js "' '.join(str(b['id'])+':'+str({'Civata M6':100,'Somun M6':100,'Vida M4':200}.get(b['urunAdi'],50)) for k in d if k['id']==$K6 for b in (k.get('bolmeler') or []))"); do
       ist -X POST "$API/api/stok/${u%%:*}/sayim" -d "{\"yeniAdet\":${u##*:},\"aciklama\":\"Demo hazirligi\"}" > /dev/null
     done
-    tamam "K-06 karışık kutu: Civata 100 · Somun 50"
+    tamam "K-06 karışık kutu: Civata 100 · Somun 100 · Vida 200"
   fi
 fi
 

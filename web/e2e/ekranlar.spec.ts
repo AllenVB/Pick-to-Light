@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { girisYap, girisYapArayuzden, kutulariCevrimiciBekle, tokenAl } from "./yardimcilar";
+import { API, girisYap, girisYapArayuzden, kutulariCevrimiciBekle, tokenAl } from "./yardimcilar";
 
 test.describe("Ekranlar", () => {
   test.beforeAll(async () => {
@@ -34,13 +34,13 @@ test.describe("Ekranlar", () => {
     const kenar = page.locator("aside");
     await expect(kenar).toContainText("Operatör Ekranı");
     await expect(kenar.getByTestId("rol-rozeti")).toHaveText("Operatör");
-    for (const yol of ["/personeller", "/raporlar", "/urunler", "/kutular", "/hareketler", "/cihaz-olaylari", "/siparis/ice-aktar", "/kamera"]) {
+    for (const yol of ["/personeller", "/raporlar", "/urunler", "/kutular", "/hareketler", "/cihaz-olaylari", "/siparis/ice-aktar", "/kamera", "/tarti"]) {
       await expect(kenar.locator(`a[href="${yol}"]`)).toHaveCount(0);
     }
     await expect(kenar.getByTestId("menu-yonetim")).toHaveCount(0);
 
     // Adresi elle yazsa da yönetim sayfası açılmaz, panoya döner.
-    for (const yol of ["/personeller", "/raporlar", "/kutular", "/kamera"]) {
+    for (const yol of ["/personeller", "/raporlar", "/kutular", "/kamera", "/tarti"]) {
       await page.goto(yol);
       await expect(page).toHaveURL(/\/$/);
     }
@@ -55,7 +55,7 @@ test.describe("Ekranlar", () => {
     const kenar = page.locator("aside");
     await expect(kenar.getByTestId("rol-rozeti")).toHaveText("Yönetici");
     await expect(kenar.getByTestId("menu-yonetim")).toBeVisible();
-    for (const yol of ["/personeller", "/raporlar", "/urunler", "/kutular", "/hareketler", "/cihaz-olaylari", "/siparis/ice-aktar", "/kamera"]) {
+    for (const yol of ["/personeller", "/raporlar", "/urunler", "/kutular", "/hareketler", "/cihaz-olaylari", "/siparis/ice-aktar", "/kamera", "/tarti"]) {
       await expect(kenar.locator(`a[href="${yol}"]`)).toHaveCount(1);
     }
   });
@@ -67,7 +67,33 @@ test.describe("Ekranlar", () => {
     await expect(page.getByTestId("tespit-karti")).toBeVisible();
     await expect(page.getByTestId("adet-hesabi")).toBeVisible();
     // Servis (Python) ayrı bir süreçtir: açıksa canlı görüntü, kapalıysa açıklayıcı uyarı çıkmalı.
-    await expect(page.getByTestId("kamera-onizleme").or(page.getByTestId("vision-kapali"))).toBeVisible();
+    await expect(page.getByTestId("kamera-gorunumu").or(page.getByTestId("vision-kapali")).first()).toBeVisible();
+  });
+
+  test("tartı sayfası gramı ürünün birim ağırlığına bölüp adedi bulur", async ({ page }) => {
+    // 20 g ÷ 2 g (vida) = 10 adet. Ürün yoksa oluşturulur; sayım hesabı için kutuya bağlı olması gerekmez.
+    const token = await tokenAl();
+    await fetch(`${API}/api/urunler`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ sku: "E2E-VIDA", ad: "E2E Vida", birimAgirlikG: 2, guvenlikStogu: 5 }),
+    }).catch(() => undefined);
+
+    await girisYap(page);
+    await page.goto("/tarti");
+    await expect(page.getByRole("heading", { name: /Tartı & Sayım/ })).toBeVisible();
+
+    await page.getByTestId("tarti-urun-sec").selectOption({ label: "E2E Vida (2 g)" });
+    await page.getByTestId("tarti-elle").fill("20");
+
+    await expect(page.getByTestId("tarti-net")).toContainText("20");
+    await expect(page.getByTestId("tarti-adet")).toHaveText("10");
+    await expect(page.getByTestId("tarti-azalt")).toContainText("−10");
+
+    // Tam sayıda parçaya denk gelmeyen gram (23 g ÷ 2 g = 11,5) şüpheli ölçüm uyarısı verir.
+    await expect(page.getByTestId("tarti-uyari-tam")).toHaveCount(0);
+    await page.getByTestId("tarti-elle").fill("23");
+    await expect(page.getByTestId("tarti-uyari-tam")).toBeVisible();
   });
 
   test("giriş ekranından oturum açılabilir", async ({ page }) => {

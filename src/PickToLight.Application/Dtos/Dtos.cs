@@ -184,6 +184,16 @@ public sealed record StokIslemIstek(int Miktar, string? Aciklama);
 
 public sealed record SayimIstek(int YeniAdet, string? Aciklama);
 
+/// <summary>
+/// Tartıyla sayım: kamera ürünü tanır, tartıdaki gram ürünün birim ağırlığına bölünür, çıkan adet stoktan
+/// düşülür (ya da mal kabulde eklenir). <paramref name="KutuId"/> boşsa ürünü tutan kutu/bölme seçilir.
+/// </summary>
+public sealed record TartiStokIstek(long UrunId, int Adet, decimal? AgirlikG = null, long? KutuId = null,
+    string? Aciklama = null);
+
+public sealed record TartiStokSonucu(long KutuId, string KutuKod, long UrunId, string UrunAdi, int Adet,
+    int OncekiStok, int YeniStok);
+
 /// <summary>Baskül kalibrasyonu: üstüne konan bilinen ağırlık (g).</summary>
 public sealed record BaskulKalibrasyonIstek(decimal ReferansG);
 

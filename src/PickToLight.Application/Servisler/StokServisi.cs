@@ -167,6 +167,66 @@ public sealed class StokServisi(
         return sonuc.SonrakiAdet;
     }
 
+    /// <summary>Tartıyla sayılan adedi stoktan düşer (ör. 20 g ÷ 2 g vida = 10 adet).</summary>
+    public Task<TartiStokSonucu> TartiyleDusAsync(TartiStokIstek istek, CancellationToken ct = default)
+        => TartiIslemAsync(istek, azalt: true, ct);
+
+    /// <summary>Tartıyla sayılan adedi stoğa ekler (mal kabulde paketi tartıp saymak için).</summary>
+    public Task<TartiStokSonucu> TartiyleEkleAsync(TartiStokIstek istek, CancellationToken ct = default)
+        => TartiIslemAsync(istek, azalt: false, ct);
+
+    private async Task<TartiStokSonucu> TartiIslemAsync(TartiStokIstek istek, bool azalt, CancellationToken ct)
+    {
+        if (istek.Adet <= 0)
+            throw new DomainException("gecersiz-miktar", "Adet sıfırdan büyük olmalı.");
+
+        var urun = await db.Urunler.AsNoTracking().FirstOrDefaultAsync(u => u.Id == istek.UrunId, ct)
+                   ?? throw new KayitBulunamadiException("Ürün", istek.UrunId);
+
+        var kutular = await db.Kutular.AsNoTracking().Include(k => k.Stok)
+            .Where(k => k.UrunId == urun.Id && k.Aktif)
+            .ToListAsync(ct);
+
+        Kutu? hedef;
+        if (istek.KutuId is { } kutuId)
+        {
+            hedef = kutular.FirstOrDefault(k => k.Id == kutuId)
+                    ?? throw new DomainException("kutu-urun-uyumsuz", $"Seçilen kutu {urun.Ad} ürününü tutmuyor.");
+        }
+        else
+        {
+            // Düşerken en dolu kutudan (en çok karşılayan), eklerken kod sırasındaki ilk kutuya.
+            hedef = azalt
+                ? kutular.OrderByDescending(k => k.Stok?.Adet ?? 0).FirstOrDefault()
+                : kutular.OrderBy(k => k.Kod).FirstOrDefault();
+        }
+
+        if (hedef is null)
+            throw new DomainException("kutu-yok", $"{urun.Ad} için tanımlı bir kutu ya da bölme yok.");
+
+        var onceki = hedef.Stok?.Adet ?? 0;
+        var aciklama = istek.Aciklama
+                       ?? (istek.AgirlikG is > 0 && urun.BirimAgirlikG is > 0
+                           ? $"Tartı sayımı: {istek.AgirlikG:0.#} g ÷ {urun.BirimAgirlikG:0.##} g = {istek.Adet} adet"
+                           : $"Tartı sayımı: {istek.Adet} adet");
+
+        StokDusSonucu sonuc;
+        if (azalt)
+        {
+            sonuc = await stokDeposu.DusAsync(hedef.Id, istek.Adet, null, oturum.PersonelId, aciklama, ct);
+            if (!sonuc.Basarili)
+                throw new DomainException("stok-yetersiz",
+                    $"{hedef.Kod} / {urun.Ad}: stokta {sonuc.OncekiAdet} adet var, {istek.Adet} adet düşülemez.");
+        }
+        else
+        {
+            sonuc = await stokDeposu.ArtirAsync(hedef.Id, istek.Adet, null, oturum.PersonelId, aciklama, ct);
+        }
+
+        await bildirim.StokGuncellendiAsync(hedef.Id, sonuc.SonrakiAdet, null, ct);
+        return new TartiStokSonucu(hedef.Id, hedef.Kod, urun.Id, urun.Ad, istek.Adet, onceki, sonuc.SonrakiAdet);
+    }
+
     /// <summary>
     /// Baskülün saydığı adedi stoka uygular (sayım düzeltmesi). Rafta duran ama rezerve edilmiş
     /// adet stoktan zaten düşüldüğü için ölçülen adetten çıkarılır.

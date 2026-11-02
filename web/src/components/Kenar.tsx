@@ -31,6 +31,7 @@ const YONETIM: Baglanti[] = [
   { yol: "/hareketler", ad: "Hareket Defteri", kisa: "Defter", ikon: "⇅" },
   { yol: "/raporlar", ad: "Raporlar", kisa: "Rapor", ikon: "◴" },
   { yol: "/kamera", ad: "Kamera & Tanıma", kisa: "Kamera", ikon: "◉" },
+  { yol: "/tarti", ad: "Tartı & Sayım", kisa: "Tartı", ikon: "⚖" },
   { yol: "/cihaz-olaylari", ad: "Cihaz Olayları", kisa: "Cihaz", ikon: "⟳" },
   { yol: "/personeller", ad: "Personel", kisa: "Personel", ikon: "☺" },
 ];

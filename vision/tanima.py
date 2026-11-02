@@ -28,14 +28,18 @@ OZELLIK_ADLARI = [
 ]
 
 # Özelliklerin önemi: delik ve en-boy şekli, ton ve parlaklık rengi belirler.
-AGIRLIK = np.array([1.2, 1.2, 1.0, 0.8, 1.0, 0.8, 1.2, 1.8, 0.8, 0.7])
+AGIRLIK = np.array([1.2, 1.2, 1.0, 0.8, 1.0, 0.8, 1.2, 1.8, 0.8, 1.6])
 
 # Örnek sayısı az olduğunda sapma tahmini güvenilmez; bu alt sınırlar aşırı keskin
 # (kırılgan) profilleri önler.
-SAPMA_TABANI = np.array([0.08, 0.08, 0.06, 0.08, 0.06, 0.04, 0.12, 0.35, 0.10, 0.04])
+SAPMA_TABANI = np.array([0.08, 0.08, 0.05, 0.08, 0.04, 0.03, 0.08, 0.35, 0.08, 0.012])
 
 # Bu uzaklığın üstü "hiçbir ürün değil" sayılır (bilinmiyor sınıfının uzaklığı).
 BILINMIYOR_UZAKLIK = 3.2
+
+# Benzerlik eğrisinin keskinliği: küçük değer, birbirine yakın iki ürünü (civata/vida) daha net ayırır.
+# "Bilinmiyor" sınıfı aynı ölçekte bu uzaklığın yarısında (1.6) başlar.
+KESKINLIK = 0.6
 
 # Tek bir nesnenin kare içindeki alan sınırları (kare alanına oran).
 MIN_ALAN_ORANI = 0.0006
@@ -221,8 +225,8 @@ class ProfilDeposu:
             z = (ozellik - ort) / sapma
             uzakliklar.append(math.sqrt(float(np.sum(AGIRLIK * z * z) / np.sum(AGIRLIK))))
 
-        benzerlik = [math.exp(-0.5 * (d / 1.0) ** 2) for d in uzakliklar]
-        bilinmiyor = math.exp(-0.5 * BILINMIYOR_UZAKLIK ** 2 / 4.0)
+        benzerlik = [math.exp(-0.5 * (d / KESKINLIK) ** 2) for d in uzakliklar]
+        bilinmiyor = math.exp(-0.5 * ((BILINMIYOR_UZAKLIK / 2.0) / KESKINLIK) ** 2)
 
         en_iyi = int(np.argmax(benzerlik))
         guven = benzerlik[en_iyi] / (sum(benzerlik) + bilinmiyor)

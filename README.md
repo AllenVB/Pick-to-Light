@@ -136,20 +136,27 @@ Baskül kutu **içeriğinin** gramını ölçer; adet = gram ÷ ürünün birim 
 ### Kamera (görüntü işleme) ve karışık kutu
 
 Kamera **hangi ürünün alındığını** tanır, baskül gram düşüşünü o ürünün birim ağırlığına böler:
-civata 10 g, somun 20 g → 100 g düşüş = 10 civata **ya da** 5 somun.
+civata 10 g, somun 5 g, vida 2 g → 20 g düşüş = 2 civata **ya da** 4 somun **ya da** 10 vida.
 
 - **Görüntü servisi** (`vision/`, Python + OpenCV, port 5100): düz zemindeki nesneleri ayırır; renk, delik, en-boy
   oranı ve boyutla tanır. Eğitim verisi gerekmez; ürün kameraya gösterilip **Kamera & Tanıma** sayfasından öğretilir
   (3–5 örnek). Kamera yoksa **sanal sahne** (civata/somun/rondela çizimi) aynı akışı gösterir.
 - **Karışık kutu:** bir kutuya **bölme** eklenir (Kutu & Cihaz → *+ Bölme ekle*). Bölme kendi ürün ve stoğuna sahiptir;
   ESP32, LED, baskül ve kamera ana kutuyla ortaktır. Pano tek kart gösterir, içinde ürün başına satır vardır.
+- **Tarayıcı kamerası:** Windows, masaüstü uygulamalarının (Python) kamerasını ayrı bir izinle kapatabilir. Bu yüzden
+  kamera **tarayıcıdan** açılabilir: *Kamera & Tanıma* sayfasında **Tarayıcı kamerası**nı seçince tarayıcının izin penceresi
+  çıkar, kareler görüntü servisine gönderilir (`POST /kare`) ve backend teyitte aynı kareyi kullanır. Kaynak `POST /kaynak`
+  ile (sim · tarayici · kamera:0) çalışırken değiştirilir. Kamera yalnızca ilgili sayfa açıkken çalışır.
+- **Tartı & Sayım** (yönetici): paketi tartıya koy → kamera ürünü tanır → gram ÷ birim ağırlık = adet (20 g ÷ 2 g vida = 10)
+  → **Stoktan azalt** / **Stoğa ekle**. Tartı kaynağı bir kutunun baskülü (önce *Tartıyı sıfırla*) ya da elle girilen gramdır;
+  kamera karede kaç parça saydığını da gösterir, tartıdaki adetle uyuşmazsa uyarır. API: `POST /api/stok/tarti/azalt|ekle`.
 - **Teyit:** kamera sipariş edilen ürünü görürse adet o ürünün birim ağırlığından hesaplanır. **Başka bir ürün**
   görürse (yanlış bölmeden alma) sipariş edilenin rezervasyonu iade edilir, stok alınan ürünün bölmesinden düşer
   ve `YanlisUrun` alarmı çıkar. Kamera kapalı ya da emin değilse sistem yalnızca baskülle, eskisi gibi çalışır.
 - **Kurulum:** `python -m venv vision\.venv` → `vision\.venv\Scripts\pip install -r vision/requirements.txt`.
   `sunum-baslat.cmd` servisi sanal sahneyle açar; gerçek kamera için önce `set VISION_KAYNAK=kamera:0`.
 - **Demo:** `bash tools/kamera-demo.sh` (Civata/Somun ürünleri, K-06 karışık kutusu, öğretme) →
-  `bash tools/kamera-demo.sh senaryo` (somun siparişi) · `... yanlis` (simülatör `--kamera-urun somun` ile).
+  `bash tools/kamera-demo.sh senaryo` (somun siparişi) · `... tarti` (10 vida tartılır, stoktan düşer) · `... yanlis` (simülatör `--kamera-urun somun` ile).
 - **Sunum öncesi kontrol:** `bash tools/sunum-kontrol.sh` servisleri, kamerayı, kutuları ve demo stoklarını denetler; `bash tools/sunum-kontrol.sh hazirla` demo durumunu düzeltir (açık siparişleri iptal eder, stokları ve alarmları sıfırlar).
 - **Testler:** `cd vision && .venv\Scripts\python -m pytest` · doğruluk ölçümü: `.venv\Scripts\python olcum.py`.
 
@@ -226,7 +233,7 @@ her kutuya ayrı kullanıcı/parola ve ACL üretir (kutu yalnızca kendi topic'l
 ## Testler
 
 ```bash
-dotnet test                     # 189 test: birim (104) + entegrasyon (85)
+dotnet test                     # 200 test: birim (112) + entegrasyon (88)
 cd web && npm run test:e2e      # 10 uçtan uca tarayıcı testi (Playwright)
 ```
 

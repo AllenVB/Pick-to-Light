@@ -60,8 +60,10 @@ code { font-family: Consolas, monospace; background: #f1f5f9; padding: 0 3pt; bo
 
 <h2>5. Kamera ve karışık kutu (görüntü işleme)</h2>
 <ul>
-<li><b>Mantık:</b> baskül gram düşüşünü ölçer, kamera ürünü tanır, adet = gram ÷ <b>tanınan ürünün</b> birim ağırlığı. 100 g düşüş civata ise 10 adet, somun ise 5 adet eder.</li>
+<li><b>Mantık:</b> baskül gramı ölçer, kamera ürünü tanır, adet = gram ÷ <b>tanınan ürünün</b> birim ağırlığı. Ürünler: civata 10 g, somun 5 g, vida 2 g. 20 g vida ise 10 adet, somun ise 4 adet eder.</li>
 <li><b>Tanıma yöntemi:</b> Python ve OpenCV ile klasik görüntü işleme. Düz zemindeki nesneler arka plandan ayrılır; renk, delik (somunun deliği var), en-boy oranı ve boyutla tanınır. Eğitim verisi gerekmez, ürün kameraya gösterilip 3-5 örnekle öğretilir.</li>
+<li><b>Tartı &amp; Sayım:</b> paket tartıya konur, kamera ürünü tanır, adet hesaplanır (20 g ÷ 2 g vida = 10) ve "Stoktan azalt" ile stoktan düşülür; mal kabulde "Stoğa ekle". Kamera karedeki parçaları da sayar ve tartıyla karşılaştırır.</li>
+<li><b>Tarayıcı kamerası:</b> kamera tarayıcının izin penceresiyle açılır (Windows'un masaüstü uygulamaları için kamera engeline takılmaz); kareler görüntü servisine gönderilir.</li>
 <li><b>Karışık kutu:</b> bir kutuya "bölme" eklenir. Her bölmenin kendi ürünü ve stoğu vardır; LED, baskül ve kamera ortaktır. Panoda tek kartta ürün başına satır görünür.</li>
 <li><b>Yanlış ürün:</b> civata istenirken kamera somun görürse sipariş edilenin rezervasyonu iade edilir, stok alınan ürünün bölmesinden düşer ve alarm çıkar. Ağırlık ile stok tutarlı kalır.</li>
 <li><b>Güvenli düşüş:</b> kamera kapalıysa ya da emin değilse sistem yalnızca baskülle, öncekiyle aynı çalışır. Kamera arızası toplamayı durdurmaz.</li>
@@ -94,7 +96,8 @@ code { font-family: Consolas, monospace; background: #f1f5f9; padding: 0 3pt; bo
 <tr><td><b>Toplu Aktarma</b></td><td>Yönetici</td><td>CSV ile çok sayıda siparişi bir seferde yükler.</td></tr>
 <tr><td><b>Ürünler</b></td><td>Yönetici</td><td>Ürün kataloğu: birim ağırlık, güvenlik stoğu, arşivleme.</td></tr>
 <tr><td><b>Kutu &amp; Cihaz</b></td><td>Yönetici</td><td>Kutu tanımı, ürün ataması, karışık kutu bölmeleri, sinyal, firmware, IP, MAC, LED testi, baskül tare ve kalibrasyon.</td></tr>
-<tr><td><b>Kamera &amp; Tanıma</b></td><td>Yönetici</td><td>Canlı kamera görüntüsü, tanınan ürün ve güveni, ürün öğretme, "gram ÷ birim ağırlık = adet" hesabı.</td></tr>
+<tr><td><b>Kamera &amp; Tanıma</b></td><td>Yönetici</td><td>Canlı kamera görüntüsü (tarayıcı kamerası, sanal sahne ya da sunucu kamerası), tanınan ürün ve güveni, ürün öğretme, "gram ÷ birim ağırlık = adet" hesabı.</td></tr>
+<tr><td><b>Tartı &amp; Sayım</b></td><td>Yönetici</td><td>Tartıdaki paketi kamerayla tanıyıp adedini bulur; "Stoktan azalt" / "Stoğa ekle" ile stoğu günceller. Hareket defterine gram ve birim ağırlıkla yazılır.</td></tr>
 <tr><td><b>Hareket Defteri</b></td><td>Yönetici</td><td>Her stok hareketi: kim, ne zaman, hangi sipariş için ne kadar. İzlenebilirliğin tek kaynağı.</td></tr>
 <tr><td><b>Raporlar</b></td><td>Yönetici</td><td>Toplama süreleri, en çok toplanan ürünler, kutu performansı, kırmızı oranı, günlük hareket, baskül ve kamera göstergeleri.</td></tr>
 <tr><td><b>Cihaz Olayları</b></td><td>Yönetici</td><td>Cihazlardan gelen ham MQTT mesajları; "ışık neden yanmadı?" sorusunun cevabı.</td></tr>
@@ -109,7 +112,8 @@ code { font-family: Consolas, monospace; background: #f1f5f9; padding: 0 3pt; bo
 <li>Aynı kutudan iki sipariş senaryosunda stoğun negatife düşmediğini göster.</li>
 <li>Simülatörü <code>--alinan-fark 2</code> ile aç. Fazla alımda stoğun gerçek adede göre düzeldiğini ve alarmın çıktığını göster.</li>
 <li>Yönetici hesabına geç. Menü farkını, raporları ve hareket defterini göster.</li>
-<li><b>Kamera &amp; Tanıma</b> sayfasını aç. Masaya "Karışık" sahneyi koy, kameranın civata ve somunu ayırdığını ve hesap kartını göster.</li>
+<li><b>Kamera &amp; Tanıma</b> sayfasını aç. "Karışık" sahneyi koy: kameranın vida, civata ve somunu ayırdığını göster. Tarayıcı kamerasını seçip izin penceresini göster.</li>
+<li><b>Tartı &amp; Sayım</b> sayfasını aç: "10 vida" sahnesi, 20 g gir → kamera Vida, 10 adet; "Stoktan azalt" ile stok 200 → 190. Aynı 20 g somunda 4 adet eder.</li>
 <li><code>bash tools/kamera-demo.sh senaryo</code> ile K-06 karışık kutusundan somun siparişi ver: kamera Somun, baskül 5 adet.</li>
 <li>Simülatörü <code>--kamera-urun somun</code> ile açıp <code>bash tools/kamera-demo.sh yanlis</code> çalıştır: civata istenirken somun alınınca stok somun bölmesinden düşer, alarm çıkar.</li>
 </ol>
@@ -120,6 +124,7 @@ Adres: <code>http://localhost:4001</code> · Hazırlık: <code>sunum-baslat.cmd<
 <ul>
 <li>Baskül verisi şu an simülatörden geliyor. Firmware yazıldı ama gerçek ESP32'de denenmedi.</li>
 <li>Kamera tanıma sanal sahnede %100 doğru, çünkü şekiller belirgin. Gerçek kamerada ışık ve zemin etkiler; ürünler gerçek koşullarda öğretilmeli ve düz, tek renkli zemin kullanılmalı.</li>
+<li>Tarayıcı kamerasının gerçek kameradaki çalışmasını sahte bir görüntü akışıyla doğruladım; gerçek kamera ve izin penceresi sunumdan önce bir kez denenmeli.</li>
 <li>Tek kamera var, kutu başına kamera eşlemesi yok. Görüntü servisinde yetkilendirme yok (yerel prototip).</li>
 <li>Veritabanındaki <code>E2E-</code> ve <code>DEMO-</code> kayıtları test ve demo verisidir, ileri aşamada temizlenecek.</li>
 </ul>

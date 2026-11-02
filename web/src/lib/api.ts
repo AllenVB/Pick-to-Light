@@ -1,7 +1,7 @@
 "use client";
 
 import type {
-  Alarm, ApiHatasi, Bolme, CihazOlay, GunlukHareket, Kutu, KutuPerformans, Oturum, RaporOzet,
+  Alarm, ApiHatasi, Bolme, TartiSonucu, CihazOlay, GunlukHareket, Kutu, KutuPerformans, Oturum, RaporOzet,
   IceAktarSonucu, IsikTestiSonucu, Personel, SiparisDetay, SiparisOnceligi, SiparisOzet, StokHareket, TedarikTalebi,
   Urun, UrunHareket,
 } from "@/types";
@@ -235,6 +235,11 @@ export const api = {
       `/api/kutular/${kutuId}/baskul/kalibrasyon`, { method: "POST", body: JSON.stringify({ referansG }) }),
   agirliktanSayim: (kutuId: number) =>
     istek<{ kutuId: number; yeniAdet: number }>(`/api/stok/${kutuId}/agirliktan-sayim`, { method: "POST" }),
+
+  tartiAzalt: (govde: { urunId: number; adet: number; agirlikG?: number; kutuId?: number }) =>
+    istek<TartiSonucu>("/api/stok/tarti/azalt", { method: "POST", body: JSON.stringify(govde) }),
+  tartiEkle: (govde: { urunId: number; adet: number; agirlikG?: number; kutuId?: number }) =>
+    istek<TartiSonucu>("/api/stok/tarti/ekle", { method: "POST", body: JSON.stringify(govde) }),
 
   bolmeEkle: (kutuId: number, bolme: { kod: string; urunId: number; rafKonumu?: string; baslangicStogu: number }) =>
     istek<Bolme>(`/api/kutular/${kutuId}/bolmeler`, { method: "POST", body: JSON.stringify(bolme) }),

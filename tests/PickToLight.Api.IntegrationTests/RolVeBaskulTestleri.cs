@@ -169,6 +169,54 @@ public class RolVeBaskulTestleri(TestUygulamasi uygulama) : IClassFixture<TestUy
         yanit.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
+    [SkippableFact]
+    public async Task Yonetici_tartiyla_stoktan_dusup_ekleyebilir_ve_hareket_defterine_yazilir()
+    {
+        Skip.If(!uygulama.Hazir, uygulama.AtlamaSebebi);
+        var istemci = await uygulama.GirisYapAsync();
+
+        // Tohum verisi: ürün 2 → Adaptör (kutu K-02), birim 120 g
+        var azalt = await istemci.PostAsJsonAsync("/api/stok/tarti/azalt", new { urunId = 2, adet = 2, agirlikG = 240 });
+        azalt.StatusCode.Should().Be(HttpStatusCode.OK);
+        var sonuc = await azalt.Content.ReadFromJsonAsync<TartiYaniti>(TestUygulamasi.JsonAyar);
+        sonuc!.YeniStok.Should().Be(sonuc.OncekiStok - 2);
+        sonuc.KutuKod.Should().Be("K-02");
+
+        var ekle = await istemci.PostAsJsonAsync("/api/stok/tarti/ekle", new { urunId = 2, adet = 2, agirlikG = 240 });
+        (await ekle.Content.ReadFromJsonAsync<TartiYaniti>(TestUygulamasi.JsonAyar))!.YeniStok.Should().Be(sonuc.OncekiStok);
+
+        var defter = await istemci.GetStringAsync("/api/hareketler?kutuId=2");
+        defter.Should().Contain("Tartı sayımı").And.Contain("240 g");
+    }
+
+    [SkippableFact]
+    public async Task Tartiyla_dusme_yetersiz_stok_gecersiz_adet_ve_bilinmeyen_urunde_hata_verir()
+    {
+        Skip.If(!uygulama.Hazir, uygulama.AtlamaSebebi);
+        var istemci = await uygulama.GirisYapAsync();
+
+        (await istemci.PostAsJsonAsync("/api/stok/tarti/azalt", new { urunId = 2, adet = 99999 })).IsSuccessStatusCode
+            .Should().BeFalse("stok yetmiyor");
+        (await istemci.PostAsJsonAsync("/api/stok/tarti/azalt", new { urunId = 2, adet = 0 })).IsSuccessStatusCode
+            .Should().BeFalse();
+        (await istemci.PostAsJsonAsync("/api/stok/tarti/azalt", new { urunId = 987654, adet = 1 })).StatusCode
+            .Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [SkippableFact]
+    public async Task Operator_tartiyla_stok_degistiremez()
+    {
+        Skip.If(!uygulama.Hazir, uygulama.AtlamaSebebi);
+        var operatorIstemci = await uygulama.GirisYapAsync("operator", "operator123");
+
+        (await operatorIstemci.PostAsJsonAsync("/api/stok/tarti/azalt", new { urunId = 2, adet = 1 })).StatusCode
+            .Should().Be(HttpStatusCode.Forbidden);
+        (await operatorIstemci.PostAsJsonAsync("/api/stok/tarti/ekle", new { urunId = 2, adet = 1 })).StatusCode
+            .Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    private sealed record TartiYaniti(long KutuId, string KutuKod, string UrunAdi, int Adet, int OncekiStok, int YeniStok);
+
     private sealed record BolmeSatiri(long Id, string Kod, int Adet);
 
     private sealed record BolmeliKutu(long Id, string Kod, List<BolmeSatiri>? Bolmeler);

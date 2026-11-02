@@ -2,18 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import { vision, type OgretilenProfil, type SahneNesnesi, type TaniYaniti, type VisionSaglik } from "@/lib/vision";
+import { vision, type OgretilenProfil, type TaniYaniti, type VisionSaglik } from "@/lib/vision";
+import { KameraGorunumu } from "@/components/KameraGorunumu";
 import { useKorumaliSayfa } from "@/hooks/useKorumaliSayfa";
 import { useToast } from "@/components/Toast";
 import type { Urun } from "@/types";
-
-const SAHNELER: { ad: string; nesneler: SahneNesnesi[] }[] = [
-  { ad: "3 civata", nesneler: [{ tip: "civata", adet: 3 }] },
-  { ad: "4 somun", nesneler: [{ tip: "somun", adet: 4 }] },
-  { ad: "2 rondela", nesneler: [{ tip: "rondela", adet: 2 }] },
-  { ad: "Karışık", nesneler: [{ tip: "civata", adet: 2 }, { tip: "somun", adet: 3 }] },
-  { ad: "Boş masa", nesneler: [] },
-];
 
 /**
  * Kamera & Tanıma (yönetici).
@@ -78,13 +71,11 @@ export default function KameraSayfasi() {
     profilleriYenile();
   }
 
-  async function sahne(nesneler: SahneNesnesi[]) {
-    try {
-      await vision.simSahne(nesneler);
-    } catch (h) {
-      toast(h instanceof Error ? h.message : "Sahne ayarlanamadı.", "hata");
-    }
-  }
+  // Kaynak değişince sağlık ve tanı bilgisi 1,5 sn beklemeden tazelenir.
+  const durumuYenile = useCallback(() => {
+    vision.saglik().then(setSaglik);
+    vision.tani().then(setTani).catch(() => setTani(null));
+  }, []);
 
   if (!oturum) return null;
 
@@ -104,6 +95,7 @@ export default function KameraSayfasi() {
         <p className="mt-1 text-sm text-slate-400">
           Kamera hangi ürünün alındığını tanır; baskül gram düşüşü o ürünün birim ağırlığına bölünür.
           Aynı kutuda farklı ağırlıkta ürünler olsa bile adet doğru hesaplanır.
+          Kamerayı bilgisayarın izniyle <b>tarayıcıdan</b> açabilirsiniz.
         </p>
       </header>
 
@@ -116,52 +108,7 @@ export default function KameraSayfasi() {
       )}
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-        {/* Canlı görüntü */}
-        <section className="kart space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="etiket">Canlı görüntü</h2>
-            <span className={`rozet ${bagli ? "bg-durum-yesil/15 text-durum-yesil" : "bg-slate-600/20 text-slate-400"}`}>
-              ● {bagli ? (saglik.sanal ? "SANAL SAHNE" : "KAMERA") : "BAĞLANTI YOK"}
-            </span>
-          </div>
-
-          <div className="relative aspect-[4/3] w-full overflow-hidden rounded-lg border border-zemin-cizgi bg-black/40">
-            {bagli ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={vision.onizlemeUrl} alt="Kamera önizlemesi" className="h-full w-full object-contain"
-                data-test="kamera-onizleme" />
-            ) : (
-              <div className="flex h-full items-center justify-center text-sm text-slate-500">görüntü yok</div>
-            )}
-          </div>
-
-          {bagli && !saglik.sanal && saglik.kameraSorunu === "donuk" && (
-            <p className="rounded-lg border border-durum-sari/40 bg-durum-sari/10 px-3 py-2 text-sm text-durum-sari"
-              data-test="kamera-donuk">
-              Kameradan canlı görüntü gelmiyor: kare sabit kalıyor. Windows Ayarlar → Gizlilik → Kamera iznini ve
-              kameranın başka bir uygulamada açık olmadığını kontrol edin. Kamerasız denemek için servisi{" "}
-              <code>VISION_KAYNAK=sim</code> ile başlatın.
-            </p>
-          )}
-          {bagli && !saglik.sanal && !saglik.kameraSorunu && (
-            <p className="ipucu" data-test="kamera-ipucu">
-              Gerçek kamera kullanılıyor. Ürünleri düz, tek renkli bir zemine koyun ve ışığı sabit tutun.
-            </p>
-          )}
-
-          {saglik?.sanal && (
-            <div className="space-y-2" data-test="sim-sahne">
-              <p className="ipucu">Kamera takılı değil: masaya parça koyma simülasyonu</p>
-              <div className="flex flex-wrap gap-2">
-                {SAHNELER.map((s) => (
-                  <button key={s.ad} className="dugme-ikincil dugme-kucuk" onClick={() => sahne(s.nesneler)}>
-                    {s.ad}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </section>
+        <KameraGorunumu saglik={saglik} tani={tani} yenile={durumuYenile} />
 
         {/* Tespit */}
         <section className="space-y-4">

@@ -14,6 +14,17 @@ export type AlarmTipi =
 export type TedarikDurumu = "Acik" | "Verildi" | "Kapandi";
 export type PersonelRolu = "Operator" | "Admin";
 
+/** Tartıyla stoktan düşme / ekleme sonucu. */
+export interface TartiSonucu {
+  kutuId: number;
+  kutuKod: string;
+  urunId: number;
+  urunAdi: string;
+  adet: number;
+  oncekiStok: number;
+  yeniStok: number;
+}
+
 /** Karışık kutunun bir bölmesi: kendi ürünü ve stoğu vardır, cihaz ana kutuyla ortaktır. */
 export interface Bolme {
   id: number;

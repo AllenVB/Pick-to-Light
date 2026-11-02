@@ -397,7 +397,7 @@ async Task TeyitGonderAsync(long kutuId, int alinanFark, int? alinanAdet = null)
 static string? SahneTipi(string? urunAdi)
 {
     var ad = (urunAdi ?? string.Empty).ToLowerInvariant();
-    foreach (var tip in new[] { "civata", "somun", "rondela" })
+    foreach (var tip in new[] { "civata", "somun", "rondela", "vida" })
         if (ad.Contains(tip)) return tip;
     return null;
 }

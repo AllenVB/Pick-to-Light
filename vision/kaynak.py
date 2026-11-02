@@ -69,7 +69,22 @@ def rondela(kare, x, y, aci):
     cv2.circle(kare, (int(x), int(y)), 8, ZEMIN, cv2.FILLED)
 
 
-NESNE_CIZICILER = {"civata": civata, "somun": somun, "rondela": rondela}
+def vida(kare, x, y, aci):
+    """Koyu gümüş: küçük yuvarlak başlı, ince ve kısa gövde. Civatadan küçük ve ince."""
+    r = math.radians(aci)
+    ux, uy = math.cos(r), math.sin(r)
+    gov_uzun, gov_kal = 34, 5
+    p1 = (x - uy * gov_kal / 2, y + ux * gov_kal / 2)
+    p2 = (x + uy * gov_kal / 2, y - ux * gov_kal / 2)
+    p3 = (p2[0] + ux * gov_uzun, p2[1] + uy * gov_uzun)
+    p4 = (p1[0] + ux * gov_uzun, p1[1] + uy * gov_uzun)
+    cv2.fillPoly(kare, [np.array([p1, p2, p3, p4], np.int32)], (115, 115, 120))
+    cv2.circle(kare, (int(x), int(y)), 8, (95, 95, 100), cv2.FILLED)
+    # başın üstündeki tırnak yarığı
+    cv2.line(kare, (int(x - uy * 6), int(y + ux * 6)), (int(x + uy * 6), int(y - ux * 6)), (200, 200, 205), 1, cv2.LINE_AA)
+
+
+NESNE_CIZICILER = {"civata": civata, "somun": somun, "rondela": rondela, "vida": vida}
 
 
 def sahne_ciz(nesneler: list[dict], tohum: int | None = None, gurultu: float = 3.0) -> np.ndarray:
@@ -115,6 +130,49 @@ class SimKaynak:
     def son_kare(self) -> np.ndarray | None:
         with self._kilit:
             return sahne_ciz(self._nesneler, tohum=self._tohum)
+
+    def kapat(self) -> None:
+        pass
+
+
+class PushKaynak:
+    """
+    Tarayıcı kamerası: kareleri tarayıcı gönderir (getUserMedia ile izin alınır, Windows'un masaüstü
+    uygulamaları için kamera iznine takılmadan). Servis yalnızca en son gelen kareyi tutar.
+    """
+    ad = "tarayici"
+    BAYAT_SN = 3.0   # bu süredir kare gelmediyse tarayıcı kamerası kapalı sayılır
+
+    def __init__(self):
+        self._kare: np.ndarray | None = None
+        self._zaman = 0.0
+        self._kilit = threading.Lock()
+
+    def kare_ver(self, jpeg: bytes) -> bool:
+        """Tarayıcıdan gelen JPEG'i çözer ve son kare olarak saklar."""
+        kare = cv2.imdecode(np.frombuffer(jpeg, np.uint8), cv2.IMREAD_COLOR)
+        if kare is None:
+            return False
+        with self._kilit:
+            self._kare = kare
+            self._zaman = time.time()
+        return True
+
+    @property
+    def kare_yasi(self) -> float | None:
+        with self._kilit:
+            return None if self._kare is None else time.time() - self._zaman
+
+    @property
+    def sorun(self) -> str | None:
+        yas = self.kare_yasi
+        return "bekliyor" if yas is None or yas > self.BAYAT_SN else None
+
+    def son_kare(self) -> np.ndarray | None:
+        with self._kilit:
+            if self._kare is None or time.time() - self._zaman > self.BAYAT_SN:
+                return None
+            return self._kare.copy()
 
     def kapat(self) -> None:
         pass
@@ -192,6 +250,8 @@ def kaynak_sec(istek: str | None):
     istek = (istek or "").strip().lower()
     if istek == "sim":
         return SimKaynak()
+    if istek == "tarayici":
+        return PushKaynak()
 
     indeks = int(istek.split(":")[1]) if istek.startswith("kamera:") else 0
     kamera = KameraKaynak(indeks)

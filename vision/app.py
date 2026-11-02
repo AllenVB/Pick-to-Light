@@ -6,7 +6,8 @@ tespit edilen ürüne göre baskül düşüşü adede çevrilir (civata 10 g, so
 ya da 5 somun).
 
 Çalıştırma:   uvicorn app:app --port 5100        (vision klasöründe)
-Ortam:        VISION_KAYNAK=kamera:0 | sim       (varsayılan: kamera, açılamazsa sanal sahne)
+Ortam:        VISION_KAYNAK=kamera:0 | sim | tarayici   (varsayılan: kamera, açılamazsa sanal sahne)
+              Çalışırken POST /kaynak ile değiştirilebilir. "tarayici": kareleri tarayıcı POST /kare ile gönderir.
               VISION_MIN_GUVEN=0.5               VISION_PROFIL=profiller.json
 """
 from __future__ import annotations
@@ -20,7 +21,7 @@ from pathlib import Path
 
 import cv2
 import numpy as np
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel
@@ -33,7 +34,26 @@ PROFIL_DOSYASI = Path(os.environ.get("VISION_PROFIL", Path(__file__).with_name("
 PENCERE_SN = 3.0   # baskın ürün son bu kadar saniyenin analizlerinden oylanır
 
 depo = tanima.ProfilDeposu(PROFIL_DOSYASI)
-durum: dict = {"kaynak": None, "analizler": deque(maxlen=12), "calisiyor": True}
+durum: dict = {"kaynak": None, "analizler": deque(maxlen=12), "calisiyor": True, "kaynaklar": {}}
+
+
+def _kaynagi_al(tip: str):
+    """Kaynakları bir kez oluşturup saklar: sim ve tarayıcı her zaman hazırdır, kamera ilk seçildiğinde açılır."""
+    kaynaklar = durum["kaynaklar"]
+    if tip not in kaynaklar:
+        if tip.startswith("kamera:"):
+            kamera = kaynak_modulu.KameraKaynak(int(tip.split(":")[1]))
+            if not kamera.acik:
+                kamera.kapat()
+                raise HTTPException(409, "Sunucu kamerası açılamadı (Windows gizlilik izni ya da başka bir uygulama).")
+            kaynaklar[tip] = kamera
+        elif tip == "sim":
+            kaynaklar[tip] = kaynak_modulu.SimKaynak()
+        elif tip == "tarayici":
+            kaynaklar[tip] = kaynak_modulu.PushKaynak()
+        else:
+            raise HTTPException(422, "Bilinmeyen kaynak. Seçenekler: sim, tarayici, kamera:0")
+    return kaynaklar[tip]
 
 
 def _analiz_dongusu():
@@ -49,11 +69,17 @@ def _analiz_dongusu():
 
 @asynccontextmanager
 async def omur(_: FastAPI):
-    durum["kaynak"] = kaynak_modulu.kaynak_sec(os.environ.get("VISION_KAYNAK"))
+    ilk = kaynak_modulu.kaynak_sec(os.environ.get("VISION_KAYNAK"))
+    durum["kaynaklar"][ilk.ad] = ilk
+    # Tarayıcı ve sanal kaynak her zaman hazır tutulur: arayüzden anında geçiş yapılabilsin.
+    durum["kaynaklar"].setdefault("tarayici", kaynak_modulu.PushKaynak())
+    durum["kaynaklar"].setdefault("sim", kaynak_modulu.SimKaynak())
+    durum["kaynak"] = ilk
     threading.Thread(target=_analiz_dongusu, daemon=True).start()
     yield
     durum["calisiyor"] = False
-    durum["kaynak"].kapat()
+    for k in durum["kaynaklar"].values():
+        k.kapat()
 
 
 app = FastAPI(title="Pick-to-Light Görüntü Tanıma", lifespan=omur)
@@ -85,9 +111,37 @@ def saglik():
     return {
         "durum": "hazir", "kaynak": kaynak.ad, "sanal": kaynak.ad == "sim",
         "kareVar": kaynak.son_kare() is not None, "profilSayisi": len(depo.liste()),
+        "kaynaklar": sorted(durum["kaynaklar"]),
         # "donuk": kamera açık ama canlı görüntü yok (gizlilik izni / başka uygulama kullanıyor).
         "kameraSorunu": kaynak.sorun,
     }
+
+
+# ───────────────────────────── Kaynak seçimi ─────────────────────────────
+
+class KaynakIstek(BaseModel):
+    tip: str
+
+
+@app.post("/kaynak")
+def kaynak_sec(istek: KaynakIstek):
+    """Aktif görüntü kaynağını değiştirir: sim (sanal sahne), tarayici (tarayıcı kamerası), kamera:0 (sunucu kamerası)."""
+    yeni = _kaynagi_al(istek.tip.strip().lower())
+    durum["kaynak"] = yeni
+    durum["analizler"].clear()
+    return {"kaynak": yeni.ad, "kaynaklar": sorted(durum["kaynaklar"])}
+
+
+@app.post("/kare")
+async def kare_al(request: Request):
+    """
+    Tarayıcı kamerasının karesi (ham JPEG gövdesi). Aktif kaynak başka olsa da kare saklanır:
+    kullanıcı tarayıcı kaynağına geçtiğinde ilk kare hazır olur.
+    """
+    govde = await request.body()
+    if not govde or not durum["kaynaklar"]["tarayici"].kare_ver(govde):
+        raise HTTPException(422, "Kare çözülemedi (JPEG bekleniyor).")
+    return {"ok": True}
 
 
 # ───────────────────────────── Görüntü ─────────────────────────────

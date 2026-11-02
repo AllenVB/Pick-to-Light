@@ -13,7 +13,7 @@ import tanima
 
 def egit():
     depo = tanima.ProfilDeposu(None)
-    for urun_id, tip in ((1, "civata"), (2, "somun"), (3, "rondela")):
+    for urun_id, tip in ((1, "civata"), (2, "somun"), (3, "rondela"), (4, "vida")):
         for tohum in range(4):
             kare = kaynak.sahne_ciz([{"tip": tip, "adet": 2}], tohum=100 + tohum)
             depo.ekle(urun_id, tip, [n.ozellik for n in tanima.nesneleri_bul(kare)])
@@ -35,7 +35,7 @@ def calistir():
     toplam = dogru = 0
     print(f"{'bozulma':22} {'parça':8} {'doğru/toplam':14} ortalama güven")
     for ad, bozucu in bozulmalar.items():
-        for urun_id, tip in ((1, "civata"), (2, "somun"), (3, "rondela")):
+        for urun_id, tip in ((1, "civata"), (2, "somun"), (3, "rondela"), (4, "vida")):
             d = g = 0
             guvenler = []
             for tohum in range(20):
