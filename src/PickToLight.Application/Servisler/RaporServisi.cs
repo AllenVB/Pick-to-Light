@@ -42,6 +42,12 @@ public sealed class RaporServisi(IAppDbContext db, IZamanSaglayici zaman)
             .Select(s => s.Durum)
             .ToListAsync(ct);
 
+        var dogrulamalar = await db.SiparisDogrulamalari
+            .AsNoTracking()
+            .Where(d => d.Zaman >= baslangic && d.Zaman <= bitis)
+            .Select(d => d.Onaylandi)
+            .ToListAsync(ct);
+
         var kalemler = await db.SiparisKalemleri
             .AsNoTracking()
             .Where(k => k.Siparis.Olusturma >= baslangic && k.Siparis.Olusturma <= bitis)
@@ -71,7 +77,8 @@ public sealed class RaporServisi(IAppDbContext db, IZamanSaglayici zaman)
         return new RaporOzetDto(
             GunSayisi: gunSayisi,
             ToplamSiparis: siparisler.Count,
-            TamamlananSiparis: siparisler.Count(d => d == SiparisDurumu.Tamamlandi),
+            // Paketlenmiş sipariş de tamamlanmıştır: paketleme toplamanın sonraki adımıdır.
+            TamamlananSiparis: siparisler.Count(d => d is SiparisDurumu.Tamamlandi or SiparisDurumu.Paketlendi),
             KilitliSiparis: siparisler.Count(d => d == SiparisDurumu.Kilitli),
             ToplananKalem: kalemler.Count(k => k.Durum == KalemDurumu.Alindi),
             YetersizKalem: kalemler.Count(k => k.Durum == KalemDurumu.Yetersiz),
@@ -87,7 +94,10 @@ public sealed class RaporServisi(IAppDbContext db, IZamanSaglayici zaman)
                                                    && ((k.OlculenAdet != null && k.OlculenAdet != k.Miktar)
                                                        || (k.TespitEdilenUrunId != null && k.TespitEdilenUrunId != k.UrunId))),
             KameraDogrulananKalem: kalemler.Count(k => k.TespitEdilenUrunId != null && k.TespitEdilenUrunId == k.UrunId),
-            YanlisUrunKalem: kalemler.Count(k => k.TespitEdilenUrunId != null && k.TespitEdilenUrunId != k.UrunId));
+            YanlisUrunKalem: kalemler.Count(k => k.TespitEdilenUrunId != null && k.TespitEdilenUrunId != k.UrunId),
+            PaketlenenSiparis: siparisler.Count(d => d == SiparisDurumu.Paketlendi),
+            DogrulamaSayisi: dogrulamalar.Count,
+            DogrulamaHatasiSayisi: dogrulamalar.Count(d => !d));
     }
 
     public async Task<IReadOnlyList<UrunHareketDto>> EnCokToplananUrunlerAsync(int gun = 30, int limit = 10,

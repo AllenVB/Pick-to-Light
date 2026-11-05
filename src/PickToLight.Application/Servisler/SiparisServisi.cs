@@ -89,7 +89,7 @@ public sealed class SiparisServisi(
     {
         var siparis = await SiparisiYukleAsync(siparisId, ct);
 
-        if (siparis.Durum is SiparisDurumu.Tamamlandi or SiparisDurumu.Iptal)
+        if (siparis.Durum is SiparisDurumu.Tamamlandi or SiparisDurumu.Paketlendi or SiparisDurumu.Iptal)
             throw new GecersizDurumGecisiException("Sipariş", siparis.Durum.ToString(), nameof(SiparisDurumu.Hazirlaniyor));
 
         // ── 1. Aşama: eşleştirme ve bölme ──
@@ -605,7 +605,7 @@ public sealed class SiparisServisi(
         if (siradaki?.Kutu is null) return;
 
         // Sırada beklerken siparişi iptal edilmiş olabilir.
-        if (siradaki.Siparis.Durum is SiparisDurumu.Iptal or SiparisDurumu.Tamamlandi)
+        if (siradaki.Siparis.Durum is SiparisDurumu.Iptal or SiparisDurumu.Tamamlandi or SiparisDurumu.Paketlendi)
             return;
 
         // Kutuyu bu kalem adına sahiplen; başka bir işlem önce davrandıysa dokunma.
@@ -693,6 +693,7 @@ public sealed class SiparisServisi(
             .Include(s => s.Kalemler).ThenInclude(k => k.Kutu).ThenInclude(k => k!.Stok)
             .Include(s => s.Kalemler).ThenInclude(k => k.TeyitEdenPersonel)
             .Include(s => s.Kalemler).ThenInclude(k => k.TespitEdilenUrun)
+            .Include(s => s.PaketleyenPersonel)
             .FirstOrDefaultAsync(s => s.SiparisNo == siparisNo, ct)
             ?? throw new KayitBulunamadiException("Sipariş", siparisNo);
 
@@ -732,7 +733,8 @@ public sealed class SiparisServisi(
             .ToList();
 
         return new SiparisDetayDto(siparis.Id, siparis.SiparisNo, siparis.Durum, siparis.Olusturma,
-            siparis.Tamamlanma, kalemler, alarmlar, siparis.Oncelik);
+            siparis.Tamamlanma, kalemler, alarmlar, siparis.Oncelik,
+            siparis.PaketlenmeZamani, siparis.PaketleyenPersonel?.AdSoyad, siparis.PaketlemeIstisnaNedeni);
     }
 
     private async Task<Siparis> SiparisiYukleAsync(long siparisId, CancellationToken ct) =>

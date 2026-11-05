@@ -26,6 +26,7 @@ const ALARM_BASLIGI: Record<string, string> = {
   StokAzaldi: "STOK AZALDI",
   TeyitZamanAsimi: "TEYİT ZAMAN AŞIMI",
   BeklenmeyenTeyit: "BEKLENMEYEN TEYİT",
+  DogrulamaHatasi: "PAKET DOĞRULAMA HATASI",
 };
 
 export default function OperatorEkrani() {

@@ -20,6 +20,7 @@ const OPERASYON: Baglanti[] = [
   { yol: "/siparis/yeni", ad: "Sipariş Girişi", kisa: "Yeni", ikon: "＋" },
   { yol: "/siparisler", ad: "Siparişler", kisa: "Siparişler", ikon: "☰" },
   { yol: "/operator", ad: "Operatör Ekranı", kisa: "Operatör", ikon: "◎" },
+  { yol: "/paketleme", ad: "Paketleme", kisa: "Paketle", ikon: "▧" },
   { yol: "/stok", ad: "Stok Durumu", kisa: "Stok", ikon: "▤" },
   { yol: "/alarmlar", ad: "Alarmlar", kisa: "Alarm", ikon: "⚠" },
 ];

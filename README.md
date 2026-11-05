@@ -163,6 +163,55 @@ civata 10 g, somun 5 g, vida 2 g → 20 g düşüş = 2 civata **ya da** 4 somun
 > Sanal sahnede tanıma doğruluğu %100'dür (şekiller belirgin); gerçek kamerada ışık ve zemin etkiler, ürün
 > öğretilirken sahnenin gerçek koşullarda olması gerekir.
 
+### Paketleme ve doğrulama
+
+Toplanan sipariş paketlenmeden önce içeriği **kamera + tartıyla** siparişle karşılaştırılır:
+
+```
+Toplandı (TAMAMLANDI) → paket kameraya ve tartıya konur → DOĞRULA
+   ├─ her şey tutuyor  → ✓ ONAY → "Onayla ve paketle" → PAKETLENDİ
+   └─ tutmuyor         → ✕ HATA mesajları (paketlenmez, alarm üretilir) → düzelt → yeniden doğrula
+```
+
+| Kontrol | Hata kodu | Örnek mesaj |
+|---|---|---|
+| Kamera ürün başına adet sayar | `EKSIK_URUN` / `FAZLA_URUN` | *Vida M4: 10 adet olmalı, kamera 8 adet görüyor (2 eksik).* |
+| Siparişte olmayan ürün | `YANLIS_URUN` | *Siparişte olmayan ürün var: Civata M6 (2 adet).* |
+| Tanınmayan nesne | `BILINMEYEN_NESNE` | *1 nesne tanınamadı: başka bir ürün ya da yabancı bir cisim olabilir.* |
+| Tartı: Σ adet × birim ağırlık ± tolerans | `AGIRLIK_UYUSMAZLIGI` | *Ağırlık beklenenden 7 g fazla: beklenen 40 g, ölçülen 47 g (tolerans ±1,2 g).* |
+| Sayım oturmadı (el kareden çıkmadı) | `KAMERA_KARARSIZ` | *Kamera sayımı oturmadı: elinizi paketten çekin…* |
+| Kamera/tartı yok | `KAMERA_YOK` / `AGIRLIK_YOK` | *Kamera verisi alınamadı…* |
+
+- **Karar tek yerde:** `PaketDogrulama` (saf kural, `src/PickToLight.Domain/Kurallar`). Arayüzün canlı önizlemesi, kayıtlı
+  doğrulama ve testler aynı kodu çalıştırır. Onay için hiç hata kalmamalıdır; uyarılar (ör. birim ağırlığı tanımsız ürün) engellemez.
+- **İki bağımsız kanal birbirini doğrular:** sayım tutup ağırlık tutmazsa kap/birim ağırlığı sorunludur; ağırlık tutup sayım
+  tutmazsa aynı ağırlıkta başka bir parça girmiş olabilir.
+- **Güvenlik:** son doğrulama başarılı ve taze (`PaketOnayGecerlilikDakika`, varsayılan 10 dk) değilse paketlenemez; onaydan
+  sonra yeni başarısız doğrulama onayı geçersiz kılar. Kamera zorunludur (`PaketKameraZorunlu`); kamera yoksa onay verilmez.
+- **Yönetici istisnası:** `zorla-paketle` doğrulamayı atlar; gerekçe zorunludur, siparişe yazılır ve alarm olarak görünür.
+- **Kayıt:** her deneme (başarısız olanlar dahil) `siparis_dogrulama` tablosuna yazılır; sipariş detayında geçmiş görünür.
+  Raporlarda paketlenen sipariş, doğrulama sayısı ve hata sayısı bulunur.
+- **API:** `GET /api/siparisler/paketlenecek` · `POST /api/siparisler/{no}/dogrula?kaydet=false|true` ·
+  `POST …/paketle` · `POST …/zorla-paketle` (yönetici) · `GET …/dogrulamalar`.
+  Görüntü servisi: `GET /sahne` (ürün başına kararlı adet, tanınmayan nesne sayısı).
+- **Ayarlar** (`PickToLight:` bölümü): `PaketAgirlikToleransOrani` (0.03), `PaketAgirlikToleransMinG` (1.0),
+  `PaketKameraZorunlu` (true), `PaketOnayGecerlilikDakika` (10), `PaketKuyrukGun` (3).
+- **Demo:** `bash tools/paketleme-demo.sh dogru` (onay + paketleme) · `hatali eksik|yanlis|agirlik` (hata mesajları) ·
+  `hazirla` (siparişi toplayıp masaya doğru paketi koyar, ekrandan siz doğrulayın) · `temizle` (kuyruğu boşaltır).
+
+### Yol haritası (öncelik sırasıyla)
+
+1. **Gerçek kamerada ölçüm ve eşik ayarı:** gerçek parçalarla öğretme, `olcum.py` benzeri bir doğruluk testi; güven eşiği,
+   ağırlık toleransı ve sayım penceresi buna göre ayarlanır. Sanal sahne %100'dür, gerçek ışık/zemin farklı olacaktır.
+2. **Daha güçlü tanıma:** klasik özellikler yetmezse hafif bir sınıflandırma modeli (kendi fotoğraflarıyla eğitilmiş) ve
+   üst üste duran parçalar için ağırlıkla çapraz sayım.
+3. **Paket istasyonu donanımı:** paket için ayrı HX711 tartısı, tartı oturunca **otomatik doğrulama**, koli dara profilleri.
+4. **Paketleme çıktıları:** barkod okutarak sipariş seçme, etiket/irsaliye yazdırma, doğrulama anının **kare görüntüsünü**
+   kanıt olarak saklama, çok koli / kısmi sevkiyat.
+5. **Raporlama:** hata türü dağılımı, operatör ve ürün bazlı doğrulama başarısı, "ilk seferde doğru paket" oranı.
+6. **Operasyon ve güvenlik:** görüntü servisinde kimlik doğrulama, servislerin Docker/Windows servisi olarak açılışta başlaması,
+   sağlık izleme; kutu başına kamera eşlemesi.
+
 ---
 
 ## Proje yapısı
@@ -233,7 +282,7 @@ her kutuya ayrı kullanıcı/parola ve ACL üretir (kutu yalnızca kendi topic'l
 ## Testler
 
 ```bash
-dotnet test                     # 200 test: birim (112) + entegrasyon (88)
+dotnet test                     # 239 test: domain (53) + birim (93) + entegrasyon (93)
 cd web && npm run test:e2e      # 10 uçtan uca tarayıcı testi (Playwright)
 ```
 

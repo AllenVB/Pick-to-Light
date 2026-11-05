@@ -9,8 +9,47 @@ namespace PickToLight.Api.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/siparisler")]
-public sealed class SiparislerController(SiparisServisi siparisler, SiparisIceAktarma iceAktarma) : ControllerBase
+public sealed class SiparislerController(SiparisServisi siparisler, SiparisIceAktarma iceAktarma,
+    PaketlemeServisi paketleme) : ControllerBase
 {
+    // ───────────────────────── Paketleme ─────────────────────────
+
+    /// <summary>Toplanmış, paketlenmeyi bekleyen siparişler ve pakette olması gereken içerik.</summary>
+    [HttpGet("paketlenecek")]
+    public async Task<ActionResult<IReadOnlyList<PaketlenecekSiparisDto>>> Paketlenecek(CancellationToken ct)
+        => Ok(await paketleme.PaketlenecekleriAsync(ct));
+
+    /// <summary>
+    /// Paketin içeriğini kamera (ürün başına adet) ve tartıyla (gram) siparişle karşılaştırır. Hata varsa
+    /// <c>onaylandi=false</c> ve <c>hatalar</c> kullanıcıya gösterilecek mesajları taşır. <c>kaydet=false</c>
+    /// yalnızca önizlemedir (kayıt ve alarm yok).
+    /// </summary>
+    [HttpPost("{siparisNo}/dogrula")]
+    public async Task<ActionResult<DogrulamaSonucuDto>> Dogrula(string siparisNo, DogrulaIstek istek,
+        [FromQuery] bool kaydet = false, CancellationToken ct = default)
+        => Ok(await paketleme.DogrulaAsync(siparisNo, istek, kaydet, ct));
+
+    /// <summary>Son doğrulaması başarılı olan siparişi paketler (PAKETLENDI). Onay yoksa/eskiyse hata döner.</summary>
+    [HttpPost("{siparisNo}/paketle")]
+    public async Task<ActionResult<PaketlemeSonucuDto>> Paketle(string siparisNo, PaketleIstek? istek,
+        CancellationToken ct)
+        => Ok(await paketleme.PaketleAsync(siparisNo, istek?.DogrulamaId, ct));
+
+    /// <summary>Yönetici istisnası: doğrulama atlanarak paketler. Gerekçe zorunlu, alarm olarak da kaydedilir.</summary>
+    [HttpPost("{siparisNo}/zorla-paketle")]
+    [Authorize(Roles = "ADMIN")]
+    public async Task<ActionResult<PaketlemeSonucuDto>> ZorlaPaketle(string siparisNo, ZorlaPaketleIstek istek,
+        CancellationToken ct)
+        => Ok(await paketleme.ZorlaPaketleAsync(siparisNo, istek.Neden, ct));
+
+    /// <summary>Siparişin doğrulama denemeleri (başarısız olanlar dahil).</summary>
+    [HttpGet("{siparisNo}/dogrulamalar")]
+    public async Task<ActionResult<IReadOnlyList<DogrulamaGecmisiDto>>> DogrulamaGecmisi(string siparisNo,
+        CancellationToken ct)
+        => Ok(await paketleme.GecmisAsync(siparisNo, ct));
+
+    // ───────────────────────── Sipariş ─────────────────────────
+
     /// <summary>Sipariş ve kalemlerini oluşturur (durum: BEKLIYOR).</summary>
     [HttpPost]
     public async Task<ActionResult<SiparisDetayDto>> Olustur(SiparisOlusturIstek istek, CancellationToken ct)

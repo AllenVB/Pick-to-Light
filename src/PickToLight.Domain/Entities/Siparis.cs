@@ -17,5 +17,16 @@ public class Siparis
     public DateTimeOffset Olusturma { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? Tamamlanma { get; set; }
 
+    /// <summary>Paketin doğrulanıp paketlendiği an (durum PAKETLENDI).</summary>
+    public DateTimeOffset? PaketlenmeZamani { get; set; }
+
+    public long? PaketleyenPersonelId { get; set; }
+    public Personel? PaketleyenPersonel { get; set; }
+
+    /// <summary>Doğrulama atlanarak (yönetici istisnası) paketlendiyse gerekçesi; normal paketlemede null.</summary>
+    public string? PaketlemeIstisnaNedeni { get; set; }
+
+    public ICollection<SiparisDogrulama> Dogrulamalar { get; set; } = new List<SiparisDogrulama>();
+
     public ICollection<SiparisKalemi> Kalemler { get; set; } = new List<SiparisKalemi>();
 }

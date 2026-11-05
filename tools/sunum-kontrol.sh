@@ -77,6 +77,9 @@ if [ "${1:-}" = "hazirla" ]; then
   done
   tamam "açık siparişler iptal edildi (stok iade)"
 
+  # Paketleme kuyruğu: test/demo kalıntısı toplanmış siparişler boşaltılır (yönetici istisnası, "Demo temizligi")
+  PTL_API="$API" bash "$(dirname "$0")/paketleme-demo.sh" temizle 2>&1 | sed 's/\[[0-9;]*m//g'
+
   PTL_API="$API" PTL_WEB="$WEB" bash "$(dirname "$0")/demo.sh" hazirla > /dev/null 2>&1 && tamam "K-01…K-05 stokları demo değerlerine çekildi, alarmlar okundu"
 
   K6=$(ist "$API/api/kutular" | js "next((k['id'] for k in d if k['kod']=='K-06'), '')")

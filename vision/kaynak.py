@@ -98,10 +98,17 @@ def sahne_ciz(nesneler: list[dict], tohum: int | None = None, gurultu: float = 3
         if cizici is None:
             continue
         for _ in range(int(kayit.get("adet", 1))):
-            for _deneme in range(60):
-                x = rastgele.uniform(80, KARE_GEN - 80)
-                y = rastgele.uniform(80, KARE_YUK - 80)
-                if all(math.hypot(x - a, y - b) > 90 for a, b in yerler):
+            # Parçalar birbirine değmesin: önce geniş aralıkla denenir, sahne kalabalıksa aralık daralır
+            # (üst üste binen parçalar tek nesne gibi sayılırdı; gerçek masada da aynı sorun vardır).
+            yerlesti = False
+            for aralik in (90, 80, 70, 62, 55):
+                for _deneme in range(150):
+                    x = rastgele.uniform(60, KARE_GEN - 60)
+                    y = rastgele.uniform(60, KARE_YUK - 60)
+                    if all(math.hypot(x - a, y - b) > aralik for a, b in yerler):
+                        yerlesti = True
+                        break
+                if yerlesti:
                     break
             yerler.append((x, y))
             cizici(kare, x, y, rastgele.uniform(0, 360))

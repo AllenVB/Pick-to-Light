@@ -11,6 +11,7 @@ public static class ServisKayitlari
     {
         services.AddSingleton<LedTestDurumu>();
         services.AddScoped<SiparisServisi>();
+        services.AddScoped<PaketlemeServisi>();
         services.AddScoped<StokServisi>();
         services.AddScoped<AlarmServisi>();
         services.AddScoped<CihazServisi>();

@@ -19,7 +19,13 @@ public sealed record RaporOzetDto(
     /// <summary>Kameranın sipariş edilen ürünü doğruladığı kalem sayısı.</summary>
     int KameraDogrulananKalem = 0,
     /// <summary>Kameranın sipariş edilenden farklı bir ürün tespit ettiği (yanlış bölmeden alma) kalem sayısı.</summary>
-    int YanlisUrunKalem = 0);
+    int YanlisUrunKalem = 0,
+    /// <summary>Dönemde paketlenen sipariş sayısı.</summary>
+    int PaketlenenSiparis = 0,
+    /// <summary>Dönemde yapılan (kayıtlı) paket doğrulaması sayısı.</summary>
+    int DogrulamaSayisi = 0,
+    /// <summary>Bunlardan hatalı çıkanlar (eksik/fazla/yanlış ürün, ağırlık).</summary>
+    int DogrulamaHatasiSayisi = 0);
 
 public sealed record UrunHareketDto(long UrunId, string Sku, string UrunAdi, int ToplamCikis, int ToplamaSayisi);
 

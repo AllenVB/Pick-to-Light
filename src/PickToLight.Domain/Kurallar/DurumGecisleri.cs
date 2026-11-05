@@ -21,8 +21,11 @@ public static class DurumGecisleri
         [
             SiparisDurumu.Hazirlaniyor, SiparisDurumu.KismiTamamlandi, SiparisDurumu.Iptal
         ],
-        [SiparisDurumu.KismiTamamlandi] = [SiparisDurumu.Tamamlandi, SiparisDurumu.Iptal],
-        [SiparisDurumu.Tamamlandi] = [],
+        // Paketleme: toplanan siparişin içeriği doğrulanınca paketlenir. Kısmi (bazı kalemleri karşılanamayan)
+        // sipariş de eldeki kalemlerle paketlenebilir.
+        [SiparisDurumu.KismiTamamlandi] = [SiparisDurumu.Tamamlandi, SiparisDurumu.Paketlendi, SiparisDurumu.Iptal],
+        [SiparisDurumu.Tamamlandi] = [SiparisDurumu.Paketlendi],
+        [SiparisDurumu.Paketlendi] = [],
         [SiparisDurumu.Iptal] = []
     };
 

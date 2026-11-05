@@ -208,6 +208,64 @@ def tani_et(kutuId: int | None = None):
     })
 
 
+def _kare_sayimi(tespitler: list[tanima.Tespit]) -> tuple[dict[int, int], dict[int, str], int]:
+    """Bir karedeki ürün başına adet, ürün adları ve tanınamayan nesne sayısı."""
+    adetler: dict[int, int] = {}
+    adlar: dict[int, str] = {}
+    bilinmeyen = 0
+    for t in tespitler:
+        if t.urun_id is None or t.guven < MIN_GUVEN:
+            bilinmeyen += 1
+        else:
+            adetler[t.urun_id] = adetler.get(t.urun_id, 0) + 1
+            adlar[t.urun_id] = t.urun_adi or str(t.urun_id)
+    return adetler, adlar, bilinmeyen
+
+
+@app.get("/sahne")
+def sahne():
+    """
+    Paket doğrulaması için sahnenin tamamı: ürün başına SAYILAN adet ve tanınamayan nesne sayısı.
+
+    Tek kareye güvenilmez (el, gölge, titreşim): son birkaç saniyenin karelerinin medyanı alınır ve
+    karelerin çoğu aynı sayımı veriyorsa sayım `kararli` sayılır. Kararsız sayımda backend adet hatası
+    üretmez; kullanıcıya "elinizi çekin, tekrar deneyin" der.
+    """
+    simdi = time.time()
+    taze = [a for a in list(durum["analizler"]) if simdi - a["zaman"] <= PENCERE_SN]
+
+    if not taze:   # analiz döngüsü henüz kare üretmedi (servis yeni açıldı ya da kaynak yeni değişti)
+        taze = [{"zaman": simdi, "tespitler": tanima.tani(_kare(), depo, min_guven=MIN_GUVEN)}]
+
+    sayimlar = [_kare_sayimi(a["tespitler"]) for a in taze]
+    urun_idleri = sorted({u for adet, _, _ in sayimlar for u in adet})
+    adlar = {u: ad for _, a, _ in sayimlar for u, ad in a.items()}
+
+    def medyan(degerler: list[int]) -> int:
+        return int(sorted(degerler)[len(degerler) // 2])
+
+    medyanlar = {u: medyan([adet.get(u, 0) for adet, _, _ in sayimlar]) for u in urun_idleri}
+    medyan_bilinmeyen = medyan([b for _, _, b in sayimlar])
+
+    # Kararlılık: karelerin en az %70'i medyanla birebir aynı sayımı vermeli (ve birkaç kare görülmüş olmalı).
+    uyan = sum(
+        1 for adet, _, b in sayimlar
+        if b == medyan_bilinmeyen and all(adet.get(u, 0) == n for u, n in medyanlar.items())
+        and set(adet) <= set(medyanlar)
+    )
+    kararli = len(sayimlar) >= 3 and uyan / len(sayimlar) >= 0.7
+
+    urunler = [{"urunId": u, "urunAdi": adlar[u], "adet": n} for u, n in medyanlar.items() if n > 0]
+    return {
+        "kaynak": durum["kaynak"].ad,
+        "urunler": urunler,
+        "bilinmeyen": medyan_bilinmeyen,
+        "nesneSayisi": sum(u["adet"] for u in urunler) + medyan_bilinmeyen,
+        "kararli": kararli,
+        "kareSayisi": len(sayimlar),
+    }
+
+
 @app.post("/tani/goruntu")
 async def tani_goruntu(dosya: UploadFile = File(...)):
     """Yüklenen bir fotoğrafı analiz eder (kamerasız deneme ve testler için)."""

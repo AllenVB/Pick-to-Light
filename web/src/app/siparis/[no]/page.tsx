@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ApiHata, api } from "@/lib/api";
 import { useCanliOlaylar } from "@/hooks/useCanliOlaylar";
@@ -9,7 +10,7 @@ import { useToast } from "@/components/Toast";
 import { GeriSayim } from "@/components/GeriSayim";
 import { KalemRozeti, OncelikRozeti, RenkRozeti, SiparisRozeti } from "@/components/Rozet";
 import { IskeletKart } from "@/components/Durumlar";
-import type { Kalem, SiparisDetay, TeyitYontemi } from "@/types";
+import type { DogrulamaGecmisi, Kalem, SiparisDetay, TeyitYontemi } from "@/types";
 
 /**
  * Sipariş detayı — vardiya sorumlusunun "bu sipariş ne durumda?" ekranı.
@@ -183,13 +184,18 @@ export default function SiparisDetaySayfasi() {
   const oturum = useKorumaliSayfa();
   const { no } = useParams<{ no: string }>();
   const [detay, setDetay] = useState<SiparisDetay | null>(null);
+  const [gecmis, setGecmis] = useState<DogrulamaGecmisi[]>([]);
   const [hata, setHata] = useState<string | null>(null);
   const toast = useToast();
   const [islem, setIslem] = useState(false);
 
   const yenile = useCallback(async () => {
     try {
-      setDetay(await api.siparisDetay(decodeURIComponent(no)));
+      const d = await api.siparisDetay(decodeURIComponent(no));
+      setDetay(d);
+      // Toplanmış ya da paketlenmiş siparişte paket doğrulama denemeleri de gösterilir.
+      if (d.durum === "Tamamlandi" || d.durum === "KismiTamamlandi" || d.durum === "Paketlendi")
+        setGecmis(await api.dogrulamaGecmisi(d.siparisNo).catch(() => []));
     } catch (h) {
       setHata(h instanceof ApiHata ? h.message : "Sipariş yüklenemedi.");
     }
@@ -222,7 +228,8 @@ export default function SiparisDetaySayfasi() {
 
   const alinan = detay.kalemler.filter((k) => k.durum === "Alindi").length;
   const toplam = detay.kalemler.length;
-  const bitti = detay.durum === "Tamamlandi" || detay.durum === "Iptal";
+  const bitti = detay.durum === "Tamamlandi" || detay.durum === "Paketlendi" || detay.durum === "Iptal";
+  const paketlenebilir = detay.durum === "Tamamlandi" || detay.durum === "KismiTamamlandi";
   const yuzde = Math.round((alinan / Math.max(toplam, 1)) * 100);
 
   // Toplama hızı: yalnızca ölçülmüş kalemlerin ortalaması (ışığı hiç yanmayan sayılmaz).
@@ -251,6 +258,11 @@ export default function SiparisDetaySayfasi() {
         </div>
 
         <div className="flex gap-2">
+          {paketlenebilir && (
+            <Link href={`/paketleme?siparis=${encodeURIComponent(detay.siparisNo)}`} className="dugme" data-test="paketle-baglantisi">
+              Paketle &amp; doğrula →
+            </Link>
+          )}
           {!bitti && (
             <button className="dugme" disabled={islem}
               onClick={() => calistir(() => api.siparisBaslat(detay.id))}>
@@ -265,6 +277,42 @@ export default function SiparisDetaySayfasi() {
           )}
         </div>
       </header>
+
+      {detay.durum === "Paketlendi" && detay.paketlenmeZamani && (
+        <section className="kart border-durum-yesil/40 bg-durum-yesil/10" data-test="paketleme-bilgisi">
+          <p className="font-bold text-durum-yesil">✓ Paketlendi</p>
+          <p className="mt-1 text-sm text-slate-300">
+            {new Date(detay.paketlenmeZamani).toLocaleString("tr-TR")}
+            {detay.paketleyenAdi && <> · {detay.paketleyenAdi}</>}
+          </p>
+          {detay.paketlemeIstisnaNedeni && (
+            <p className="mt-2 rounded-lg bg-durum-sari/15 px-3 py-2 text-sm text-durum-sari">
+              Doğrulama atlanarak paketlendi (yönetici istisnası): {detay.paketlemeIstisnaNedeni}
+            </p>
+          )}
+        </section>
+      )}
+
+      {gecmis.length > 0 && (
+        <section className="kart" data-test="dogrulama-gecmisi">
+          <h2 className="etiket mb-2">Paket doğrulama geçmişi</h2>
+          <ul className="space-y-2">
+            {gecmis.map((g) => (
+              <li key={g.id} className="flex flex-wrap items-start gap-x-3 gap-y-1 text-sm">
+                <span className={`rozet ${g.onaylandi ? "bg-durum-yesil/15 text-durum-yesil" : "bg-durum-kirmizi/20 text-durum-kirmizi"}`}>
+                  {g.onaylandi ? "ONAY" : "HATA"}
+                </span>
+                <span className="text-slate-400">
+                  {new Date(g.zaman).toLocaleTimeString("tr-TR")}{g.personelAdi && ` · ${g.personelAdi}`}
+                  {g.netAgirlikG != null && ` · ${g.netAgirlikG.toLocaleString("tr-TR", { maximumFractionDigits: 1 })} g`}
+                  {!g.kameraKullanildi && " · kamerasız"}
+                </span>
+                {g.hataOzeti && <span className="basis-full text-durum-kirmizi/90">{g.hataOzeti}</span>}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="kart" aria-label="Toplama ilerlemesi">
         <div className="flex items-end justify-between gap-3">

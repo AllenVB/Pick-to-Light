@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using PickToLight.Application.Abstractions;
+using PickToLight.Domain.Kurallar;
 
 namespace PickToLight.Infrastructure.Goruntu;
 
@@ -45,6 +46,49 @@ public sealed class GoruntuTanimaIstemcisi(HttpClient http, IOptions<GoruntuAyar
             log.LogWarning("Görüntü tanıma servisine ulaşılamadı ({Mesaj}); baskül tek başına kullanılacak.", hata.Message);
             return null;
         }
+    }
+
+    public async Task<KameraSahnesi?> SahneAsync(CancellationToken ct = default)
+    {
+        if (!_ayar.Etkin)
+            return null;
+
+        try
+        {
+            using var zamanAsimi = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            zamanAsimi.CancelAfter(_ayar.ZamanAsimiMs);
+
+            var yanit = await http.GetFromJsonAsync<SahneYaniti>(
+                $"{_ayar.Adres.TrimEnd('/')}/sahne", zamanAsimi.Token);
+
+            if (yanit is null)
+                return null;
+
+            var urunler = yanit.Urunler.Select(u => new GorulenUrun(u.UrunId, u.UrunAdi ?? "?", u.Adet)).ToList();
+            log.LogInformation("Kamera sahnesi: {Urunler}, {Bilinmeyen} tanınamayan nesne, kararlı={Kararli}.",
+                string.Join(", ", urunler.Select(u => $"{u.UrunAdi}×{u.Adet}")), yanit.Bilinmeyen, yanit.Kararli);
+
+            return new KameraSahnesi(urunler, yanit.Bilinmeyen, yanit.Kararli);
+        }
+        catch (Exception hata) when (hata is not OperationCanceledException || !ct.IsCancellationRequested)
+        {
+            log.LogWarning("Görüntü tanıma servisine ulaşılamadı ({Mesaj}); sahne sayımı alınamadı.", hata.Message);
+            return null;
+        }
+    }
+
+    private sealed class SahneYaniti
+    {
+        [JsonPropertyName("urunler")] public List<SahneUrunu> Urunler { get; set; } = [];
+        [JsonPropertyName("bilinmeyen")] public int Bilinmeyen { get; set; }
+        [JsonPropertyName("kararli")] public bool Kararli { get; set; }
+    }
+
+    private sealed class SahneUrunu
+    {
+        [JsonPropertyName("urunId")] public long UrunId { get; set; }
+        [JsonPropertyName("urunAdi")] public string? UrunAdi { get; set; }
+        [JsonPropertyName("adet")] public int Adet { get; set; }
     }
 
     private sealed class TaniYaniti

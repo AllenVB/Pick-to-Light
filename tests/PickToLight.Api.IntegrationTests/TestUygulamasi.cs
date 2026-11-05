@@ -40,6 +40,9 @@ public class TestUygulamasi : WebApplicationFactory<Program>, IAsyncLifetime
     /// <summary>Testlerin LED komutlarını doğrulayabilmesi için MQTT yayıncısı kaydedilir.</summary>
     public SahteMqttYayinci Mqtt { get; } = new();
 
+    /// <summary>Paket doğrulamasında kameranın gördüğü sahne testte belirlenir (Python servisi gerekmez).</summary>
+    public SahteGoruntuTanima Goruntu { get; } = new();
+
     private static string YonetimBaglantisi =>
         Environment.GetEnvironmentVariable("PTL_TEST_POSTGRES") ?? VarsayilanSunucu;
 
@@ -86,6 +89,10 @@ public class TestUygulamasi : WebApplicationFactory<Program>, IAsyncLifetime
             // Gerçek MQTT yayıncısı yerine kaydedici: komutlar doğrulanabilsin.
             servisler.RemoveAll<IMqttYayinci>();
             servisler.AddSingleton<IMqttYayinci>(Mqtt);
+
+            // Görüntü işleme servisi (Python) yerine: sahne testte verilir.
+            servisler.RemoveAll<IGoruntuTanima>();
+            servisler.AddSingleton<IGoruntuTanima>(Goruntu);
 
             // Arka plan servisleri testlerde çalışmasın.
             servisler.RemoveAll<IHostedService>();
@@ -204,4 +211,15 @@ public sealed class SahteMqttYayinci : IMqttYayinci
     {
         lock (_kilit) { _yakilanlar.Clear(); _sondurulenler.Clear(); _baskul.Clear(); }
     }
+}
+
+public sealed class SahteGoruntuTanima : IGoruntuTanima
+{
+    public PickToLight.Domain.Kurallar.KameraSahnesi? Sahne { get; set; }
+
+    public Task<TanimaSonucu?> SonTespitAsync(long kutuId, CancellationToken ct = default)
+        => Task.FromResult<TanimaSonucu?>(null);
+
+    public Task<PickToLight.Domain.Kurallar.KameraSahnesi?> SahneAsync(CancellationToken ct = default)
+        => Task.FromResult(Sahne);
 }

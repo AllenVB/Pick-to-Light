@@ -1,7 +1,7 @@
 "use client";
 
 import type {
-  Alarm, ApiHatasi, Bolme, TartiSonucu, CihazOlay, GunlukHareket, Kutu, KutuPerformans, Oturum, RaporOzet,
+  Alarm, ApiHatasi, Bolme, DogrulamaGecmisi, DogrulamaSonucu, PaketlemeSonucu, PaketlenecekSiparis, TartiSonucu, CihazOlay, GunlukHareket, Kutu, KutuPerformans, Oturum, RaporOzet,
   IceAktarSonucu, IsikTestiSonucu, Personel, SiparisDetay, SiparisOnceligi, SiparisOzet, StokHareket, TedarikTalebi,
   Urun, UrunHareket,
 } from "@/types";
@@ -235,6 +235,20 @@ export const api = {
       `/api/kutular/${kutuId}/baskul/kalibrasyon`, { method: "POST", body: JSON.stringify({ referansG }) }),
   agirliktanSayim: (kutuId: number) =>
     istek<{ kutuId: number; yeniAdet: number }>(`/api/stok/${kutuId}/agirliktan-sayim`, { method: "POST" }),
+
+  paketlenecek: () => istek<PaketlenecekSiparis[]>("/api/siparisler/paketlenecek"),
+  /** kaydet=false: canlı önizleme (kayıt ve alarm yok); true: kayıtlı doğrulama. */
+  dogrula: (siparisNo: string, govde: { agirlikG?: number | null; kapAgirligiG?: number | null }, kaydet = false) =>
+    istek<DogrulamaSonucu>(`/api/siparisler/${encodeURIComponent(siparisNo)}/dogrula?kaydet=${kaydet}`,
+      { method: "POST", body: JSON.stringify(govde) }),
+  paketle: (siparisNo: string, dogrulamaId?: number | null) =>
+    istek<PaketlemeSonucu>(`/api/siparisler/${encodeURIComponent(siparisNo)}/paketle`,
+      { method: "POST", body: JSON.stringify({ dogrulamaId }) }),
+  zorlaPaketle: (siparisNo: string, neden: string) =>
+    istek<PaketlemeSonucu>(`/api/siparisler/${encodeURIComponent(siparisNo)}/zorla-paketle`,
+      { method: "POST", body: JSON.stringify({ neden }) }),
+  dogrulamaGecmisi: (siparisNo: string) =>
+    istek<DogrulamaGecmisi[]>(`/api/siparisler/${encodeURIComponent(siparisNo)}/dogrulamalar`),
 
   tartiAzalt: (govde: { urunId: number; adet: number; agirlikG?: number; kutuId?: number }) =>
     istek<TartiSonucu>("/api/stok/tarti/azalt", { method: "POST", body: JSON.stringify(govde) }),

@@ -12,6 +12,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Personel> Personeller => Set<Personel>();
     public DbSet<Siparis> Siparisler => Set<Siparis>();
     public DbSet<SiparisKalemi> SiparisKalemleri => Set<SiparisKalemi>();
+    public DbSet<SiparisDogrulama> SiparisDogrulamalari => Set<SiparisDogrulama>();
     public DbSet<StokHareketi> StokHareketleri => Set<StokHareketi>();
     public DbSet<Alarm> Alarmlar => Set<Alarm>();
     public DbSet<TedarikTalebi> TedarikTalepleri => Set<TedarikTalebi>();

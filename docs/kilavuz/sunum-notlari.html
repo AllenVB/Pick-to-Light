@@ -58,7 +58,17 @@ code { font-family: Consolas, monospace; background: #f1f5f9; padding: 0 3pt; bo
 <li>Yönetici baskülü sıfırlayabilir (tare), kalibre edebilir ve baskül adedini stoka yazabilir.</li>
 </ul>
 
-<h2>5. Kamera ve karışık kutu (görüntü işleme)</h2>
+<h2>5. Paketleme ve doğrulama (yeni)</h2>
+<ul>
+<li><b>Akış:</b> sipariş toplanır → paket kameraya ve tartıya konur → sistem içeriği siparişle karşılaştırır → <b>doğruysa onay verilip paketlenir</b>, <b>hatalıysa uyarı ve hata mesajı</b> döner.</li>
+<li><b>Kamera</b> ürün başına adet sayar; <b>tartı</b> toplam gramı ölçer. Sunucu ikisini siparişle (ürün, adet, Σ adet × birim ağırlık) karşılaştırır. İki kanal birbirini doğrular.</li>
+<li><b>Hata mesajları:</b> "Vida M4: 10 adet olmalı, kamera 8 adet görüyor (2 eksik)" · "Siparişte olmayan ürün var: Civata M6 (2 adet)" · "Ağırlık beklenenden 7 g fazla: beklenen 40 g, ölçülen 47 g" · "1 nesne tanınamadı".</li>
+<li><b>Güvenlik:</b> hatalı paket paketlenemez; her deneme kaydedilir (başarısızlar dahil) ve alarm üretir. Onay 10 dakika geçerlidir; sonradan hata çıkarsa onay düşer.</li>
+<li><b>Yönetici istisnası:</b> kamera arızalıysa yönetici gerekçe yazarak doğrulamayı atlayabilir; gerekçe siparişe ve alarma yazılır.</li>
+<li><b>Operatör ve yönetici:</b> ikisi de doğrulayıp paketler; doğrulamayı atlamak yalnızca yöneticidedir.</li>
+</ul>
+
+<h2>6. Kamera ve karışık kutu (görüntü işleme)</h2>
 <ul>
 <li><b>Mantık:</b> baskül gramı ölçer, kamera ürünü tanır, adet = gram ÷ <b>tanınan ürünün</b> birim ağırlığı. Ürünler: civata 10 g, somun 5 g, vida 2 g. 20 g vida ise 10 adet, somun ise 4 adet eder.</li>
 <li><b>Tanıma yöntemi:</b> Python ve OpenCV ile klasik görüntü işleme. Düz zemindeki nesneler arka plandan ayrılır; renk, delik (somunun deliği var), en-boy oranı ve boyutla tanınır. Eğitim verisi gerekmez, ürün kameraya gösterilip 3-5 örnekle öğretilir.</li>
@@ -70,11 +80,13 @@ code { font-family: Consolas, monospace; background: #f1f5f9; padding: 0 3pt; bo
 <li><b>Raporlar:</b> baskülle ölçülen kalem, stok düzeltmesi, kameranın doğruladığı ve yanlış ürün sayıları.</li>
 </ul>
 
-<h2>6. Kim ne yapabilir</h2>
+<h2>7. Kim ne yapabilir</h2>
 <table>
 <tr><th>İşlem</th><th>Operatör</th><th>Yönetici</th></tr>
 <tr><td>Canlı pano, siparişler, operatör ekranı, alarmları görme</td><td class="yes">✔</td><td class="yes">✔</td></tr>
 <tr><td>Sipariş oluşturma, başlatma, iptal etme</td><td class="yes">✔</td><td class="yes">✔</td></tr>
+<tr><td>Paket doğrulama ve paketleme</td><td class="yes">✔</td><td class="yes">✔</td></tr>
+<tr><td>Doğrulamayı atlayarak paketleme (gerekçeli istisna)</td><td class="no">✘</td><td class="yes">✔</td></tr>
 <tr><td>Elle teyit (sensör çalışmazsa)</td><td class="yes">✔</td><td class="yes">✔</td></tr>
 <tr><td>Stok durumunu görme</td><td>salt okunur</td><td class="yes">✔</td></tr>
 <tr><td>Mal kabul, sayım, ağırlıktan sayım</td><td class="no">✘</td><td class="yes">✔</td></tr>
@@ -84,12 +96,13 @@ code { font-family: Consolas, monospace; background: #f1f5f9; padding: 0 3pt; bo
 </table>
 <p>Yönetim sayfaları operatörün menüsünde görünmez. Adres elle yazılsa panoya yönlendirilir. Yetki denetimi backend'de de vardır (403).</p>
 
-<h2>7. Sayfalar ne işe yarıyor</h2>
+<h2>8. Sayfalar ne işe yarıyor</h2>
 <table>
 <tr><th>Sayfa</th><th>Kim</th><th>Amaç</th></tr>
 <tr><td><b>Canlı Pano</b></td><td>Herkes</td><td>Kutuların stoğu, rengi, gramı, cihaz sağlığı ve son siparişler. Anlık güncellenir.</td></tr>
 <tr><td><b>Sipariş Girişi</b></td><td>Herkes</td><td>Ürünü SKU veya barkodla seçip sipariş oluşturur. Normal ya da acil öncelik verilir.</td></tr>
 <tr><td><b>Siparişler</b></td><td>Herkes</td><td>Sipariş listesi, başlatma ve iptal. Detayda kalem durumu, teyit eden kişi, toplama süresi ve baskül ölçümü görünür.</td></tr>
+<tr><td><b>Paketleme</b></td><td>Herkes</td><td>Toplanmış siparişin paketini kamera ve tartıyla doğrular: canlı önizleme, eksik/fazla/yanlış ürün mesajları, onay ve paketleme.</td></tr>
 <tr><td><b>Operatör Ekranı</b></td><td>Herkes</td><td>Depoda büyük ekranda hangi kutudan kaç adet alınacağı. Alınan gram canlı dolar, teyitte bildirim çıkar.</td></tr>
 <tr><td><b>Stok Durumu</b></td><td>Herkes (yönetici düzenler)</td><td>Kutu stokları ve baskül ölçümü. Yönetici mal kabul, sayım ve ağırlıktan sayım yapar.</td></tr>
 <tr><td><b>Alarmlar</b></td><td>Herkes</td><td>Stok azaldı, stok yok, cihaz çevrimdışı, ağırlık uyuşmazlığı gibi uyarılar ve tedarik talepleri.</td></tr>
@@ -104,7 +117,7 @@ code { font-family: Consolas, monospace; background: #f1f5f9; padding: 0 3pt; bo
 <tr><td><b>Personel</b></td><td>Yönetici</td><td>Kullanıcı ekleme, rol atama, parola sıfırlama.</td></tr>
 </table>
 
-<h2>8. Canlı demo sırası</h2>
+<h2>9. Canlı demo sırası</h2>
 <ol>
 <li>Panoyu aç, kutu kartlarında gram ve adedi göster.</li>
 <li>Operatör olarak giriş yap. Sipariş oluştur ve başlat, operatör ekranında gramın dolmasını izle.</li>
@@ -113,6 +126,7 @@ code { font-family: Consolas, monospace; background: #f1f5f9; padding: 0 3pt; bo
 <li>Simülatörü <code>--alinan-fark 2</code> ile aç. Fazla alımda stoğun gerçek adede göre düzeldiğini ve alarmın çıktığını göster.</li>
 <li>Yönetici hesabına geç. Menü farkını, raporları ve hareket defterini göster.</li>
 <li><b>Kamera &amp; Tanıma</b> sayfasını aç. "Karışık" sahneyi koy: kameranın vida, civata ve somunu ayırdığını göster. Tarayıcı kamerasını seçip izin penceresini göster.</li>
+<li><b>Paketleme:</b> <code>bash tools/paketleme-demo.sh hatali eksik</code> ile hatalı paketi göster (hata mesajları), sonra <code>... dogru</code> ile onaylanıp paketlendiğini göster. Ekrandan: Paketleme sayfasında sipariş seç, gram gir, Doğrula.</li>
 <li><b>Tartı &amp; Sayım</b> sayfasını aç: "10 vida" sahnesi, 20 g gir → kamera Vida, 10 adet; "Stoktan azalt" ile stok 200 → 190. Aynı 20 g somunda 4 adet eder.</li>
 <li><code>bash tools/kamera-demo.sh senaryo</code> ile K-06 karışık kutusundan somun siparişi ver: kamera Somun, baskül 5 adet.</li>
 <li>Simülatörü <code>--kamera-urun somun</code> ile açıp <code>bash tools/kamera-demo.sh yanlis</code> çalıştır: civata istenirken somun alınınca stok somun bölmesinden düşer, alarm çıkar.</li>
@@ -120,11 +134,12 @@ code { font-family: Consolas, monospace; background: #f1f5f9; padding: 0 3pt; bo
 <div class="kutu"><b>Giriş bilgileri (demo):</b> yönetici <code>admin / admin123</code> · operatör <code>operator / operator123</code><br>
 Adres: <code>http://localhost:4001</code> · Hazırlık: <code>sunum-baslat.cmd</code>, sonra <code>bash tools/sunum-kontrol.sh</code> (her şey ayakta mı, demo verisi temiz mi). Düzeltmek için: <code>bash tools/sunum-kontrol.sh hazirla</code></div>
 
-<h2>9. Dürüst olunacak noktalar</h2>
+<h2>10. Dürüst olunacak noktalar</h2>
 <ul>
 <li>Baskül verisi şu an simülatörden geliyor. Firmware yazıldı ama gerçek ESP32'de denenmedi.</li>
 <li>Kamera tanıma sanal sahnede %100 doğru, çünkü şekiller belirgin. Gerçek kamerada ışık ve zemin etkiler; ürünler gerçek koşullarda öğretilmeli ve düz, tek renkli zemin kullanılmalı.</li>
 <li>Tarayıcı kamerasının gerçek kameradaki çalışmasını sahte bir görüntü akışıyla doğruladım; gerçek kamera ve izin penceresi sunumdan önce bir kez denenmeli.</li>
+<li>Paketleme doğrulaması sanal sahnede ve elle girilen gramla denendi; gerçek kamera ve gerçek paket tartısıyla eşikler (güven, ağırlık toleransı) yeniden ayarlanmalı.</li>
 <li>Tek kamera var, kutu başına kamera eşlemesi yok. Görüntü servisinde yetkilendirme yok (yerel prototip).</li>
 <li>Veritabanındaki <code>E2E-</code> ve <code>DEMO-</code> kayıtları test ve demo verisidir, ileri aşamada temizlenecek.</li>
 </ul>

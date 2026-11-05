@@ -227,6 +227,61 @@ def test_api_tarayici_kaynagina_gecip_kareden_taniyor(api):
     assert govde["toplamAdet"] == 10
 
 
+def _egit_api(api):
+    for tohum in range(4):
+        for urun_id, tip in ((1, "vida"), (2, "somun"), (3, "civata")):
+            api.post("/sim/sahne", json={"nesneler": [{"tip": tip, "adet": 2}]})
+            assert api.post(f"/ogret/{urun_id}", json={"ad": tip.capitalize()}).status_code == 200
+
+
+def test_api_sahne_urun_basina_adet_ve_kararlilik_verir(api):
+    import time
+    _egit_api(api)
+    api.post("/sim/sahne", json={"nesneler": [{"tip": "vida", "adet": 10}, {"tip": "somun", "adet": 4}]})
+    time.sleep(1.8)   # analiz döngüsü kararlı bir pencere biriktirsin
+
+    govde = api.get("/sahne").json()
+
+    adetler = {u["urunAdi"]: u["adet"] for u in govde["urunler"]}
+    assert adetler == {"Vida": 10, "Somun": 4}
+    assert govde["bilinmeyen"] == 0
+    assert govde["nesneSayisi"] == 14
+    assert govde["kararli"] is True
+
+
+def test_api_sahne_taninmayan_nesneyi_bilinmeyen_olarak_sayar(api, monkeypatch):
+    import time
+    import cv2, numpy as np
+    _egit_api(api)
+    # masaya öğretilmemiş kırmızı bir dikdörtgen koy: sanal kaynağın çizimine ek nesne
+    asil = kaynak.sahne_ciz
+
+    def yabanci_cisimli(nesneler, tohum=None, gurultu=3.0):
+        kare = asil(nesneler, tohum=tohum, gurultu=gurultu)
+        cv2.rectangle(kare, (540, 380), (610, 440), (30, 30, 200), cv2.FILLED)
+        return kare
+
+    monkeypatch.setattr(kaynak, "sahne_ciz", yabanci_cisimli)
+    api.post("/sim/sahne", json={"nesneler": [{"tip": "vida", "adet": 3}]})
+    time.sleep(1.8)
+
+    govde = api.get("/sahne").json()
+
+    assert {u["urunAdi"]: u["adet"] for u in govde["urunler"]} == {"Vida": 3}
+    assert govde["bilinmeyen"] == 1
+
+
+def test_api_sahne_bos_masada_sifir_nesne_ve_kararli(api):
+    import time
+    _egit_api(api)
+    api.post("/sim/sahne", json={"nesneler": []})
+    time.sleep(1.8)
+
+    govde = api.get("/sahne").json()
+
+    assert govde["urunler"] == [] and govde["bilinmeyen"] == 0 and govde["kararli"] is True
+
+
 def test_api_gecersiz_kare_ve_bilinmeyen_kaynak_reddedilir(api):
     assert api.post("/kare", content=b"jpeg degil").status_code == 422
     assert api.post("/kaynak", json={"tip": "uzay-teleskobu"}).status_code == 422

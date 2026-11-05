@@ -96,10 +96,16 @@ public sealed class SiparisConfig : IEntityTypeConfiguration<Siparis>
         b.Property(x => x.Durum).HasConversion<string>().HasMaxLength(20);
         b.Property(x => x.Oncelik).HasConversion<string>().HasMaxLength(10);
         b.HasIndex(x => x.Durum);
+        b.Property(x => x.PaketlemeIstisnaNedeni).HasMaxLength(255);
 
         b.HasOne(x => x.Personel)
             .WithMany()
             .HasForeignKey(x => x.PersonelId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        b.HasOne(x => x.PaketleyenPersonel)
+            .WithMany()
+            .HasForeignKey(x => x.PaketleyenPersonelId)
             .OnDelete(DeleteBehavior.SetNull);
     }
 }

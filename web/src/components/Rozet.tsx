@@ -30,6 +30,7 @@ const SIPARIS_SINIF: Record<SiparisDurumu, string> = {
   KismiTamamlandi: "bg-durum-sari/20 text-durum-sari",
   Kilitli: "bg-durum-kirmizi/20 text-durum-kirmizi",
   Iptal: "bg-slate-700/40 text-slate-400",
+  Paketlendi: "bg-marka/25 text-marka-metin",
 };
 
 const SIPARIS_METIN: Record<SiparisDurumu, string> = {
@@ -39,6 +40,7 @@ const SIPARIS_METIN: Record<SiparisDurumu, string> = {
   KismiTamamlandi: "KISMİ TAMAMLANDI",
   Kilitli: "KİLİTLİ",
   Iptal: "İPTAL",
+  Paketlendi: "PAKETLENDİ",
 };
 
 /** Acil siparişler listede ve detayda ayırt edilebilsin diye işaretlenir. */

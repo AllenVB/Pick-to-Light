@@ -18,7 +18,10 @@ public enum SiparisDurumu
     Tamamlandi = 3,
     KismiTamamlandi = 4,
     Kilitli = 5,
-    Iptal = 6
+    Iptal = 6,
+
+    /// <summary>Tüm kalemler toplandı, paket kamera ve tartıyla doğrulandı ve paketlendi.</summary>
+    Paketlendi = 7
 }
 
 /// <summary>Sipariş önceliği. Kutu kuyruğunda yüksek öncelikli sipariş öne geçer.</summary>
@@ -65,7 +68,10 @@ public enum AlarmTipi
     AgirlikUyusmazligi = 6,
 
     /// <summary>Kamera, sipariş edilenden farklı bir ürünün alındığını tespit etti.</summary>
-    YanlisUrun = 7
+    YanlisUrun = 7,
+
+    /// <summary>Paket doğrulaması başarısız: içerik siparişle uyuşmuyor (eksik/fazla/yanlış ürün, ağırlık).</summary>
+    DogrulamaHatasi = 8
 }
 
 public enum TeyitYontemi

@@ -7,6 +7,7 @@ import { useKorumaliSayfa } from "@/hooks/useKorumaliSayfa";
 import { useToast } from "@/components/Toast";
 import { KameraGorunumu } from "@/components/KameraGorunumu";
 import { canliKutular, gramMetni, useCanliAgirlik } from "@/components/Baskul";
+import { TartiGirdisiKarti, useTartiGirdisi } from "@/components/TartiGirdisi";
 import type { Kutu, TartiSonucu, Urun } from "@/types";
 
 interface Islem extends TartiSonucu {
@@ -32,11 +33,8 @@ export default function TartiSayimSayfasi() {
   const [saglik, setSaglik] = useState<VisionSaglik | null | undefined>(undefined);
   const [tani, setTani] = useState<TaniYaniti | null>(null);
 
-  // Varsayılan: gram elle girilir. Bir kutunun baskülü seçilirse o kutunun TOPLAM içeriği ölçülür; paketi
-  // tartmadan önce "Tartıyı sıfırla" ile kutunun kendi ağırlığı düşülmelidir.
-  const [tartiKutuId, setTartiKutuId] = useState<number | "elle">("elle");
-  const [elleGram, setElleGram] = useState("");
-  const [tare, setTare] = useState(0);
+  // Varsayılan: gram elle girilir. Bir kutunun baskülü seçilirse o kutunun TOPLAM içeriği ölçülür.
+  const tarti = useTartiGirdisi(kutular);
   const [urunSecimi, setUrunSecimi] = useState<number | "">("");   // "" = kameranın tanıdığı ürün
   const [hedefKutuId, setHedefKutuId] = useState<number | "">("");
   const [islemde, setIslemde] = useState(false);
@@ -68,18 +66,10 @@ export default function TartiSayimSayfasi() {
     return () => clearInterval(t);
   }, [oturum]);
 
-  // Baskülü olan kutular tartı kaynağı olabilir.
-  const tartiliKutular = kutular.filter((k) => k.agirlikG != null);
-
   if (!oturum) return null;
 
   // ── Hesap ──
-  const elle = tartiKutuId === "elle";
-  const tartiKutu = elle ? undefined : kutular.find((k) => k.id === tartiKutuId);
-  const brut = elle
-    ? (elleGram.trim() === "" ? null : Number(elleGram.replace(",", ".")))
-    : tartiKutu?.agirlikG ?? null;
-  const net = brut != null && Number.isFinite(brut) ? brut - (elle ? 0 : tare) : null;
+  const net = tarti.net;
 
   const baskin = tani?.baskin ?? null;
   const urunId = urunSecimi !== "" ? urunSecimi : baskin?.urunId ?? null;
@@ -137,50 +127,7 @@ export default function TartiSayimSayfasi() {
         <KameraGorunumu saglik={saglik} tani={tani} yenile={durumuYenile} />
 
         <div className="space-y-4">
-          {/* Tartı */}
-          <section className="kart space-y-3" data-test="tarti-karti">
-            <h2 className="etiket">Tartı</h2>
-
-            <div>
-              <label className="etiket">Tartı kaynağı</label>
-              <select className="girdi mt-1" value={tartiKutuId} data-test="tarti-kaynak"
-                onChange={(e) => { setTartiKutuId(e.target.value === "elle" ? "elle" : Number(e.target.value)); setTare(0); }}>
-                <option value="elle">Gramı elle gireceğim</option>
-                {tartiliKutular.map((k) => (
-                  <option key={k.id} value={k.id}>{k.kod} baskülü (şu an {gramMetni(k.agirlikG ?? 0)})</option>
-                ))}
-              </select>
-            </div>
-
-            {elle ? (
-              <div>
-                <label className="etiket">Tartıdaki ağırlık (g)</label>
-                <input className="girdi mt-1" inputMode="decimal" placeholder="örn. 20" value={elleGram}
-                  onChange={(e) => setElleGram(e.target.value)} data-test="tarti-elle" />
-              </div>
-            ) : (
-              <p className="ipucu">
-                Kutu baskülü içindeki <b>tüm</b> parçaları tartar. Paketi koymadan önce <b>Tartıyı sıfırla</b>ya basın,
-                sonra paketi koyun; net ağırlık paketin ağırlığı olur.
-              </p>
-            )}
-
-            <div className="flex items-end justify-between gap-3 border-t border-zemin-cizgi/60 pt-3">
-              <div>
-                <p className="etiket">Net ağırlık</p>
-                <p className="mt-1 font-mono text-3xl font-extrabold tabular-nums" data-test="tarti-net">
-                  {net != null ? gramMetni(net) : "—"}
-                </p>
-              </div>
-              <button className="dugme-ikincil dugme-kucuk" disabled={elle || brut == null}
-                hidden={elle}
-                title="Tartı boşken basın: şu anki ağırlık sıfır kabul edilir (kap/kutu ağırlığı düşülür)"
-                onClick={() => setTare(tartiKutu?.agirlikG ?? 0)} data-test="tarti-sifirla">
-                Tartıyı sıfırla
-              </button>
-            </div>
-            {!elle && tare > 0 && <p className="ipucu">Dara: {gramMetni(tare)} düşüldü.</p>}
-          </section>
+          <TartiGirdisiKarti tarti={tarti} kutular={kutular} />
 
           {/* Sonuç */}
           <section className="kart space-y-3" data-test="tarti-sonuc">

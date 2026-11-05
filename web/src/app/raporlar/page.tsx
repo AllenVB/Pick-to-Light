@@ -140,6 +140,14 @@ export default function RaporlarSayfasi() {
               alt="sipariş edilen ürün görüldü" iyi={ozet.kameraDogrulananKalem > 0} />
             <AltKutucuk baslik="Yanlış ürün" deger={ozet.yanlisUrunKalem}
               alt="başka bölmeden alındı" tehlike={ozet.yanlisUrunKalem > 0} />
+            <AltKutucuk baslik="Paketlenen sipariş" deger={ozet.paketlenenSiparis}
+              alt={`${ozet.tamamlananSiparis} tamamlanan siparişten`} iyi={ozet.paketlenenSiparis > 0} />
+            <AltKutucuk baslik="Paket doğrulama" deger={ozet.dogrulamaSayisi}
+              alt={ozet.dogrulamaSayisi > 0
+                ? `%${Math.round(((ozet.dogrulamaSayisi - ozet.dogrulamaHatasiSayisi) / ozet.dogrulamaSayisi) * 100)} başarılı`
+                : "henüz doğrulama yok"} />
+            <AltKutucuk baslik="Doğrulama hatası" deger={ozet.dogrulamaHatasiSayisi}
+              alt="eksik/fazla/yanlış ürün, ağırlık" tehlike={ozet.dogrulamaHatasiSayisi > 0} />
           </div>
         </section>
       )}

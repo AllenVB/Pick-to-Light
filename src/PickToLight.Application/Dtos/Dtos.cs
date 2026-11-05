@@ -84,7 +84,65 @@ public sealed record SiparisDetayDto(
     DateTimeOffset? Tamamlanma,
     IReadOnlyList<KalemDto> Kalemler,
     IReadOnlyList<AlarmDto> Alarmlar,
-    SiparisOnceligi Oncelik = SiparisOnceligi.Normal);
+    SiparisOnceligi Oncelik = SiparisOnceligi.Normal,
+    /// <summary>Paketin doğrulanıp paketlendiği an (durum PAKETLENDI).</summary>
+    DateTimeOffset? PaketlenmeZamani = null,
+    string? PaketleyenAdi = null,
+    /// <summary>Doğrulama atlanarak paketlendiyse yönetici gerekçesi.</summary>
+    string? PaketlemeIstisnaNedeni = null);
+
+// ───────────────────────── Paketleme ve doğrulama ─────────────────────────
+
+/// <summary>Paket doğrulama isteği: tartıdaki brüt gram ve (varsa) kap/koli ağırlığı.</summary>
+public sealed record DogrulaIstek(decimal? AgirlikG, decimal? KapAgirligiG = null);
+
+public sealed record PaketSatiriDto(long UrunId, string UrunAdi, int Adet, decimal? BirimAgirlikG);
+
+/// <summary>Toplanmış, paketlenmeyi bekleyen sipariş ve pakette olması gereken içerik.</summary>
+public sealed record PaketlenecekSiparisDto(
+    long Id,
+    string SiparisNo,
+    SiparisDurumu Durum,
+    SiparisOnceligi Oncelik,
+    DateTimeOffset? Tamamlanma,
+    IReadOnlyList<PaketSatiriDto> Satirlar,
+    decimal? BeklenenAgirlikG);
+
+public sealed record DogrulamaHatasiDto(string Kod, string Mesaj, long? UrunId);
+
+public sealed record DogrulamaSatiriDto(long UrunId, string UrunAdi, int BeklenenAdet, int? KameraAdedi, string Durum,
+    decimal? BeklenenAgirlikG);
+
+/// <summary>
+/// Doğrulama sonucu. <see cref="Onaylandi"/> true ise paketlenebilir; false ise <see cref="Hatalar"/> kullanıcıya
+/// olduğu gibi gösterilir. <see cref="Kaydedildi"/> false ise yalnızca önizlemedir (kayıt ve alarm yok).
+/// </summary>
+public sealed record DogrulamaSonucuDto(
+    string SiparisNo,
+    bool Onaylandi,
+    long? DogrulamaId,
+    bool Kaydedildi,
+    IReadOnlyList<DogrulamaSatiriDto> Satirlar,
+    IReadOnlyList<DogrulamaHatasiDto> Hatalar,
+    IReadOnlyList<string> Uyarilar,
+    decimal? BeklenenAgirlikG,
+    decimal? NetAgirlikG,
+    decimal? SapmaG,
+    decimal? ToleransG,
+    bool KameraKullanildi,
+    DateTimeOffset Zaman,
+    string Ozet);
+
+public sealed record PaketleIstek(long? DogrulamaId = null);
+
+/// <summary>Yönetici istisnası: doğrulama atlanarak paketleme; gerekçe zorunlu.</summary>
+public sealed record ZorlaPaketleIstek(string? Neden);
+
+public sealed record PaketlemeSonucuDto(string SiparisNo, SiparisDurumu Durum, DateTimeOffset PaketlenmeZamani,
+    string? PaketleyenAdi, bool Istisna, string? IstisnaNedeni = null);
+
+public sealed record DogrulamaGecmisiDto(long Id, DateTimeOffset Zaman, string? PersonelAdi, bool Onaylandi,
+    bool KameraKullanildi, decimal? BeklenenAgirlikG, decimal? NetAgirlikG, string? HataOzeti);
 
 // ───────────────────────── Envanter ─────────────────────────
 

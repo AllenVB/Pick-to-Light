@@ -2,7 +2,7 @@
 
 export type LedRengi = "Yesil" | "Sari" | "Kirmizi";
 export type SiparisDurumu =
-  | "Bekliyor" | "Hazirlaniyor" | "Tamamlandi" | "KismiTamamlandi" | "Kilitli" | "Iptal";
+  | "Bekliyor" | "Hazirlaniyor" | "Tamamlandi" | "KismiTamamlandi" | "Kilitli" | "Iptal" | "Paketlendi";
 export type SiparisOnceligi = "Normal" | "Acil";
 
 export type KalemDurumu = "Bekliyor" | "IsikYandi" | "Alindi" | "Yetersiz" | "Iptal" | "Sirada";
@@ -10,7 +10,7 @@ export type TeyitYontemi = "Buton" | "Ir" | "Agirlik" | "Manuel";
 export type BaglantiDurumu = "Online" | "Offline";
 export type AlarmTipi =
   | "StokAzaldi" | "StokYok" | "CihazOffline" | "TeyitZamanAsimi"
-  | "BeklenmeyenTeyit" | "AgirlikUyusmazligi" | "YanlisUrun";
+  | "BeklenmeyenTeyit" | "AgirlikUyusmazligi" | "YanlisUrun" | "DogrulamaHatasi";
 export type TedarikDurumu = "Acik" | "Verildi" | "Kapandi";
 export type PersonelRolu = "Operator" | "Admin";
 
@@ -152,6 +152,84 @@ export interface SiparisDetay {
   kalemler: Kalem[];
   alarmlar: Alarm[];
   oncelik: SiparisOnceligi;
+  /** Paketin doğrulanıp paketlendiği an (durum Paketlendi). */
+  paketlenmeZamani?: string | null;
+  paketleyenAdi?: string | null;
+  /** Doğrulama atlanarak paketlendiyse yönetici gerekçesi. */
+  paketlemeIstisnaNedeni?: string | null;
+}
+
+// ───────────────────────── Paketleme ve doğrulama ─────────────────────────
+
+export interface PaketSatiri {
+  urunId: number;
+  urunAdi: string;
+  adet: number;
+  birimAgirlikG?: number | null;
+}
+
+/** Toplanmış, paketlenmeyi bekleyen sipariş ve pakette olması gereken içerik. */
+export interface PaketlenecekSiparis {
+  id: number;
+  siparisNo: string;
+  durum: SiparisDurumu;
+  oncelik: SiparisOnceligi;
+  tamamlanma?: string | null;
+  satirlar: PaketSatiri[];
+  beklenenAgirlikG?: number | null;
+}
+
+export interface DogrulamaHatasi {
+  kod: string;
+  mesaj: string;
+  urunId?: number | null;
+}
+
+/** Durum: Tamam | Eksik | Fazla | Yanlis | Kontrolsuz */
+export interface DogrulamaSatiri {
+  urunId: number;
+  urunAdi: string;
+  beklenenAdet: number;
+  kameraAdedi?: number | null;
+  durum: "Tamam" | "Eksik" | "Fazla" | "Yanlis" | "Kontrolsuz";
+  beklenenAgirlikG?: number | null;
+}
+
+export interface DogrulamaSonucu {
+  siparisNo: string;
+  onaylandi: boolean;
+  dogrulamaId?: number | null;
+  kaydedildi: boolean;
+  satirlar: DogrulamaSatiri[];
+  hatalar: DogrulamaHatasi[];
+  uyarilar: string[];
+  beklenenAgirlikG?: number | null;
+  netAgirlikG?: number | null;
+  sapmaG?: number | null;
+  toleransG?: number | null;
+  kameraKullanildi: boolean;
+  zaman: string;
+  ozet: string;
+}
+
+export interface PaketlemeSonucu {
+  siparisNo: string;
+  durum: SiparisDurumu;
+  paketlenmeZamani: string;
+  paketleyenAdi?: string | null;
+  istisna: boolean;
+  istisnaNedeni?: string | null;
+}
+
+export interface DogrulamaGecmisi {
+  id: number;
+  zaman: string;
+  personelAdi?: string | null;
+  onaylandi: boolean;
+  kameraKullanildi: boolean;
+  beklenenAgirlikG?: number | null;
+  netAgirlikG?: number | null;
+  hataOzeti?: string | null;
 }
 
 export interface Urun {
@@ -223,6 +301,9 @@ export interface RaporOzet {
   agirlikDuzeltmesi: number;
   kameraDogrulananKalem: number;
   yanlisUrunKalem: number;
+  paketlenenSiparis: number;
+  dogrulamaSayisi: number;
+  dogrulamaHatasiSayisi: number;
 }
 
 export interface UrunHareket {

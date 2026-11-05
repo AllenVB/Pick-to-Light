@@ -15,6 +15,7 @@ public interface IAppDbContext
     DbSet<Personel> Personeller { get; }
     DbSet<Siparis> Siparisler { get; }
     DbSet<SiparisKalemi> SiparisKalemleri { get; }
+    DbSet<SiparisDogrulama> SiparisDogrulamalari { get; }
     DbSet<StokHareketi> StokHareketleri { get; }
     DbSet<Alarm> Alarmlar { get; }
     DbSet<TedarikTalebi> TedarikTalepleri { get; }

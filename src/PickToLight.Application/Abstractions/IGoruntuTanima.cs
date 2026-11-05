@@ -1,3 +1,5 @@
+using PickToLight.Domain.Kurallar;
+
 namespace PickToLight.Application.Abstractions;
 
 /// <summary>
@@ -14,4 +16,10 @@ public interface IGoruntuTanima
 {
     /// <summary>Kutuya bakan kameranın son karedeki baskın ürünü.</summary>
     Task<TanimaSonucu?> SonTespitAsync(long kutuId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Paket doğrulaması için sahnenin tamamı: ürün başına sayılan adet, tanınamayan nesne sayısı ve sayımın
+    /// oturup oturmadığı. Servis kapalı ya da kamera kullanılamıyorsa <c>null</c>.
+    /// </summary>
+    Task<KameraSahnesi?> SahneAsync(CancellationToken ct = default);
 }

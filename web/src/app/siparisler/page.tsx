@@ -58,6 +58,7 @@ export default function SiparislerSayfasi() {
             <option value="Kilitli">Kilitli</option>
             <option value="KismiTamamlandi">Kısmi tamamlandı</option>
             <option value="Tamamlandi">Tamamlandı</option>
+            <option value="Paketlendi">Paketlendi</option>
               <option value="Iptal">İptal</option>
           </select>
         </div>

@@ -30,8 +30,14 @@ public sealed class SahteGoruntu : IGoruntuTanima
 {
     public TanimaSonucu? Sonuc { get; set; }
 
+    /// <summary>Paket doğrulamasında kameranın gördüğü sahne; null = kamera yok / servis kapalı.</summary>
+    public PickToLight.Domain.Kurallar.KameraSahnesi? Sahne { get; set; }
+
     public Task<TanimaSonucu?> SonTespitAsync(long kutuId, CancellationToken ct = default)
         => Task.FromResult(Sonuc);
+
+    public Task<PickToLight.Domain.Kurallar.KameraSahnesi?> SahneAsync(CancellationToken ct = default)
+        => Task.FromResult(Sahne);
 }
 
 public sealed class SahteMqtt : IMqttYayinci
@@ -243,6 +249,7 @@ public sealed class TestTezgahi : IDisposable
     public SiparisServisi Siparisler { get; }
     public AlarmServisi Alarmlar { get; }
     public StokServisi Stoklar { get; }
+    public PaketlemeServisi Paketleme { get; }
 
     public TestTezgahi(PickToLightAyarlari? ayar = null)
     {
@@ -262,6 +269,8 @@ public sealed class TestTezgahi : IDisposable
             kutuSecici, Zaman, Oturum, ayarlar, NullLogger<SiparisServisi>.Instance, Goruntu);
 
         Stoklar = new StokServisi(Db, stokDeposu, Bildirim, Oturum, ayarlar);
+        Paketleme = new PaketlemeServisi(Db, Bildirim, Alarmlar, Oturum, Zaman, ayarlar,
+            NullLogger<PaketlemeServisi>.Instance, Goruntu);
     }
 
     /// <summary>Oturum sahibi olarak kullanılacak personeli kurar (teyit izi testleri için).</summary>

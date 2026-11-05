@@ -285,6 +285,19 @@ namespace PickToLight.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(10)")
                         .HasColumnName("oncelik");
 
+                    b.Property<string>("PaketlemeIstisnaNedeni")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("paketleme_istisna_nedeni");
+
+                    b.Property<DateTimeOffset?>("PaketlenmeZamani")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("paketlenme_zamani");
+
+                    b.Property<long?>("PaketleyenPersonelId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("paketleyen_personel_id");
+
                     b.Property<long?>("PersonelId")
                         .HasColumnType("bigint")
                         .HasColumnName("personel_id");
@@ -305,6 +318,9 @@ namespace PickToLight.Infrastructure.Persistence.Migrations
                     b.HasIndex("Durum")
                         .HasDatabaseName("ix_siparis_durum");
 
+                    b.HasIndex("PaketleyenPersonelId")
+                        .HasDatabaseName("ix_siparis_paketleyen_personel_id");
+
                     b.HasIndex("PersonelId")
                         .HasDatabaseName("ix_siparis_personel_id");
 
@@ -313,6 +329,66 @@ namespace PickToLight.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_siparis_siparis_no");
 
                     b.ToTable("siparis", (string)null);
+                });
+
+            modelBuilder.Entity("PickToLight.Domain.Entities.SiparisDogrulama", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<decimal?>("BeklenenAgirlikG")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)")
+                        .HasColumnName("beklenen_agirlik_g");
+
+                    b.Property<string>("Detay")
+                        .HasColumnType("text")
+                        .HasColumnName("detay");
+
+                    b.Property<string>("HataOzeti")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("hata_ozeti");
+
+                    b.Property<bool>("KameraKullanildi")
+                        .HasColumnType("boolean")
+                        .HasColumnName("kamera_kullanildi");
+
+                    b.Property<decimal?>("NetAgirlikG")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)")
+                        .HasColumnName("net_agirlik_g");
+
+                    b.Property<bool>("Onaylandi")
+                        .HasColumnType("boolean")
+                        .HasColumnName("onaylandi");
+
+                    b.Property<long?>("PersonelId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("personel_id");
+
+                    b.Property<long>("SiparisId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("siparis_id");
+
+                    b.Property<DateTimeOffset>("Zaman")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("zaman");
+
+                    b.HasKey("Id")
+                        .HasName("pk_siparis_dogrulama");
+
+                    b.HasIndex("PersonelId")
+                        .HasDatabaseName("ix_siparis_dogrulama_personel_id");
+
+                    b.HasIndex("SiparisId", "Zaman")
+                        .HasDatabaseName("ix_siparis_dogrulama_siparis_id_zaman");
+
+                    b.ToTable("siparis_dogrulama", (string)null);
                 });
 
             modelBuilder.Entity("PickToLight.Domain.Entities.SiparisKalemi", b =>
@@ -692,13 +768,41 @@ namespace PickToLight.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("PickToLight.Domain.Entities.Siparis", b =>
                 {
+                    b.HasOne("PickToLight.Domain.Entities.Personel", "PaketleyenPersonel")
+                        .WithMany()
+                        .HasForeignKey("PaketleyenPersonelId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_siparis_personel_paketleyen_personel_id");
+
                     b.HasOne("PickToLight.Domain.Entities.Personel", "Personel")
                         .WithMany()
                         .HasForeignKey("PersonelId")
                         .OnDelete(DeleteBehavior.SetNull)
                         .HasConstraintName("fk_siparis_personel_personel_id");
 
+                    b.Navigation("PaketleyenPersonel");
+
                     b.Navigation("Personel");
+                });
+
+            modelBuilder.Entity("PickToLight.Domain.Entities.SiparisDogrulama", b =>
+                {
+                    b.HasOne("PickToLight.Domain.Entities.Personel", "Personel")
+                        .WithMany()
+                        .HasForeignKey("PersonelId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_siparis_dogrulama_personel_personel_id");
+
+                    b.HasOne("PickToLight.Domain.Entities.Siparis", "Siparis")
+                        .WithMany("Dogrulamalar")
+                        .HasForeignKey("SiparisId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_siparis_dogrulama_siparis_siparis_id");
+
+                    b.Navigation("Personel");
+
+                    b.Navigation("Siparis");
                 });
 
             modelBuilder.Entity("PickToLight.Domain.Entities.SiparisKalemi", b =>
@@ -815,6 +919,8 @@ namespace PickToLight.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("PickToLight.Domain.Entities.Siparis", b =>
                 {
+                    b.Navigation("Dogrulamalar");
+
                     b.Navigation("Kalemler");
                 });
 
