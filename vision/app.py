@@ -283,13 +283,12 @@ class OgretIstek(BaseModel):
 
 
 def _ogret(urun_id: int, ad: str, kare: np.ndarray) -> dict:
-    nesneler = tanima.nesneleri_bul(kare)
-    if not nesneler:
+    if not tanima.nesneleri_bul(kare):
         raise HTTPException(422, "Kamerada nesne bulunamadı. Ürünü düz zemine, kameranın önüne koyun.")
-    # Öğretirken kare yalnızca öğretilen ürünü içermelidir; çok nesne varsa en büyükleri alınır.
-    nesneler = sorted(nesneler, key=lambda n: n.alan, reverse=True)[:12]
-    toplam = depo.ekle(urun_id, ad, [n.ozellik for n in nesneler])
-    return {"urunId": urun_id, "ad": ad, "eklenenOrnek": len(nesneler), "toplamOrnek": toplam}
+    # Öğretirken kare yalnızca öğretilen ürünü içermelidir. Odak/uzaklık varyantlarından da örnek alınır.
+    ornekler = tanima.ogretme_ornekleri(kare)
+    toplam = depo.ekle(urun_id, ad, ornekler)
+    return {"urunId": urun_id, "ad": ad, "eklenenOrnek": len(ornekler), "toplamOrnek": toplam}
 
 
 @app.get("/profiller")

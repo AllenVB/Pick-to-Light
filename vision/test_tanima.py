@@ -295,3 +295,90 @@ def test_api_bos_sahnede_ogretme_422_doner(api):
 
 def test_api_olmayan_profil_silinemez(api):
     assert api.delete("/ogret/12345").status_code == 404
+
+
+# ───────────────────────────── Ortam dayanıklılığı ─────────────────────────────
+# Sunum salonunda ışık, gölge ve kamera kalitesi laboratuvardakinden farklı olur. Profil temiz ışıkta
+# öğretilir; tanıma bozulmuş karelerde de doğru sayım vermelidir.
+
+def _isik(kare, carpan):
+    return np.clip(kare.astype(np.float32) * carpan, 0, 255).astype(np.uint8)
+
+
+def _vinyet(kare, guc=0.45):
+    h, w = kare.shape[:2]
+    y, x = np.mgrid[0:h, 0:w]
+    r = np.hypot((x - w / 2) / (w / 2), (y - h / 2) / (h / 2)) / 1.41
+    return np.clip(kare.astype(np.float32) * (1 - guc * r ** 2)[..., None], 0, 255).astype(np.uint8)
+
+
+def _yan_isik(kare, guc=0.35):
+    r = np.linspace(1 - guc / 2, 1 + guc / 2, kare.shape[1])[None, :, None]
+    return np.clip(kare.astype(np.float32) * r, 0, 255).astype(np.uint8)
+
+
+def _sicak_beyaz_dengesi(kare):
+    f = kare.astype(np.float32)
+    f[..., 0] *= 0.8
+    f[..., 2] *= 1.1
+    return np.clip(f, 0, 255).astype(np.uint8)
+
+
+def _yumusak_golge(kare):
+    maske = (np.abs(kare.astype(int) - 225).sum(2) > 40).astype(np.uint8) * 255
+    maske = cv2.GaussianBlur(np.roll(maske, (8, 8), (0, 1)), (0, 0), 5).astype(np.float32) / 255
+    return np.clip(kare.astype(np.float32) * (1 - 0.2 * maske)[..., None], 0, 255).astype(np.uint8)
+
+
+def _jpeg(kare):
+    return cv2.imdecode(cv2.imencode(".jpg", kare, [cv2.IMWRITE_JPEG_QUALITY, 40])[1], cv2.IMREAD_COLOR)
+
+
+BOZULMALAR = {
+    "loş": lambda k: _isik(k, 0.6), "parlak": lambda k: _isik(k, 1.15), "koyu zemin": lambda k: _isik(k, 0.55),
+    "köşe kararması": _vinyet, "yan ışık": _yan_isik, "sıcak beyaz dengesi": _sicak_beyaz_dengesi,
+    "yumuşak gölge": _yumusak_golge, "jpeg sıkıştırma": _jpeg,
+    "odak kaybı": lambda k: cv2.GaussianBlur(k, (0, 0), 1.6),
+}
+
+
+@pytest.mark.parametrize("bozulma", sorted(BOZULMALAR))
+def test_karisik_sahne_isik_ve_kamera_bozulmalarinda_dogru_sayilir(depo, bozulma):
+    basarili = 0
+    for tohum in range(5):
+        kare = BOZULMALAR[bozulma](kaynak.sahne_ciz(
+            [{"tip": "civata", "adet": 2}, {"tip": "somun", "adet": 2}, {"tip": "vida", "adet": 2}], tohum=3000 + tohum))
+        sayac: dict = {}
+        tespitler = tanima.tani(kare, depo, MIN)
+        for t in tespitler:
+            sayac[t.urun_id] = sayac.get(t.urun_id, 0) + 1
+        basarili += sayac == {1: 2, 2: 2, 4: 2}
+
+    assert basarili >= 4, f"{bozulma}: 5 sahneden yalnızca {basarili} tanesi doğru sayıldı"
+
+
+@pytest.mark.parametrize("bozulma", ["loş", "köşe kararması", "yan ışık"])
+def test_bos_sahne_isik_bozulmasinda_nesne_uydurmaz(bozulma):
+    kare = BOZULMALAR[bozulma](kaynak.sahne_ciz([], tohum=4))
+    assert tanima.nesneleri_bul(kare) == []
+
+
+def test_buyuk_koyu_cisim_yanindaki_soluk_parcayi_gizlemez(depo):
+    kare = kaynak.sahne_ciz([{"tip": "vida", "adet": 3}], tohum=8)
+    cv2.rectangle(kare, (540, 380), (610, 440), (30, 30, 200), cv2.FILLED)
+
+    sayac = {}
+    for t in tanima.tani(kare, depo, MIN):
+        sayac[t.urun_id] = sayac.get(t.urun_id, 0) + 1
+
+    assert sayac == {4: 3, None: 1}
+
+
+def test_ogretme_ornekleri_odak_ve_uzaklik_varyantlarini_icerir():
+    kare = kaynak.sahne_ciz([{"tip": "civata", "adet": 2}], tohum=123)
+
+    ornekler = tanima.ogretme_ornekleri(kare)
+
+    assert len(ornekler) >= 6   # 4 varyant x 2 nesne (bazı varyantlarda biri kaçabilir)
+    boyutlar = sorted(o[tanima.OZELLIK_ADLARI.index("boyut")] for o in ornekler)
+    assert boyutlar[-1] / boyutlar[0] > 1.1, "uzaklık varyantları boyutta fark yaratmalı"

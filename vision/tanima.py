@@ -42,6 +42,14 @@ BILINMIYOR_UZAKLIK = 3.2
 KESKINLIK = 0.6
 
 # Tek bir nesnenin kare içindeki alan sınırları (kare alanına oran).
+# Nesnenin zeminden farkının en belirgin %10'luk dilimi en az bu kadar olmalı (soluk leke elemesi).
+# En soluk ürün (gümüş rondela) ~60, köşe kararması lekeleri ~40 civarındadır.
+SOLUK_LEKE_FARKI = 50
+
+# Zeminden bu farkın (aydınlatma düzeltmesi sonrası, 0–255) altı nesne sayılmaz.
+ESIK_TABANI = 18
+ESIK_TAVANI = 60
+
 MIN_ALAN_ORANI = 0.0006
 MAX_ALAN_ORANI = 0.45
 
@@ -71,6 +79,22 @@ class Tespit:
 
 # ───────────────────────────── Nesne bulma ─────────────────────────────
 
+ZEMIN_SEVIYESI = np.float32(225.0)   # aydınlatma düzeltmesinden sonra zeminin her kanaldaki seviyesi
+
+
+def isik_duzelt(kare_bgr: np.ndarray) -> np.ndarray:
+    """Zemin ışık haritasını (büyük çekirdekli medyan) çıkarıp kareyi sabit bir zemin seviyesine normalleştirir."""
+    yuk, gen = kare_bgr.shape[:2]
+    olcek = 4
+    kucuk = cv2.resize(kare_bgr, (max(gen // olcek, 8), max(yuk // olcek, 8)), interpolation=cv2.INTER_AREA)
+    k = int(min(kucuk.shape[:2]) * 0.22) | 1
+    harita = cv2.medianBlur(kucuk, k)
+    harita = cv2.GaussianBlur(harita, (0, 0), k / 4)
+    harita = cv2.resize(harita, (gen, yuk), interpolation=cv2.INTER_LINEAR).astype(np.float32)
+    duz = kare_bgr.astype(np.float32) * (ZEMIN_SEVIYESI / np.maximum(harita, 8.0))
+    return np.clip(duz, 0, 255).astype(np.uint8)
+
+
 def nesneleri_bul(kare_bgr: np.ndarray) -> list[Nesne]:
     """Düz zemin varsayımıyla kareden nesneleri ve özelliklerini çıkarır."""
     yuk, gen = kare_bgr.shape[:2]
@@ -78,14 +102,20 @@ def nesneleri_bul(kare_bgr: np.ndarray) -> list[Nesne]:
 
     bulanik = cv2.GaussianBlur(kare_bgr, (5, 5), 0)
 
-    # Arka plan modeli: karedeki piksellerin çoğu zemindir; medyan renk zemin rengidir.
-    zemin = np.median(bulanik.reshape(-1, 3), axis=0)
-    fark = np.linalg.norm(bulanik.astype(np.float32) - zemin.astype(np.float32), axis=2)
+    # Işık haritası: nesneler karenin küçük bir kısmıdır, büyük çekirdekli medyan onları siler ve geriye
+    # zeminin (gradyan, vinyet, renk dengesi dahil) ışık dağılımı kalır. Kareyi bu haritaya bölmek
+    # aydınlatmayı sabitler: loş/parlak ortam, yan ışık ve beyaz dengesi aynı ölçüme iner.
+    duzlestirilmis = isik_duzelt(bulanik)
+    fark = np.linalg.norm(duzlestirilmis.astype(np.float32) - ZEMIN_SEVIYESI, axis=2)
     fark8 = np.clip(fark, 0, 255).astype(np.uint8)
 
     esik, maske = cv2.threshold(fark8, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    if esik < 18:   # neredeyse boş sahne: gürültüyü nesne sanma
-        return []
+    # Otsu eşiği sahneye bağlıdır: büyük ve çok koyu bir nesne eşiği yukarı çekip yanındaki soluk parçaları
+    # siler; çok az nesneli sahnede ise gürültü ile köşe kararması arasından bölünüp eşiği düşürür.
+    # Bu yüzden eşik makul bir aralığa sıkıştırılır.
+    esik = float(min(max(esik, ESIK_TABANI), ESIK_TAVANI))
+    maske = np.where(fark8 > esik, 255, 0).astype(np.uint8)
+    bulanik = duzlestirilmis
 
     cekirdek = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
     maske = cv2.morphologyEx(maske, cv2.MORPH_OPEN, cekirdek)
@@ -107,6 +137,13 @@ def nesneleri_bul(kare_bgr: np.ndarray) -> list[Nesne]:
         alan = cv2.contourArea(kontur)
         oran = alan / kare_alani
         if oran < MIN_ALAN_ORANI or oran > MAX_ALAN_ORANI:
+            continue
+
+        # Zemin ışık haritasının kusurundan (köşe kararması, hafif gölge) doğan soluk lekeler gerçek bir
+        # nesne değildir: gerçek parçanın zeminden farkı eşiğin belirgin biçimde üstündedir.
+        leke = np.zeros(maske.shape, np.uint8)
+        cv2.drawContours(leke, [kontur], -1, 255, thickness=cv2.FILLED)
+        if np.percentile(fark8[leke > 0], 90) < SOLUK_LEKE_FARKI:
             continue
 
         # Delik: bu konturun altındaki, alanı makul büyüklükte bir alt kontur.
@@ -161,6 +198,34 @@ def _ozellik_cikar(kontur, alan, kare_alani, hsv, maske, delik) -> np.ndarray:
                      min(yuvarlaklik, 1.0), doluluk, en_boy, delik, kose, boyut], dtype=np.float64)
 
 
+def ogretme_ornekleri(kare_bgr: np.ndarray, azami: int = 12) -> list[np.ndarray]:
+    """
+    Öğretme karesinden örnek özellikler. Yalnızca düz kareden değil, hafif odak kaybı ve ±%8 uzaklık
+    değişimi uygulanmış kopyalardan da örnek alınır: profil, gerçek kamerada odağın ya da parça
+    yüksekliğinin biraz oynamasına karşı sağlam olur (aksi halde sapma tahmini aşırı keskin kalır).
+    """
+    yuk, gen = kare_bgr.shape[:2]
+    varyantlar = [kare_bgr, cv2.GaussianBlur(kare_bgr, (0, 0), 1.3)]
+    for olcek in (0.92, 1.08):
+        yeniden = cv2.resize(kare_bgr, None, fx=olcek, fy=olcek, interpolation=cv2.INTER_LINEAR)
+        if olcek < 1:   # küçülen kareyi zemin renginde kenar dolgusuyla eski boyuta getir
+            zemin = tuple(int(c) for c in np.median(kare_bgr.reshape(-1, 3), axis=0))
+            tuval = np.full_like(kare_bgr, zemin)
+            y0, x0 = (yuk - yeniden.shape[0]) // 2, (gen - yeniden.shape[1]) // 2
+            tuval[y0:y0 + yeniden.shape[0], x0:x0 + yeniden.shape[1]] = yeniden
+            yeniden = tuval
+        else:
+            y0, x0 = (yeniden.shape[0] - yuk) // 2, (yeniden.shape[1] - gen) // 2
+            yeniden = yeniden[y0:y0 + yuk, x0:x0 + gen]
+        varyantlar.append(yeniden)
+
+    ozellikler: list[np.ndarray] = []
+    for v in varyantlar:
+        nesneler = sorted(nesneleri_bul(v), key=lambda n: n.alan, reverse=True)[:azami]
+        ozellikler.extend(n.ozellik for n in nesneler)
+    return ozellikler
+
+
 # ───────────────────────────── Profil deposu ─────────────────────────────
 
 class ProfilDeposu:
@@ -182,7 +247,7 @@ class ProfilDeposu:
             profil = self._profiller.setdefault(urun_id, {"ad": ad, "ornekler": []})
             profil["ad"] = ad or profil["ad"]
             profil["ornekler"].extend([o.tolist() for o in ozellikler])
-            profil["ornekler"] = profil["ornekler"][-60:]   # en yeni 60 örnek yeter
+            profil["ornekler"] = profil["ornekler"][-120:]   # en yeni 120 örnek yeter
             self._kaydet()
             return len(profil["ornekler"])
 
