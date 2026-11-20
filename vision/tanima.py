@@ -50,6 +50,9 @@ SOLUK_LEKE_FARKI = 50
 ESIK_TABANI = 18
 ESIK_TAVANI = 60
 
+# Değen parçaları ayırırken mesafe dönüşümünün bu oranın üstündeki bölgeleri parça çekirdeği sayılır.
+AYIRMA_CEKIRDEGI = 0.7
+
 MIN_ALAN_ORANI = 0.0006
 MAX_ALAN_ORANI = 0.45
 
@@ -95,8 +98,13 @@ def isik_duzelt(kare_bgr: np.ndarray) -> np.ndarray:
     return np.clip(duz, 0, 255).astype(np.uint8)
 
 
-def nesneleri_bul(kare_bgr: np.ndarray) -> list[Nesne]:
-    """Düz zemin varsayımıyla kareden nesneleri ve özelliklerini çıkarır."""
+def nesneleri_bul(kare_bgr: np.ndarray, siniflandir=None, min_guven: float = 0.0) -> list[Nesne]:
+    """
+    Düz zemin varsayımıyla kareden nesneleri ve özelliklerini çıkarır.
+
+    `siniflandir` (özellik -> (id, ad, güven)) verilirse, tanınamayan bir blob birbirine değen
+    parçalardan oluşuyor olabilir: bölünür ve parçaların hepsi tanınıyorsa ayrı nesneler olarak döner.
+    """
     yuk, gen = kare_bgr.shape[:2]
     kare_alani = float(yuk * gen)
 
@@ -155,12 +163,63 @@ def nesneleri_bul(kare_bgr: np.ndarray) -> list[Nesne]:
                 break
             alt = hiyerarsi[alt][0]
 
-        sonuc.append(Nesne(
+        nesne = Nesne(
             kutu=cv2.boundingRect(kontur), alan=float(alan),
             ozellik=_ozellik_cikar(kontur, alan, kare_alani, hsv, maske, delik), kontur=kontur,
-        ))
+        )
+        if siniflandir is not None and siniflandir(nesne.ozellik)[2] < min_guven:
+            parcalar = _degenleri_ayir(kontur, kare_alani, hsv, maske)
+            if parcalar and all(siniflandir(p.ozellik)[2] >= min_guven for p in parcalar):
+                sonuc.extend(parcalar)
+                continue
+        sonuc.append(nesne)
 
     return sonuc
+
+
+def _degenleri_ayir(kontur, kare_alani, hsv, maske) -> list[Nesne]:
+    """Mesafe dönüşümü ile çekirdek bulup en yakın çekirdeğe göre birbirine değen parçaları ayırır; ayrılamıyorsa boş liste."""
+    x, y, w, h = cv2.boundingRect(kontur)
+    pay = 4
+    x0, y0 = max(x - pay, 0), max(y - pay, 0)
+    x1, y1 = min(x + w + pay, maske.shape[1]), min(y + h + pay, maske.shape[0])
+
+    dolu = np.zeros((y1 - y0, x1 - x0), np.uint8)
+    cv2.drawContours(dolu, [kontur - np.array([x0, y0])], -1, 255, thickness=cv2.FILLED)
+    mesafe = cv2.distanceTransform(dolu, cv2.DIST_L2, 5)
+    if mesafe.max() < 4:
+        return []
+
+    cekirdekler = (mesafe > AYIRMA_CEKIRDEGI * mesafe.max()).astype(np.uint8)
+    sayi, isaret = cv2.connectedComponents(cekirdekler)
+    if sayi - 1 < 2 or sayi - 1 > 8:   # tek çekirdek: bölünecek bir şey yok; çok fazla: gürültü
+        return []
+
+    # Her blob pikseli en yakın çekirdeğe atanır (Voronoi): eşit boyutlu iki parçanın ortasından düz kesilir.
+    _, en_yakin = cv2.distanceTransformWithLabels(
+        np.where(cekirdekler > 0, 0, 255).astype(np.uint8), cv2.DIST_L2, 5, labelType=cv2.DIST_LABEL_CCOMP)
+    isaret = np.where(dolu > 0, en_yakin, 0)
+    etiketler = [e for e in np.unique(isaret) if e != 0]
+
+    parcalar: list[Nesne] = []
+    for etiket in etiketler:
+        parca = ((isaret == etiket) * 255).astype(np.uint8)
+        konturlar, _ = cv2.findContours(parca, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        if not konturlar:
+            return []
+        k = max(konturlar, key=cv2.contourArea) + np.array([x0, y0])
+        alan = cv2.contourArea(k)
+        if alan / kare_alani < MIN_ALAN_ORANI:
+            return []
+        # Delik: parçanın içinde, maskede boş kalan ve makul büyüklükteki bölge.
+        bos = ((parca > 0) & (maske[y0:y1, x0:x1] == 0)).astype(np.uint8)
+        _, _, istat, _ = cv2.connectedComponentsWithStats(bos)
+        delik = 1.0 if len(istat) > 1 and istat[1:, cv2.CC_STAT_AREA].max() >= 0.04 * alan else 0.0
+        parcalar.append(Nesne(
+            kutu=cv2.boundingRect(k), alan=float(alan),
+            ozellik=_ozellik_cikar(k, alan, kare_alani, hsv, maske, delik), kontur=k,
+        ))
+    return parcalar
 
 
 def _ozellik_cikar(kontur, alan, kare_alani, hsv, maske, delik) -> np.ndarray:
@@ -304,7 +363,7 @@ class ProfilDeposu:
 def tani(kare_bgr: np.ndarray, depo: ProfilDeposu, min_guven: float = 0.0) -> list[Tespit]:
     """Karedeki her nesne için en olası ürünü bulur."""
     tespitler = []
-    for n in nesneleri_bul(kare_bgr):
+    for n in nesneleri_bul(kare_bgr, depo.siniflandir, min_guven if min_guven > 0 else 0.5):
         urun_id, ad, guven = depo.siniflandir(n.ozellik)
         if guven < min_guven:
             urun_id, ad = None, None

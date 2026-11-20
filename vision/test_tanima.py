@@ -382,3 +382,25 @@ def test_ogretme_ornekleri_odak_ve_uzaklik_varyantlarini_icerir():
     assert len(ornekler) >= 6   # 4 varyant x 2 nesne (bazı varyantlarda biri kaçabilir)
     boyutlar = sorted(o[tanima.OZELLIK_ADLARI.index("boyut")] for o in ornekler)
     assert boyutlar[-1] / boyutlar[0] > 1.1, "uzaklık varyantları boyutta fark yaratmalı"
+
+
+# ───────────────────────────── Değen parçalar ─────────────────────────────
+
+@pytest.mark.parametrize("tip,beklenen_id,uzaklik", [("somun", 2, 44), ("somun", 2, 38), ("rondela", 3, 38)])
+def test_birbirine_degen_iki_parca_ayri_sayilir(depo, tip, beklenen_id, uzaklik):
+    kare = np.full((480, 640, 3), kaynak.ZEMIN, np.uint8)
+    kaynak.NESNE_CIZICILER[tip](kare, 250, 240, 90)
+    kaynak.NESNE_CIZICILER[tip](kare, 250 + uzaklik, 240, 90)
+
+    tespitler = tanima.tani(kare, depo, MIN)
+
+    assert [t.urun_id for t in tespitler] == [beklenen_id, beklenen_id]
+
+
+def test_taninmayan_tek_cisim_bolunmez(depo):
+    kare = np.full((480, 640, 3), kaynak.ZEMIN, np.uint8)
+    cv2.rectangle(kare, (200, 200), (330, 260), (30, 30, 200), cv2.FILLED)
+
+    tespitler = tanima.tani(kare, depo, MIN)
+
+    assert len(tespitler) == 1 and tespitler[0].urun_id is None
