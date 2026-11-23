@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ApiHata, api } from "@/lib/api";
-import { vision, type TaniYaniti, type VisionSaglik } from "@/lib/vision";
+import { VISION_URL, vision, type TaniYaniti, type VisionSaglik } from "@/lib/vision";
 import { useCanliOlaylar } from "@/hooks/useCanliOlaylar";
 import { useKorumaliSayfa } from "@/hooks/useKorumaliSayfa";
 import { useToast } from "@/components/Toast";
@@ -50,6 +50,13 @@ export default function PaketlemeSayfasi() {
   const [karar, setKarar] = useState<DogrulamaSonucu | null>(null);
   const [paketlendi, setPaketlendi] = useState<PaketlemeSonucu | null>(null);
   const [islemde, setIslemde] = useState(false);
+
+  // Otomatik doğrulama: önizleme yeşile dönünce kare yakalanır, görüntü dondurulur ve doğrulama kaydedilir.
+  const [otomatik, setOtomatik] = useState(true);
+  const [donmusKare, setDonmusKare] = useState<string | null>(null);
+  const yesilSayac = useRef(0);
+  const sogumaBitis = useRef(0);
+  const otomatikCalis = useRef<() => void>(() => undefined);
 
   // Önizleme döngüsü her tartı titreşiminde yeniden kurulmasın diye güncel girdiler ref'te tutulur.
   const girdi = useRef({ net: tarti.net, kap: tarti.kapG });
@@ -99,16 +106,36 @@ export default function PaketlemeSayfasi() {
     setKarar(null);
     setOnizleme(null);
     setOnizlemeHatasi(null);
+    yesilSayac.current = 0;
+    donukKareyiBirak();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seciliNo]);
+
+  function donukKareyiBirak() {
+    setDonmusKare((onceki) => {
+      if (onceki) URL.revokeObjectURL(onceki);
+      return null;
+    });
+  }
 
   // Canlı önizleme: sunucudaki doğrulama kuralı saniyede bir kez, kayıt/alarm üretmeden çalışır.
   useEffect(() => {
-    if (!oturum || !seciliNo || paketlendi) return;
+    // Görüntü donmuşken (onay bekleniyor) önizleme durur: ekrandaki sonuç sabit kalır.
+    if (!oturum || !seciliNo || paketlendi || donmusKare) return;
     let iptal = false;
     const calis = async () => {
       try {
         const r = await api.dogrula(seciliNo, { agirlikG: girdi.current.net, kapAgirligiG: girdi.current.kap }, false);
-        if (!iptal) { setOnizleme(r); setOnizlemeHatasi(null); }
+        if (!iptal) {
+          setOnizleme(r);
+          setOnizlemeHatasi(null);
+          // Kamera sayımı da dahil her şey yeşilse üst üste iki yoklamada (≈3 sn) otomatik doğrula.
+          yesilSayac.current = r.onaylandi && r.kameraKullanildi ? yesilSayac.current + 1 : 0;
+          if (yesilSayac.current >= 2 && Date.now() > sogumaBitis.current) {
+            yesilSayac.current = 0;
+            otomatikCalis.current();
+          }
+        }
       } catch (h) {
         if (!iptal) setOnizlemeHatasi(h instanceof ApiHata ? h.message : "Önizleme alınamadı.");
       }
@@ -116,7 +143,7 @@ export default function PaketlemeSayfasi() {
     calis();
     const t = setInterval(calis, 1500);
     return () => { iptal = true; clearInterval(t); };
-  }, [oturum, seciliNo, paketlendi]);
+  }, [oturum, seciliNo, paketlendi, donmusKare]);
 
   if (!oturum) return null;
 
@@ -128,18 +155,43 @@ export default function PaketlemeSayfasi() {
     }))
     ?? [];
 
-  async function dogrula() {
-    if (!seciliNo) return;
+  async function dogrula(): Promise<DogrulamaSonucu | null> {
+    if (!seciliNo) return null;
     setIslemde(true);
     try {
       const sonuc = await api.dogrula(seciliNo, { agirlikG: tarti.net, kapAgirligiG: tarti.kapG }, true);
       setKarar(sonuc);
       if (!sonuc.onaylandi) toast("Paket doğrulanamadı: hataları düzeltip tekrar deneyin.", "hata");
+      return sonuc;
     } catch (h) {
       toast(h instanceof ApiHata ? h.message : "Doğrulama yapılamadı.", "hata");
+      return null;
     } finally {
       setIslemde(false);
     }
+  }
+
+  /** Yeşil olunca: o anın karesini yakala, görüntüyü dondur, doğrulamayı kaydet. Tutmazsa canlıya dön. */
+  async function otomatikDogrula() {
+    if (!otomatik || islemde || karar?.onaylandi || donmusKare || !seciliNo || paketlendi) return;
+    try {
+      const yanit = await fetch(`${VISION_URL}/kare.jpg?t=${Date.now()}`, { cache: "no-store" });
+      if (yanit.ok) setDonmusKare(URL.createObjectURL(await yanit.blob()));
+    } catch { /* kare alınamazsa görüntü canlı kalır; doğrulama yine kaydedilir */ }
+    const sonuc = await dogrula();
+    if (!sonuc?.onaylandi) {
+      donukKareyiBirak();
+      sogumaBitis.current = Date.now() + 4000;
+    }
+  }
+  otomatikCalis.current = () => { void otomatikDogrula(); };
+
+  /** Donmuş görüntüyü bırakıp kamerayı canlıya döndürür; ürün hâlâ yerindeyse hemen yeniden dondurmasın. */
+  function canliyaDon() {
+    donukKareyiBirak();
+    setKarar(null);
+    sogumaBitis.current = Date.now() + 4000;
+    yesilSayac.current = 0;
   }
 
   async function paketle(zorla = false) {
@@ -223,7 +275,18 @@ export default function PaketlemeSayfasi() {
       {secili && !paketlendi && (
         <div className="grid gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
           <div className="space-y-4">
-            <KameraGorunumu saglik={saglik} tani={tani} yenile={durumuYenile} />
+            <KameraGorunumu saglik={saglik} tani={tani} yenile={durumuYenile} dondurulmus={donmusKare} />
+            {donmusKare && (
+              <p className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-marka-acik/50 bg-marka/15 px-3 py-2 text-sm"
+                data-test="donmus-bilgi">
+                <span>❄ Paket yeşil olunca görüntü yakalandı ve donduruldu.</span>
+                <a className="underline" href={donmusKare} download={`${secili.siparisNo}-dogrulama.jpg`}>Görüntüyü indir</a>
+              </p>
+            )}
+            <label className="flex items-center gap-2 text-sm text-slate-300" data-test="otomatik-dogrula">
+              <input type="checkbox" checked={otomatik} onChange={(e) => setOtomatik(e.target.checked)} />
+              Otomatik doğrula: paket yeşil olunca görüntüyü yakala ve dondur
+            </label>
             <TartiGirdisiKarti tarti={tarti} kutular={kutular} kapAlani />
           </div>
 
@@ -279,7 +342,7 @@ export default function PaketlemeSayfasi() {
                   <p className="text-sm text-slate-300">
                     Paketi yerleştirin; önizleme tutunca <b>Doğrula</b>ya basın. Sonuç kaydedilir.
                   </p>
-                  <button className="dugme" disabled={islemde} onClick={dogrula} data-test="dogrula">
+                  <button className="dugme" disabled={islemde} onClick={() => void dogrula()} data-test="dogrula">
                     {islemde ? "Doğrulanıyor…" : "Doğrula"}
                   </button>
                 </>
@@ -295,7 +358,7 @@ export default function PaketlemeSayfasi() {
                     <button className="dugme" disabled={islemde} onClick={() => paketle(false)} data-test="paketle">
                       Onayla ve paketle
                     </button>
-                    <button className="dugme-ikincil" disabled={islemde} onClick={dogrula}>Yeniden doğrula</button>
+                    <button className="dugme-ikincil" disabled={islemde} onClick={canliyaDon} data-test="canliya-don">Yeniden doğrula (kamerayı aç)</button>
                   </div>
                 </div>
               )}
@@ -313,7 +376,7 @@ export default function PaketlemeSayfasi() {
                     ))}
                   </ul>
                   <div className="flex flex-wrap gap-2">
-                    <button className="dugme" disabled={islemde} onClick={dogrula} data-test="yeniden-dogrula">
+                    <button className="dugme" disabled={islemde} onClick={() => void dogrula()} data-test="yeniden-dogrula">
                       Düzelttim, yeniden doğrula
                     </button>
                     {yonetici && (

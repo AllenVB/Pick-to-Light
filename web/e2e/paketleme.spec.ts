@@ -56,6 +56,8 @@ test.describe("Paketleme ve doğrulama", () => {
     // 1) Eksik paket: kamera 3 vida görüyor, 5 olmalı.
     await sahneKur([{ tip: "vida", adet: 3 }]);
     await expect(page.getByTestId("onizleme-rozeti")).toContainText("sorun", { timeout: 15_000 });
+    // "sorun" kamera sayımı oturmadan da görünür; sayım 3'e kararlı olunca doğrula.
+    await expect(page.getByTestId("paketleme-satiri").locator("td").nth(2)).toHaveText("3", { timeout: 15_000 });
     await page.getByTestId("dogrula").click();
 
     const hata = page.getByTestId("karar-hata");
@@ -69,9 +71,9 @@ test.describe("Paketleme ve doğrulama", () => {
     // 2) Düzelt: 5 vida koy, yeniden doğrula → onay → paketle.
     await sahneKur([{ tip: "vida", adet: 5 }]);
     await expect(page.getByTestId("onizleme-rozeti")).toContainText("uyuşuyor", { timeout: 15_000 });
-    await page.getByTestId("yeniden-dogrula").click();
-
-    await expect(page.getByTestId("karar-onay")).toBeVisible();
+    // Otomatik doğrulama: önizleme yeşil kalınca görüntü yakalanıp dondurulur ve doğrulama kendiliğinden kaydedilir.
+    await expect(page.getByTestId("karar-onay")).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByTestId("donmus-kare")).toBeVisible();
     await page.getByTestId("paketle").click();
     await expect(page.getByTestId("paketlendi-karti")).toContainText(`${no} paketlendi`);
 
@@ -83,4 +85,36 @@ test.describe("Paketleme ve doğrulama", () => {
 
     await sahneKur([]);
   });
+});
+
+test("paket yeşil olunca görüntü dondurulur; 'kamerayı aç' canlıya döndürür", async ({ page }) => {
+  const token = await tokenAl();
+  const urunler: { id: number; sku: string }[] = await (await fetch(`${API}/api/urunler`, { headers: { Authorization: `Bearer ${token}` } })).json();
+  const vida = urunler.find((u) => u.sku === "VID-M4");
+  test.skip(!vida, "Vida M4 ürünü yok (bash tools/kamera-demo.sh)");
+  const saglik = await fetch(`${VISION}/saglik`).then((r) => r.json()).catch(() => null);
+  test.skip(!saglik, "Görüntü servisi kapalı");
+
+  await kutulariCevrimiciBekle(token);
+  await fetch(`${VISION}/kaynak`, { method: "POST", headers: JSON_BASLIK, body: JSON.stringify({ tip: "sim" }) });
+  await sahneKur([]);
+
+  const no = `E2E-DON-${Date.now() % 1_000_000}`;
+  await toplanmisSiparis(token, no, vida!.id, 5);
+  await sahneKur([{ tip: "vida", adet: 5 }]);   // toplama bitti: masaya doğru paket konur
+
+  await girisYap(page, "admin", "admin123");
+  await page.goto(`/paketleme?siparis=${no}`);
+  await page.getByTestId("tarti-elle").fill("10");
+
+  await expect(page.getByTestId("karar-onay")).toBeVisible({ timeout: 25_000 });
+  await expect(page.getByTestId("donmus-kare")).toBeVisible();
+  await expect(page.getByTestId("donmus-bilgi")).toBeVisible();
+
+  // Canlıya dön: dondurma kalkar, kamera yeniden çalışır
+  await page.getByTestId("canliya-don").click();
+  await expect(page.getByTestId("donmus-kare")).toBeHidden();
+  await expect(page.getByTestId("karar-onay")).toBeHidden();
+
+  await sahneKur([]);
 });

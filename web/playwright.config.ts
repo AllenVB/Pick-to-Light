@@ -18,6 +18,8 @@ export default defineConfig({
   // iddianın 10 saniyede sonuçlanmaması testin hatası değil, derleme süresidir.
   expect: { timeout: 20_000 },
   fullyParallel: false,          // aynı envanteri paylaşıyorlar, sırayla koşsunlar
+  // Testler aynı envanteri ve tek görüntü servisinin sahnesini paylaşır: dosyalar da birbirini beklemeli.
+  workers: 1,
   retries: process.env.CI ? 1 : 0,
   reporter: [["list"]],
   use: {
