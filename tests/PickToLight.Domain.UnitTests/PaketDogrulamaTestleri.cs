@@ -190,4 +190,47 @@ public class PaketDogrulamaTestleri
 
         sonuc.Hatalar.Should().Contain(h => h.Kod == DogrulamaKodlari.DogrulamaYok);
     }
+
+    // ── Yalnızca görüntü (tartısız) doğrulama ──
+
+    [Fact]
+    public void Sadece_goruntu_modunda_tarti_olmadan_kamera_tutuyorsa_onaylanir()
+    {
+        var sonuc = PaketDogrulama.Degerlendir([Vida(10)], null, Sahne(vida: 10), Tol, agirlikKullan: false);
+
+        sonuc.Onaylandi.Should().BeTrue();
+        sonuc.Hatalar.Should().BeEmpty();
+        sonuc.NetAgirlikG.Should().BeNull();
+        sonuc.SapmaG.Should().BeNull();
+        sonuc.KameraKullanildi.Should().BeTrue();
+        sonuc.Uyarilar.Should().ContainSingle(u => u.Contains("yalnızca kamera görüntüsüyle"));
+    }
+
+    [Fact]
+    public void Sadece_goruntu_modunda_girilmis_agirlik_yok_sayilir()
+    {
+        // Tartı 999 g gösterse de ağırlık kontrolü yapılmaz.
+        var sonuc = PaketDogrulama.Degerlendir([Vida(10)], 999m, Sahne(vida: 10), Tol, agirlikKullan: false);
+
+        sonuc.Onaylandi.Should().BeTrue();
+        sonuc.NetAgirlikG.Should().BeNull();
+    }
+
+    [Fact]
+    public void Sadece_goruntu_modunda_eksik_urun_yine_hata_verir()
+    {
+        var sonuc = PaketDogrulama.Degerlendir([Vida(10)], null, Sahne(vida: 8), Tol, agirlikKullan: false);
+
+        sonuc.Onaylandi.Should().BeFalse();
+        sonuc.Hatalar.Should().ContainSingle(h => h.Kod == DogrulamaKodlari.EksikUrun);
+    }
+
+    [Fact]
+    public void Sadece_goruntu_modunda_kamera_yoksa_onay_verilmez()
+    {
+        var sonuc = PaketDogrulama.Degerlendir([Vida(10)], null, null, new PaketToleransi(0.03m, 1m, false), agirlikKullan: false);
+
+        sonuc.Onaylandi.Should().BeFalse();
+        sonuc.Hatalar.Should().Contain(h => h.Kod == DogrulamaKodlari.DogrulamaYok);
+    }
 }

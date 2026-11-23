@@ -118,3 +118,40 @@ test("paket yeşil olunca görüntü dondurulur; 'kamerayı aç' canlıya dönd�
 
   await sahneKur([]);
 });
+
+test("ağırlık olmadan yalnızca görüntüyle doğrulama kaydedilir ve paketlenir", async ({ page }) => {
+  const token = await tokenAl();
+  const urunler: { id: number; sku: string }[] = await (await fetch(`${API}/api/urunler`, { headers: { Authorization: `Bearer ${token}` } })).json();
+  const vida = urunler.find((u) => u.sku === "VID-M4");
+  test.skip(!vida, "Vida M4 ürünü yok (bash tools/kamera-demo.sh)");
+  const saglik = await fetch(`${VISION}/saglik`).then((r) => r.json()).catch(() => null);
+  test.skip(!saglik, "Görüntü servisi kapalı");
+
+  await kutulariCevrimiciBekle(token);
+  await fetch(`${VISION}/kaynak`, { method: "POST", headers: JSON_BASLIK, body: JSON.stringify({ tip: "sim" }) });
+  await sahneKur([]);
+
+  const no = `E2E-GRS-${Date.now() % 1_000_000}`;
+  await toplanmisSiparis(token, no, vida!.id, 5);
+  await sahneKur([{ tip: "vida", adet: 5 }]);
+
+  await girisYap(page, "admin", "admin123");
+  await page.goto(`/paketleme?siparis=${no}`);
+
+  // Tartı değeri girilmedi. Ağırlık denetimi açıkken doğrulama tutmaz (AGIRLIK_YOK)...
+  await page.getByTestId("otomatik-dogrula").getByRole("checkbox").uncheck();
+  await page.getByTestId("dogrula").click();
+  await expect(page.getByTestId("karar-hata").locator('[data-kod="AGIRLIK_YOK"]')).toBeVisible();
+
+  // ...yalnızca görüntü seçilince tartısız doğrulama kaydedilir ve paketlenir.
+  await page.getByTestId("sadece-goruntu").getByRole("checkbox").check();
+  // Kamera sayımı oturup önizleme yeşil olunca doğrula (yeni kurulan sahnede ilk saniyeler kararsızdır).
+  await expect(page.getByTestId("onizleme-rozeti")).toContainText("uyuşuyor", { timeout: 20_000 });
+  await page.getByTestId("yeniden-dogrula").click();
+  await expect(page.getByTestId("karar-onay")).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByTestId("karar-onay")).toContainText("Ağırlık kullanılmadı");
+  await page.getByTestId("paketle").click();
+  await expect(page.getByTestId("paketlendi-karti")).toContainText(`${no} paketlendi`);
+
+  await sahneKur([]);
+});

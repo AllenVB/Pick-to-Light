@@ -284,4 +284,36 @@ public class PaketlemeTestleri
         ozet.DogrulamaHatasiSayisi.Should().Be(1);
         ozet.TamamlananSiparis.Should().Be(1, "paketlenmiş sipariş de tamamlanmış sayılır");
     }
+
+    [Fact]
+    public async Task Sadece_goruntu_ile_tartisiz_dogrulama_kaydedilir_ve_paketlenir()
+    {
+        var (t, no, vida) = await ToplanmisSiparisAsync();
+        using var _ = t;
+        t.Goruntu.Sahne = new KameraSahnesi([new GorulenUrun(vida.Id, vida.Ad, 10)], 0);
+
+        // Tartı değeri yok ve SadeceGoruntu açık: ağırlık hatası çıkmaz, doğrulama kayda geçer.
+        var dogrulama = await t.Paketleme.DogrulaAsync(no, new DogrulaIstek(null, null, SadeceGoruntu: true), kaydet: true);
+
+        dogrulama.Onaylandi.Should().BeTrue();
+        dogrulama.DogrulamaId.Should().NotBeNull();
+        dogrulama.KameraKullanildi.Should().BeTrue();
+        dogrulama.NetAgirlikG.Should().BeNull();
+
+        var paketlendi = await t.Paketleme.PaketleAsync(no, dogrulama.DogrulamaId);
+        paketlendi.Durum.Should().Be(SiparisDurumu.Paketlendi);
+    }
+
+    [Fact]
+    public async Task Tartisiz_dogrulama_sadece_goruntu_isaretlenmediyse_yine_agirlik_ister()
+    {
+        var (t, no, vida) = await ToplanmisSiparisAsync();
+        using var _ = t;
+        t.Goruntu.Sahne = new KameraSahnesi([new GorulenUrun(vida.Id, vida.Ad, 10)], 0);
+
+        var dogrulama = await t.Paketleme.DogrulaAsync(no, new DogrulaIstek(null), kaydet: true);
+
+        dogrulama.Onaylandi.Should().BeFalse();
+        dogrulama.Hatalar.Should().Contain(h => h.Kod == DogrulamaKodlari.AgirlikYok);
+    }
 }

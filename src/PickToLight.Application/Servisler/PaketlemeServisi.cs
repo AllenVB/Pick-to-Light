@@ -79,11 +79,11 @@ public sealed class PaketlemeServisi(
 
         var beklenen = Beklenenler(siparis);
         var sahne = goruntu is null ? null : await goruntu.SahneAsync(ct);
-        decimal? net = istek.AgirlikG is { } brut ? brut - (istek.KapAgirligiG ?? 0m) : null;
+        decimal? net = !istek.SadeceGoruntu && istek.AgirlikG is { } brut ? brut - (istek.KapAgirligiG ?? 0m) : null;
 
         var tolerans = new PaketToleransi(_ayar.PaketAgirlikToleransOrani, _ayar.PaketAgirlikToleransMinG,
             _ayar.PaketKameraZorunlu);
-        var sonuc = PaketDogrulama.Degerlendir(beklenen, net, sahne, tolerans);
+        var sonuc = PaketDogrulama.Degerlendir(beklenen, net, sahne, tolerans, agirlikKullan: !istek.SadeceGoruntu);
 
         var ozet = sonuc.Onaylandi
             ? "Paket siparişle uyuşuyor: paketlenebilir."

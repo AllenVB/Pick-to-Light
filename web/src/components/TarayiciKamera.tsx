@@ -38,15 +38,25 @@ function hataMetni(hata: unknown): string {
 }
 
 export function useTarayiciKamera() {
-  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const videoEl = useRef<HTMLVideoElement | null>(null);
   const akisRef = useRef<MediaStream | null>(null);
   const [durum, setDurum] = useState<KameraDurumu>("kapali");
   const [hata, setHata] = useState<string | null>(null);
 
+  // Kaynak "tarayıcı"ya yeni geçildiğinde <video> henüz ekranda olmayabilir: izin alınır ama eleman sonradan
+  // gelir. Bu yüzden akış, eleman ekrana geldiği anda da bağlanır (callback ref).
+  const videoRef = useCallback((dugum: HTMLVideoElement | null) => {
+    videoEl.current = dugum;
+    if (dugum && akisRef.current && dugum.srcObject !== akisRef.current) {
+      dugum.srcObject = akisRef.current;
+      void dugum.play().catch(() => undefined);
+    }
+  }, []);
+
   const durdur = useCallback(() => {
     akisRef.current?.getTracks().forEach((t) => t.stop());
     akisRef.current = null;
-    if (videoRef.current) videoRef.current.srcObject = null;
+    if (videoEl.current) videoEl.current.srcObject = null;
     setDurum("kapali");
   }, []);
 
@@ -56,14 +66,21 @@ export function useTarayiciKamera() {
     setDurum("izin-bekliyor");
     try {
       // 4:3 istenir ki sunucudaki 640×480 çerçeveyle ve ekrandaki kutularla hizalı kalsın.
-      const akis = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: KARE_GEN }, height: { ideal: KARE_YUK }, aspectRatio: { ideal: 4 / 3 } },
-        audio: false,
-      });
+      let akis: MediaStream;
+      try {
+        akis = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: KARE_GEN }, height: { ideal: KARE_YUK }, aspectRatio: { ideal: 4 / 3 } },
+          audio: false,
+        });
+      } catch (ilk) {
+        // İzin reddi dışındaki hatalarda (çözünürlük/oran desteği vb.) kısıtsız yeniden denenir.
+        if (ilk instanceof DOMException && (ilk.name === "NotAllowedError" || ilk.name === "NotFoundError")) throw ilk;
+        akis = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      }
       akisRef.current = akis;
-      if (videoRef.current) {
-        videoRef.current.srcObject = akis;
-        await videoRef.current.play().catch(() => undefined);
+      if (videoEl.current) {
+        videoEl.current.srcObject = akis;
+        await videoEl.current.play().catch(() => undefined);
       }
       setDurum("acik");
     } catch (h) {
@@ -83,7 +100,7 @@ export function useTarayiciKamera() {
     let yolda = false;
 
     const t = setInterval(() => {
-      const video = videoRef.current;
+      const video = videoEl.current;
       if (!ctx || !video || yolda || video.readyState < 2 || video.videoWidth === 0) return;
 
       // Merkezden 4:3 kırpma: ekrandaki object-cover görünümüyle birebir aynı alan.

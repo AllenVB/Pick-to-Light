@@ -238,7 +238,7 @@ export const api = {
 
   paketlenecek: () => istek<PaketlenecekSiparis[]>("/api/siparisler/paketlenecek"),
   /** kaydet=false: canlı önizleme (kayıt ve alarm yok); true: kayıtlı doğrulama. */
-  dogrula: (siparisNo: string, govde: { agirlikG?: number | null; kapAgirligiG?: number | null }, kaydet = false) =>
+  dogrula: (siparisNo: string, govde: { agirlikG?: number | null; kapAgirligiG?: number | null; sadeceGoruntu?: boolean }, kaydet = false) =>
     istek<DogrulamaSonucu>(`/api/siparisler/${encodeURIComponent(siparisNo)}/dogrula?kaydet=${kaydet}`,
       { method: "POST", body: JSON.stringify(govde) }),
   paketle: (siparisNo: string, dogrulamaId?: number | null) =>

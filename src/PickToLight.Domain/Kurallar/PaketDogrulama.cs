@@ -62,8 +62,12 @@ public static class PaketDogrulama
 {
     private static readonly CultureInfo Tr = CultureInfo.GetCultureInfo("tr-TR");
 
+    /// <param name="agirlikKullan">
+    /// false ise ağırlık kontrolü yapılmaz ve tartı gerekmez: paket yalnızca kamera görüntüsüyle doğrulanır
+    /// (tartı yokken ya da kullanılamazken). Bu durumda kamera zorunludur; hiçbir kanal yoksa onay verilmez.
+    /// </param>
     public static PaketDogrulamaSonucu Degerlendir(IReadOnlyList<BeklenenUrun> beklenen, decimal? netAgirlikG,
-        KameraSahnesi? kamera, PaketToleransi tolerans)
+        KameraSahnesi? kamera, PaketToleransi tolerans, bool agirlikKullan = true)
     {
         var hatalar = new List<DogrulamaHatasi>();
         var uyarilar = new List<string>();
@@ -157,7 +161,12 @@ public static class PaketDogrulama
         // ── Ağırlık ──
         decimal? sapma = null, toleransG = null;
 
-        if (!agirlikBilinir)
+        if (!agirlikKullan)
+        {
+            if (kameraKullanildi)
+                uyarilar.Add("Ağırlık kullanılmadı; paket yalnızca kamera görüntüsüyle doğrulandı.");
+        }
+        else if (!agirlikBilinir)
         {
             var eksik = string.Join(", ", beklenen.Where(b => b.BirimAgirlikG is not > 0).Select(b => b.UrunAdi));
             uyarilar.Add($"Birim ağırlığı tanımlı olmayan ürün var ({eksik}): ağırlık kontrolü yapılamadı.");
@@ -188,11 +197,11 @@ public static class PaketDogrulama
         }
 
         // Hiçbir kanal doğrulama yapamadıysa onay verilemez.
-        if (!kameraKullanildi && (!agirlikBilinir || netAgirlikG is null) && hatalar.Count == 0)
+        if (!kameraKullanildi && (!agirlikKullan || !agirlikBilinir || netAgirlikG is null) && hatalar.Count == 0)
             hatalar.Add(new(DogrulamaKodlari.DogrulamaYok, "Paket doğrulanamadı: ne kamera sayımı ne de ağırlık kontrolü yapılabildi."));
 
-        return new PaketDogrulamaSonucu(hatalar.Count == 0, satirlar, hatalar, uyarilar, beklenenAgirlik, netAgirlikG,
-            sapma, toleransG, kameraKullanildi);
+        return new PaketDogrulamaSonucu(hatalar.Count == 0, satirlar, hatalar, uyarilar, beklenenAgirlik,
+            agirlikKullan ? netAgirlikG : null, sapma, toleransG, kameraKullanildi);
     }
 
     /// <summary>Tek ürünlü siparişte ağırlık farkını adet olarak söyler ("≈ 9 adet fazla ürün ağırlığı").</summary>

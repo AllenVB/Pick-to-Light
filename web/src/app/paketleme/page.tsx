@@ -53,14 +53,16 @@ export default function PaketlemeSayfasi() {
 
   // Otomatik doğrulama: önizleme yeşile dönünce kare yakalanır, görüntü dondurulur ve doğrulama kaydedilir.
   const [otomatik, setOtomatik] = useState(true);
+  // Tartı yokken/kullanılamazken: ağırlık kontrolü yapılmaz, doğrulama yalnızca kamera görüntüsüyle kaydedilir.
+  const [sadeceGoruntu, setSadeceGoruntu] = useState(false);
   const [donmusKare, setDonmusKare] = useState<string | null>(null);
   const yesilSayac = useRef(0);
   const sogumaBitis = useRef(0);
   const otomatikCalis = useRef<() => void>(() => undefined);
 
   // Önizleme döngüsü her tartı titreşiminde yeniden kurulmasın diye güncel girdiler ref'te tutulur.
-  const girdi = useRef({ net: tarti.net, kap: tarti.kapG });
-  girdi.current = { net: tarti.net, kap: tarti.kapG };
+  const girdi = useRef({ net: tarti.net, kap: tarti.kapG, sadeceGoruntu });
+  girdi.current = { net: tarti.net, kap: tarti.kapG, sadeceGoruntu };
 
   const kuyruguYenile = useCallback(() => {
     api.paketlenecek().then(setKuyruk).catch(() => setKuyruk([]));
@@ -125,7 +127,9 @@ export default function PaketlemeSayfasi() {
     let iptal = false;
     const calis = async () => {
       try {
-        const r = await api.dogrula(seciliNo, { agirlikG: girdi.current.net, kapAgirligiG: girdi.current.kap }, false);
+        const r = await api.dogrula(seciliNo, {
+          agirlikG: girdi.current.net, kapAgirligiG: girdi.current.kap, sadeceGoruntu: girdi.current.sadeceGoruntu,
+        }, false);
         if (!iptal) {
           setOnizleme(r);
           setOnizlemeHatasi(null);
@@ -159,7 +163,7 @@ export default function PaketlemeSayfasi() {
     if (!seciliNo) return null;
     setIslemde(true);
     try {
-      const sonuc = await api.dogrula(seciliNo, { agirlikG: tarti.net, kapAgirligiG: tarti.kapG }, true);
+      const sonuc = await api.dogrula(seciliNo, { agirlikG: tarti.net, kapAgirligiG: tarti.kapG, sadeceGoruntu }, true);
       setKarar(sonuc);
       if (!sonuc.onaylandi) toast("Paket doğrulanamadı: hataları düzeltip tekrar deneyin.", "hata");
       return sonuc;
@@ -287,7 +291,13 @@ export default function PaketlemeSayfasi() {
               <input type="checkbox" checked={otomatik} onChange={(e) => setOtomatik(e.target.checked)} />
               Otomatik doğrula: paket yeşil olunca görüntüyü yakala ve dondur
             </label>
-            <TartiGirdisiKarti tarti={tarti} kutular={kutular} kapAlani />
+            <label className="flex items-center gap-2 text-sm text-slate-300" data-test="sadece-goruntu">
+              <input type="checkbox" checked={sadeceGoruntu} onChange={(e) => setSadeceGoruntu(e.target.checked)} />
+              Ağırlık olmadan, yalnızca görüntüyle doğrula (tartı kullanılmaz)
+            </label>
+            <div className={sadeceGoruntu ? "pointer-events-none opacity-40" : undefined}>
+              <TartiGirdisiKarti tarti={tarti} kutular={kutular} kapAlani />
+            </div>
           </div>
 
           <div className="space-y-4">
@@ -322,7 +332,7 @@ export default function PaketlemeSayfasi() {
                   <p className="mt-1 font-mono font-bold">{onizleme?.beklenenAgirlikG != null ? gramMetni(onizleme.beklenenAgirlikG)
                     : secili.beklenenAgirlikG != null ? gramMetni(secili.beklenenAgirlikG) : "—"}</p></div>
                 <div><p className="etiket">Ölçülen (net)</p>
-                  <p className="mt-1 font-mono font-bold">{tarti.net != null ? gramMetni(tarti.net - (tarti.kapG ?? 0)) : "—"}</p></div>
+                  <p className="mt-1 font-mono font-bold">{sadeceGoruntu ? "kullanılmıyor" : tarti.net != null ? gramMetni(tarti.net - (tarti.kapG ?? 0)) : "—"}</p></div>
                 <div><p className="etiket">Sapma</p>
                   <p className={`mt-1 font-mono font-bold ${onizleme?.sapmaG != null && onizleme.toleransG != null && Math.abs(onizleme.sapmaG) > onizleme.toleransG ? "text-durum-kirmizi" : ""}`}>
                     {onizleme?.sapmaG != null ? `${onizleme.sapmaG > 0 ? "+" : ""}${gramMetni(onizleme.sapmaG)}` : "—"}
@@ -352,7 +362,11 @@ export default function PaketlemeSayfasi() {
                 <div className="space-y-3" data-test="karar-onay">
                   <p className="text-xl font-extrabold text-durum-yesil">✓ ONAY — paket siparişle uyuşuyor</p>
                   <p className="text-sm text-slate-300">
-                    {karar.kameraKullanildi ? "Kamera sayımı ve ağırlık siparişle aynı." : "Yalnızca ağırlıkla doğrulandı (kamera kullanılmadı)."}
+                    {karar.kameraKullanildi
+                      ? karar.netAgirlikG == null
+                        ? "Kamera sayımı siparişle aynı. Ağırlık kullanılmadı; yalnızca görüntüyle doğrulandı."
+                        : "Kamera sayımı ve ağırlık siparişle aynı."
+                      : "Yalnızca ağırlıkla doğrulandı (kamera kullanılmadı)."}
                   </p>
                   <div className="flex flex-wrap gap-2">
                     <button className="dugme" disabled={islemde} onClick={() => paketle(false)} data-test="paketle">

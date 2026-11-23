@@ -94,7 +94,8 @@ public sealed record SiparisDetayDto(
 // ───────────────────────── Paketleme ve doğrulama ─────────────────────────
 
 /// <summary>Paket doğrulama isteği: tartıdaki brüt gram ve (varsa) kap/koli ağırlığı.</summary>
-public sealed record DogrulaIstek(decimal? AgirlikG, decimal? KapAgirligiG = null);
+/// <param name="SadeceGoruntu">true: tartı kullanılmaz, paket yalnızca kamera görüntüsüyle doğrulanır ve kaydedilir.</param>
+public sealed record DogrulaIstek(decimal? AgirlikG, decimal? KapAgirligiG = null, bool SadeceGoruntu = false);
 
 public sealed record PaketSatiriDto(long UrunId, string UrunAdi, int Adet, decimal? BirimAgirlikG);
 
