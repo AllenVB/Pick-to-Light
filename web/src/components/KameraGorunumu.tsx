@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { TespitKatmani, useTarayiciKamera } from "@/components/TarayiciKamera";
-import { vision, type FotografSonucu, type SahneNesnesi, type TaniYaniti, type VisionSaglik } from "@/lib/vision";
+import { oturumOku } from "@/lib/api";
+import { vision, type FotografKaydi, type FotografSonucu, type SahneNesnesi, type TaniYaniti, type VisionSaglik } from "@/lib/vision";
 import { useToast } from "@/components/Toast";
 
 const SAHNELER: { ad: string; nesneler: SahneNesnesi[] }[] = [
@@ -44,12 +45,54 @@ export function KameraGorunumu({ saglik, tani, yenile, dondurulmus }: {
   const [foto, setFoto] = useState<FotografSonucu | null>(null);
   const [cekiliyor, setCekiliyor] = useState(false);
 
+  // Kayıt: Kaydet → "ürün ve adet doğru mu?" → (gerekirse düzelt) → kaydedildi
+  const [kayitAsama, setKayitAsama] = useState<"yok" | "onay" | "duzelt" | "kaydedildi">("yok");
+  const [adetler, setAdetler] = useState<Record<number, string>>({});
+  const [kaydediliyor, setKaydediliyor] = useState(false);
+  const [sonKayit, setSonKayit] = useState<FotografKaydi | null>(null);
+  const [kayitlar, setKayitlar] = useState<FotografKaydi[]>([]);
+
+  const kayitlariYukle = () => { vision.fotografKayitlari(5).then((k) => setKayitlar(k ?? [])).catch(() => undefined); };
+  useEffect(() => { if (saglik) kayitlariYukle(); }, [!!saglik]);   // eslint-disable-line react-hooks/exhaustive-deps
+
+  function kaydiBaslat() {
+    if (!foto) return;
+    setAdetler(Object.fromEntries(foto.urunler.map((u) => [u.urunId, String(u.adet)])));
+    setKayitAsama("onay");
+  }
+
+  /** Kullanıcı ürün ve adetleri onayladı: kaydet. `duzeltilmis` true ise kullanıcının girdiği adetler yazılır. */
+  async function kaydet(duzeltilmis: boolean) {
+    if (!foto) return;
+    setKaydediliyor(true);
+    try {
+      const urunler = duzeltilmis
+        ? foto.urunler.map((u) => ({ urunId: u.urunId, adet: Math.max(0, Math.floor(Number(adetler[u.urunId]) || 0)) }))
+        : undefined;
+      const kayit = await vision.fotografKaydet({ fotografId: foto.fotografId, onaylayan: oturumOku()?.adSoyad ?? null, urunler });
+      if (!kayit) { toast("Görüntü servisine ulaşılamadı.", "hata"); return; }
+      setSonKayit(kayit);
+      setKayitAsama("kaydedildi");
+      kayitlariYukle();
+    } catch (h) {
+      toast(h instanceof Error ? h.message : "Kaydedilemedi.", "hata");
+    } finally {
+      setKaydediliyor(false);
+    }
+  }
+
+  function fotografiKapat() {
+    setFoto(null);
+    setKayitAsama("yok");
+    setSonKayit(null);
+  }
+
   /** Şu anki kareyi çeker, görüntüyü dondurur ve karedeki ürünleri tespit eder. */
   async function fotografCek() {
     setCekiliyor(true);
     try {
       const sonuc = await vision.fotografCek();
-      if (sonuc) setFoto(sonuc);
+      if (sonuc) { setFoto(sonuc); setKayitAsama("yok"); setSonKayit(null); }
       else toast("Görüntü servisine ulaşılamadı.", "hata");
     } catch (h) {
       toast(h instanceof Error ? h.message : "Fotoğraf çekilemedi.", "hata");
@@ -190,7 +233,7 @@ export function KameraGorunumu({ saglik, tani, yenile, dondurulmus }: {
               <button className="dugme" disabled={cekiliyor} onClick={fotografCek} data-test="fotograf-yeniden">
                 {cekiliyor ? "Çekiliyor…" : "Yeniden çek"}
               </button>
-              <button className="dugme-ikincil" onClick={() => setFoto(null)} data-test="fotograf-kapat">
+              <button className="dugme-ikincil" onClick={fotografiKapat} data-test="fotograf-kapat">
                 Canlıya dön
               </button>
               <a className="dugme-ikincil" href={foto.goruntu} download="fotograf.jpg" data-test="fotograf-indir">
@@ -226,8 +269,87 @@ export function KameraGorunumu({ saglik, tani, yenile, dondurulmus }: {
                 )}
               </ul>
               <p className="ipucu mt-2">Toplam {foto.nesneSayisi} nesne tespit edildi.</p>
+
+              {/* Kayıt: kullanıcı ürünün ve adedin doğru olduğunu onaylamadan kayıt oluşmaz. */}
+              {foto.urunler.length > 0 && kayitAsama === "yok" && (
+                <button className="dugme mt-3" onClick={kaydiBaslat} data-test="fotograf-kaydet">Kaydet</button>
+              )}
+
+              {kayitAsama === "onay" && (
+                <div className="mt-3 space-y-3 rounded-lg border border-zemin-cizgi bg-zemin-kart p-3" data-test="kayit-onayi">
+                  <p className="text-sm">
+                    Fotoğrafta{" "}
+                    <b data-test="kayit-onay-ozet">
+                      {foto.urunler.map((u) => `${u.adet} adet ${u.urunAdi}`).join(", ")}
+                    </b>{" "}
+                    görünüyor. <b>Ürün ve adet doğru mu?</b>
+                  </p>
+                  {foto.bilinmeyen > 0 && (
+                    <p className="text-sm text-durum-sari">
+                      {foto.bilinmeyen} nesne tanınamadı; bunlar kayda girmez.
+                    </p>
+                  )}
+                  <div className="flex flex-wrap gap-2">
+                    <button className="dugme" disabled={kaydediliyor} onClick={() => kaydet(false)} data-test="kayit-dogru">
+                      {kaydediliyor ? "Kaydediliyor…" : "✔ Evet, doğru — kaydet"}
+                    </button>
+                    <button className="dugme-ikincil" disabled={kaydediliyor} onClick={() => setKayitAsama("duzelt")}
+                      data-test="kayit-duzelt">Hayır, düzelt</button>
+                  </div>
+                </div>
+              )}
+
+              {kayitAsama === "duzelt" && (
+                <div className="mt-3 space-y-3 rounded-lg border border-zemin-cizgi bg-zemin-kart p-3" data-test="kayit-duzeltme">
+                  <p className="text-sm">Doğru adetleri girin. Ürün yanlışsa fotoğrafı yeniden çekin.</p>
+                  {foto.urunler.map((u) => (
+                    <label key={u.urunId} className="flex items-center justify-between gap-3 text-sm">
+                      <span className="font-semibold">{u.urunAdi}</span>
+                      <input className="girdi w-24 text-right" type="number" min={0} inputMode="numeric"
+                        value={adetler[u.urunId] ?? ""} data-test="kayit-adet" data-urun={u.urunAdi}
+                        onChange={(e) => setAdetler((a) => ({ ...a, [u.urunId]: e.target.value }))} />
+                    </label>
+                  ))}
+                  <div className="flex flex-wrap gap-2">
+                    <button className="dugme" disabled={kaydediliyor} onClick={() => kaydet(true)} data-test="kayit-duzeltilmis-kaydet">
+                      {kaydediliyor ? "Kaydediliyor…" : "Bu adetlerle kaydet"}
+                    </button>
+                    <button className="dugme-ikincil" disabled={kaydediliyor} onClick={() => setKayitAsama("onay")}>Geri</button>
+                  </div>
+                </div>
+              )}
+
+              {kayitAsama === "kaydedildi" && sonKayit && (
+                <div className="mt-3 rounded-lg border border-durum-yesil/50 bg-durum-yesil/10 p-3 text-sm" data-test="kayit-tamam">
+                  <p className="font-bold text-durum-yesil">✔ Kaydedildi (#{sonKayit.id})</p>
+                  <p className="mt-1" data-test="kayit-ozet">
+                    {sonKayit.urunler.map((u) => `${u.adet} adet ${u.urunAdi}`).join(", ")} görüntülendi ve kaydedildi.
+                  </p>
+                  <button className="dugme-ikincil mt-2" onClick={fotografiKapat} data-test="kayit-yeni">Yeni fotoğraf</button>
+                </div>
+              )}
             </>
           )}
+        </div>
+      )}
+
+      {bagli && kayitlar.length > 0 && (
+        <div className="rounded-lg border border-zemin-cizgi bg-zemin-kart p-3" data-test="son-kayitlar">
+          <p className="etiket">Son fotoğraf kayıtları</p>
+          <ul className="mt-2 divide-y divide-zemin-cizgi">
+            {kayitlar.map((k) => (
+              <li key={k.id} className="flex items-center justify-between gap-2 py-1.5 text-sm" data-test="kayit-satiri">
+                <span>
+                  <span className="font-semibold">{k.urunler.map((u) => `${u.adet} × ${u.urunAdi}`).join(", ")}</span>
+                  <span className="ipucu ml-2">
+                    {new Date(k.zaman * 1000).toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" })}
+                    {k.onaylayan ? ` · ${k.onaylayan}` : ""}{k.duzeltildi ? " · düzeltildi" : ""}
+                  </span>
+                </span>
+                <a className="text-xs underline" href={vision.fotografKaydiUrl(k.id)} target="_blank" rel="noreferrer">Görüntü</a>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 

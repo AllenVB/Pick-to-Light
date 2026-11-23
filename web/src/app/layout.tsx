@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { AltMenu } from "@/components/AltMenu";
 import { Kenar } from "@/components/Kenar";
 import { ToastSaglayici } from "@/components/Toast";
 import { TemaBaslatici } from "@/components/Tema";
@@ -21,7 +22,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ToastSaglayici>
           <div className="flex min-h-screen flex-col lg:flex-row">
             <Kenar />
-            <main className="min-w-0 flex-1 overflow-x-hidden p-4 lg:p-6">{children}</main>
+            <main className="min-w-0 flex-1 overflow-x-hidden p-4 lg:p-6">
+              <AltMenu />
+              {children}
+            </main>
           </div>
         </ToastSaglayici>
       </body>

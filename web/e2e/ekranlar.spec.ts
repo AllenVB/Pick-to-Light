@@ -28,16 +28,44 @@ test.describe("Ekranlar", () => {
     await expect(page.locator("text=Kutu performansı")).toBeVisible();
   });
 
-  test("operatör rolü yönetim menüsünü ve sayfalarını göremez", async ({ page }) => {
+  const ADMIN_YOLLARI = ["/personeller", "/raporlar", "/urunler", "/kutular", "/hareketler", "/cihaz-olaylari", "/siparis/ice-aktar", "/kamera", "/tarti"];
+  const BOLUM_GIRISLERI = ["/siparisler", "/", "/stok", "/paketleme"];
+
+  test("yan menü dört ana bölümden oluşur", async ({ page }) => {
+    await girisYap(page, "operator", "operator123");
+    await page.goto("/");
+
+    const bolumler = page.getByTestId("ana-bolum");
+    await expect(bolumler).toHaveCount(4);
+    await expect(bolumler).toHaveText([
+      /Sipariş Kontrol Paneli/, /Canlı Pano/, /Stok Durumu/, /Paketleme İşlemleri/,
+    ]);
+    // İçinde bulunulan bölüm işaretlenir ve başlığı sayfa üstünde görünür.
+    await expect(page.locator('[data-test="ana-bolum"][data-aktif="true"]')).toContainText("Canlı Pano");
+    await expect(page.getByTestId("bolum-basligi")).toHaveText("Canlı Pano");
+
+    await page.goto("/siparis/yeni");
+    await expect(page.locator('[data-test="ana-bolum"][data-aktif="true"]')).toContainText("Sipariş Kontrol Paneli");
+  });
+
+  test("operatör rolü yönetim sayfalarını menüde ve sekmelerde göremez", async ({ page }) => {
     await girisYap(page, "operator", "operator123");
 
     const kenar = page.locator("aside");
-    await expect(kenar).toContainText("Operatör Ekranı");
     await expect(kenar.getByTestId("rol-rozeti")).toHaveText("Operatör");
-    for (const yol of ["/personeller", "/raporlar", "/urunler", "/kutular", "/hareketler", "/cihaz-olaylari", "/siparis/ice-aktar", "/kamera", "/tarti"]) {
-      await expect(kenar.locator(`a[href="${yol}"]`)).toHaveCount(0);
+
+    for (const giris of BOLUM_GIRISLERI) {
+      await page.goto(giris);
+      for (const yol of ADMIN_YOLLARI) {
+        // Yalnızca menü ve sekmeler: sayfa içindeki bağlantılar menü değildir, yetki zaten sayfada denetlenir.
+        await expect(page.locator(`aside a[href="${yol}"], [data-test="alt-menu"] a[href="${yol}"]`)).toHaveCount(0);
+      }
     }
-    await expect(kenar.getByTestId("menu-yonetim")).toHaveCount(0);
+
+    // Operatör kendi işine ait sayfaları sekmelerde görür.
+    await page.goto("/siparisler");
+    await expect(page.getByTestId("alt-menu")).toContainText("Operatör Ekranı");
+    await expect(page.getByTestId("alt-menu")).toContainText("Yeni Sipariş");
 
     // Adresi elle yazsa da yönetim sayfası açılmaz, panoya döner.
     for (const yol of ["/personeller", "/raporlar", "/kutular", "/kamera", "/tarti"]) {
@@ -49,15 +77,20 @@ test.describe("Ekranlar", () => {
     await expect(page.locator('button:has-text("Sayım")')).toHaveCount(0);
   });
 
-  test("yönetici rolü yönetim menüsünü görür", async ({ page }) => {
+  test("yönetici tüm yönetim sayfalarına bölüm sekmelerinden ulaşır", async ({ page }) => {
     await girisYap(page);
 
-    const kenar = page.locator("aside");
-    await expect(kenar.getByTestId("rol-rozeti")).toHaveText("Yönetici");
-    await expect(kenar.getByTestId("menu-yonetim")).toBeVisible();
-    for (const yol of ["/personeller", "/raporlar", "/urunler", "/kutular", "/hareketler", "/cihaz-olaylari", "/siparis/ice-aktar", "/kamera", "/tarti"]) {
-      await expect(kenar.locator(`a[href="${yol}"]`)).toHaveCount(1);
+    await expect(page.locator("aside").getByTestId("rol-rozeti")).toHaveText("Yönetici");
+
+    const bulunan = new Set<string>();
+    for (const giris of BOLUM_GIRISLERI) {
+      await page.goto(giris);
+      await expect(page.getByTestId("alt-menu")).toBeVisible();
+      for (const href of await page.getByTestId("alt-sayfa").evaluateAll((els) => els.map((e) => e.getAttribute("href") ?? ""))) {
+        bulunan.add(href);
+      }
     }
+    for (const yol of ADMIN_YOLLARI) expect(bulunan, `${yol} sekmelerde yok`).toContain(yol);
   });
 
   test("kamera ve tanıma sayfası görüntü servisi açıkken önizleme, kapalıyken uyarı gösterir", async ({ page }) => {
@@ -230,6 +263,59 @@ test.describe("fotoğraf çek", () => {
     await page.getByTestId("fotograf-kapat").click();
     await expect(page.getByTestId("fotograf-karesi")).toBeHidden();
     await expect(page.getByTestId("fotograf-cek")).toBeVisible();
+
+    await fetch(`${VISION}/sim/sahne`, { method: "POST", headers: JSON_BASLIK, body: JSON.stringify({ nesneler: [] }) });
+  });
+});
+
+test.describe("fotoğraf kaydı: kullanıcı ürün ve adedi doğrular", () => {
+  const VISION = process.env.PTL_VISION ?? "http://localhost:5100";
+  const JSON_BASLIK = { "Content-Type": "application/json" };
+
+  async function hazirla(page: import("@playwright/test").Page, nesneler: { tip: string; adet: number }[], ad: RegExp) {
+    const saglik = await fetch(`${VISION}/saglik`).then((r) => r.json()).catch(() => null);
+    test.skip(!saglik, "Görüntü servisi kapalı");
+    const profiller: { urunId: number; ad: string }[] = await fetch(`${VISION}/profiller`).then((r) => r.json());
+    const urun = profiller.find((p) => ad.test(p.ad));
+    test.skip(!urun, "Ürün profili öğretilmemiş (bash tools/kamera-demo.sh)");
+
+    await fetch(`${VISION}/kaynak`, { method: "POST", headers: JSON_BASLIK, body: JSON.stringify({ tip: "sim" }) });
+    await fetch(`${VISION}/sim/sahne`, { method: "POST", headers: JSON_BASLIK, body: JSON.stringify({ nesneler }) });
+    await girisYap(page);
+    await page.goto("/kamera");
+    await page.getByTestId("fotograf-cek").click();
+    await expect(page.getByTestId("fotograf-sonucu")).toBeVisible();
+    return urun!;
+  }
+
+  test("2 civata görünüyorsa kaydet → doğru mu? → evet: 2 civata kaydedilir", async ({ page }) => {
+    const civata = await hazirla(page, [{ tip: "civata", adet: 2 }], /civata/i);
+
+    await page.getByTestId("fotograf-kaydet").click();
+    await expect(page.getByTestId("kayit-onayi")).toBeVisible();
+    await expect(page.getByTestId("kayit-onay-ozet")).toHaveText(`2 adet ${civata.ad}`);
+    await expect(page.getByTestId("kayit-onayi")).toContainText("Ürün ve adet doğru mu?");
+
+    // Onaylanmadan kayıt oluşmadı
+    await expect(page.getByTestId("kayit-tamam")).toHaveCount(0);
+
+    await page.getByTestId("kayit-dogru").click();
+    await expect(page.getByTestId("kayit-tamam")).toContainText(`2 adet ${civata.ad} görüntülendi ve kaydedildi`);
+    await expect(page.getByTestId("son-kayitlar")).toContainText(`2 × ${civata.ad}`);
+
+    await fetch(`${VISION}/sim/sahne`, { method: "POST", headers: JSON_BASLIK, body: JSON.stringify({ nesneler: [] }) });
+  });
+
+  test("adet yanlışsa 'hayır, düzelt' ile kullanıcının girdiği adet kaydedilir", async ({ page }) => {
+    const somun = await hazirla(page, [{ tip: "somun", adet: 3 }], /somun/i);
+
+    await page.getByTestId("fotograf-kaydet").click();
+    await page.getByTestId("kayit-duzelt").click();
+    await page.locator(`[data-test="kayit-adet"][data-urun="${somun.ad}"]`).fill("2");
+    await page.getByTestId("kayit-duzeltilmis-kaydet").click();
+
+    await expect(page.getByTestId("kayit-tamam")).toContainText(`2 adet ${somun.ad}`);
+    await expect(page.getByTestId("son-kayitlar")).toContainText("düzeltildi");
 
     await fetch(`${VISION}/sim/sahne`, { method: "POST", headers: JSON_BASLIK, body: JSON.stringify({ nesneler: [] }) });
   });

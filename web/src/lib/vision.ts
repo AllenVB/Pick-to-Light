@@ -46,6 +46,8 @@ export interface VisionSaglik {
 
 /** "Fotoğraf çek" sonucu: çekilen kare ve karedeki ürünlerin tespiti (aynı kareden). */
 export interface FotografSonucu {
+  /** Kaydet bu kimlikle çağrılır (sunucu son fotoğrafları kısa süre saklar). */
+  fotografId: string;
   kaynak: string;
   /** data:image/jpeg;base64,... */
   goruntu: string;
@@ -55,6 +57,17 @@ export interface FotografSonucu {
   urunler: { urunId: number; urunAdi: string; adet: number }[];
   bilinmeyen: number;
   nesneSayisi: number;
+}
+
+/** Kullanıcının doğruladığı, kaydedilmiş fotoğraf. */
+export interface FotografKaydi {
+  id: number;
+  zaman: number;
+  onaylayan: string | null;
+  urunler: { urunId: number; urunAdi: string; adet: number }[];
+  /** Kullanıcı tespit edilen adetleri düzelttiyse true. */
+  duzeltildi: boolean;
+  ozet: string;
 }
 
 export type DogrulamaDurumu = "dogru" | "yanlis" | "taninmadi" | "bekliyor" | "belirsiz" | "ogretilmemis";
@@ -125,6 +138,11 @@ export const vision = {
   saglik: () => cagir<VisionSaglik>("/saglik", {}, 1500),
   tani: () => cagir<TaniYaniti>("/tani", {}, 2000),
   fotografCek: () => cagir<FotografSonucu>("/fotograf", { method: "POST" }, 8000),
+  /** Kullanıcı ürün ve adetleri doğruladıktan sonra çağrılır; onaysız kayıt oluşmaz. */
+  fotografKaydet: (govde: { fotografId: string; onaylayan?: string | null; urunler?: { urunId: number; adet: number }[] }) =>
+    cagir<FotografKaydi>("/fotograf/kaydet", { method: "POST", body: JSON.stringify({ ...govde, onaylandi: true }) }, 8000),
+  fotografKayitlari: (limit = 5) => cagir<FotografKaydi[]>(`/fotograf/kayitlar?limit=${limit}`),
+  fotografKaydiUrl: (id: number) => `${VISION_URL}/fotograf/kayitlar/${id}.jpg`,
   dogrula: (urunId: number) => cagir<DogrulamaYaniti>(`/dogrula/${urunId}`, {}, 2000),
   profiller: () => cagir<OgretilenProfil[]>("/profiller"),
   ogret: (urunId: number, ad: string) =>

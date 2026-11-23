@@ -156,6 +156,7 @@ def test_sanal_kaynak_sorunsuzdur():
 def api(monkeypatch, tmp_path):
     monkeypatch.setenv("VISION_KAYNAK", "sim")
     monkeypatch.setenv("VISION_PROFIL", str(tmp_path / "api-profil.json"))
+    monkeypatch.setenv("VISION_KAYIT_DIZINI", str(tmp_path / "kayitlar"))
     import importlib
     import app as uygulama
     importlib.reload(uygulama)
@@ -557,3 +558,65 @@ def test_api_fotograf_goruntu_ve_urun_tespitlerini_ayni_kareden_dondurur(api):
     assert govde["bilinmeyen"] == 0
     assert govde["nesneSayisi"] == 5
     assert len(govde["tespitler"]) == 5
+
+
+def _foto_cek(api, nesneler):
+    import time
+    api.post("/sim/sahne", json={"nesneler": nesneler})
+    time.sleep(1.2)
+    return api.post("/fotograf").json()
+
+
+def test_api_fotograf_onaylanmadan_kaydedilmez(api):
+    _egit_api(api)
+    foto = _foto_cek(api, [{"tip": "somun", "adet": 2}])
+
+    yanit = api.post("/fotograf/kaydet", json={"fotografId": foto["fotografId"], "onaylandi": False})
+
+    assert yanit.status_code == 422
+    assert api.get("/fotograf/kayitlar").json() == []
+
+
+def test_api_fotograf_onaylaninca_urun_ve_adetle_kaydedilir(api):
+    _egit_api(api)
+    foto = _foto_cek(api, [{"tip": "somun", "adet": 2}])
+
+    yanit = api.post("/fotograf/kaydet", json={"fotografId": foto["fotografId"], "onaylandi": True, "onaylayan": "Pelin"})
+
+    assert yanit.status_code == 200
+    kayit = yanit.json()
+    assert kayit["ozet"] == "2 × Somun"
+    assert kayit["onaylayan"] == "Pelin"
+    assert kayit["duzeltildi"] is False
+
+    liste = api.get("/fotograf/kayitlar").json()
+    assert [k["id"] for k in liste] == [kayit["id"]]
+    goruntu = api.get(f"/fotograf/kayitlar/{kayit['id']}.jpg")
+    assert goruntu.status_code == 200 and goruntu.headers["content-type"] == "image/jpeg"
+
+
+def test_api_fotograf_kullanicinin_duzelttigi_adet_kaydedilir(api):
+    _egit_api(api)
+    foto = _foto_cek(api, [{"tip": "somun", "adet": 3}])
+    somun_id = foto["urunler"][0]["urunId"]
+
+    kayit = api.post("/fotograf/kaydet", json={
+        "fotografId": foto["fotografId"], "onaylandi": True, "urunler": [{"urunId": somun_id, "adet": 2}],
+    }).json()
+
+    assert kayit["ozet"] == "2 × Somun"
+    assert kayit["duzeltildi"] is True
+    assert kayit["tespitEdilen"][0]["adet"] == 3
+
+
+def test_api_fotograf_bilinmeyen_kimlikle_kaydedilemez(api):
+    assert api.post("/fotograf/kaydet", json={"fotografId": "yok", "onaylandi": True}).status_code == 404
+
+
+def test_api_bos_fotograf_kaydedilemez(api):
+    _egit_api(api)
+    foto = _foto_cek(api, [])
+
+    yanit = api.post("/fotograf/kaydet", json={"fotografId": foto["fotografId"], "onaylandi": True})
+
+    assert yanit.status_code == 422

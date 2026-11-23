@@ -28,3 +28,4 @@ web/.playwright/
 vision/.venv/
 vision/__pycache__/
 vision/.pytest_cache/
+vision/kayitlar/

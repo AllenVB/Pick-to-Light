@@ -13,9 +13,11 @@ Ortam:        VISION_KAYNAK=kamera:0 | sim | tarayici   (varsayılan: kamera, a�
 from __future__ import annotations
 
 import base64
+import json
 import os
 import threading
 import time
+import uuid
 from collections import Counter, deque
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -32,9 +34,14 @@ import tanima
 
 MIN_GUVEN = float(os.environ.get("VISION_MIN_GUVEN", "0.5"))
 PROFIL_DOSYASI = Path(os.environ.get("VISION_PROFIL", Path(__file__).with_name("profiller.json")))
+KAYIT_DIZINI = Path(os.environ.get("VISION_KAYIT_DIZINI", Path(__file__).with_name("kayitlar")))
 PENCERE_SN = 3.0   # baskın ürün son bu kadar saniyenin analizlerinden oylanır
 
 depo = tanima.ProfilDeposu(PROFIL_DOSYASI)
+# "Fotoğraf çek" ile çekilen son fotoğraflar (kaydet bunlara id ile başvurur; en eskisi düşer).
+fotograflar: dict[str, dict] = {}
+FOTOGRAF_SAKLAMA = 12
+kayit_kilidi = threading.Lock()
 durum: dict = {"kaynak": None, "analizler": deque(maxlen=12), "calisiyor": True, "kaynaklar": {},
                "kalite": []}
 
@@ -301,16 +308,102 @@ def fotograf():
     tespitler = tanima.tani(kare, depo, min_guven=MIN_GUVEN)
     adetler, adlar, bilinmeyen = _kare_sayimi(tespitler)
     _, jpg = cv2.imencode(".jpg", kare, [cv2.IMWRITE_JPEG_QUALITY, 90])
+    fotograf_id = uuid.uuid4().hex[:12]
+    urunler = [{"urunId": u, "urunAdi": adlar[u], "adet": n} for u, n in sorted(adetler.items())]
+    fotograflar[fotograf_id] = {"jpg": jpg.tobytes(), "urunler": urunler, "bilinmeyen": bilinmeyen,
+                                "kaynak": durum["kaynak"].ad}
+    while len(fotograflar) > FOTOGRAF_SAKLAMA:
+        fotograflar.pop(next(iter(fotograflar)))
     return {
+        "fotografId": fotograf_id,
         "kaynak": durum["kaynak"].ad,
         "zaman": time.time(),
         "goruntu": "data:image/jpeg;base64," + base64.b64encode(jpg.tobytes()).decode("ascii"),
         "genislik": int(kare.shape[1]), "yukseklik": int(kare.shape[0]),
         "tespitler": [t.sozluk() for t in tespitler],
-        "urunler": [{"urunId": u, "urunAdi": adlar[u], "adet": n} for u, n in sorted(adetler.items())],
+        "urunler": urunler,
         "bilinmeyen": bilinmeyen,
         "nesneSayisi": len(tespitler),
     }
+
+
+# ───────────────────────────── Fotoğraf kaydı ─────────────────────────────
+
+class KayitUrunu(BaseModel):
+    urunId: int
+    adet: int
+
+
+class FotografKaydi(BaseModel):
+    fotografId: str
+    # Kullanıcı "ürün ve adetler doğru" diye onaylamadan kayıt oluşmaz.
+    onaylandi: bool
+    onaylayan: str | None = None
+    # Boşsa tespit edilen ürün/adetler onaylanmış sayılır; doluysa kullanıcının düzelttiği değerler yazılır.
+    urunler: list[KayitUrunu] | None = None
+
+
+def _kayitlari_oku() -> list[dict]:
+    dosya = KAYIT_DIZINI / "kayitlar.json"
+    try:
+        return json.loads(dosya.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+
+
+def _ozet(urunler: list[dict]) -> str:
+    return ", ".join(f"{u['adet']} × {u['urunAdi']}" for u in urunler) or "ürün yok"
+
+
+@app.post("/fotograf/kaydet")
+def fotograf_kaydet(istek: FotografKaydi):
+    """Çekilen fotoğrafı, kullanıcının doğruladığı ürün ve adetlerle kaydeder (görüntü + kayıt satırı)."""
+    if not istek.onaylandi:
+        raise HTTPException(422, "Kayıt için ürün ve adetlerin doğru olduğunu onaylamalısınız.")
+    foto = fotograflar.get(istek.fotografId)
+    if foto is None:
+        raise HTTPException(404, "Bu fotoğraf bulunamadı ya da süresi doldu: yeniden fotoğraf çekin.")
+
+    tespit = foto["urunler"]
+    if istek.urunler is None:
+        onayli = [dict(u) for u in tespit]
+    else:
+        adlar = {u["urunId"]: u["urunAdi"] for u in tespit} | {p["urunId"]: p["ad"] for p in depo.liste()}
+        if any(u.adet < 0 for u in istek.urunler):
+            raise HTTPException(422, "Adet negatif olamaz.")
+        onayli = [{"urunId": u.urunId, "urunAdi": adlar.get(u.urunId, str(u.urunId)), "adet": u.adet}
+                  for u in istek.urunler if u.adet > 0]
+    if not onayli:
+        raise HTTPException(422, "Kaydedilecek ürün yok: fotoğrafta ürün bulunamadı ya da adet 0.")
+
+    with kayit_kilidi:
+        KAYIT_DIZINI.mkdir(parents=True, exist_ok=True)
+        kayitlar = _kayitlari_oku()
+        kayit_id = (max((k["id"] for k in kayitlar), default=0)) + 1
+        (KAYIT_DIZINI / f"{kayit_id}.jpg").write_bytes(foto["jpg"])
+        kayit = {
+            "id": kayit_id, "zaman": time.time(), "kaynak": foto["kaynak"],
+            "onaylayan": (istek.onaylayan or "").strip() or None,
+            "urunler": onayli, "tespitEdilen": tespit, "bilinmeyen": foto["bilinmeyen"],
+            "duzeltildi": onayli != tespit, "ozet": _ozet(onayli),
+        }
+        kayitlar.append(kayit)
+        (KAYIT_DIZINI / "kayitlar.json").write_text(json.dumps(kayitlar, ensure_ascii=False), encoding="utf-8")
+    return kayit
+
+
+@app.get("/fotograf/kayitlar")
+def fotograf_kayitlari(limit: int = 10):
+    """Kaydedilen fotoğraflar, en yeni üstte."""
+    return list(reversed(_kayitlari_oku()))[: max(1, min(limit, 100))]
+
+
+@app.get("/fotograf/kayitlar/{kayit_id}.jpg")
+def fotograf_kaydi_goruntusu(kayit_id: int):
+    dosya = KAYIT_DIZINI / f"{kayit_id}.jpg"
+    if not dosya.is_file():
+        raise HTTPException(404, "Kayıt görüntüsü bulunamadı.")
+    return Response(dosya.read_bytes(), media_type="image/jpeg")
 
 
 @app.post("/tani/goruntu")
