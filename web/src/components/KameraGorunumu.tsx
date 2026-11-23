@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { TespitKatmani, useTarayiciKamera } from "@/components/TarayiciKamera";
-import { vision, type SahneNesnesi, type TaniYaniti, type VisionSaglik } from "@/lib/vision";
+import { vision, type FotografSonucu, type SahneNesnesi, type TaniYaniti, type VisionSaglik } from "@/lib/vision";
 import { useToast } from "@/components/Toast";
 
 const SAHNELER: { ad: string; nesneler: SahneNesnesi[] }[] = [
@@ -41,6 +41,22 @@ export function KameraGorunumu({ saglik, tani, yenile, dondurulmus }: {
   const toast = useToast();
   const kamera = useTarayiciKamera();
   const [degistiriliyor, setDegistiriliyor] = useState(false);
+  const [foto, setFoto] = useState<FotografSonucu | null>(null);
+  const [cekiliyor, setCekiliyor] = useState(false);
+
+  /** Şu anki kareyi çeker, görüntüyü dondurur ve karedeki ürünleri tespit eder. */
+  async function fotografCek() {
+    setCekiliyor(true);
+    try {
+      const sonuc = await vision.fotografCek();
+      if (sonuc) setFoto(sonuc);
+      else toast("Görüntü servisine ulaşılamadı.", "hata");
+    } catch (h) {
+      toast(h instanceof Error ? h.message : "Fotoğraf çekilemedi.", "hata");
+    } finally {
+      setCekiliyor(false);
+    }
+  }
 
   const bagli = !!saglik;
   const kaynak = saglik?.kaynak ?? null;
@@ -110,7 +126,7 @@ export function KameraGorunumu({ saglik, tani, yenile, dondurulmus }: {
         </div>
       )}
 
-      <div className="relative aspect-[4/3] w-full overflow-hidden rounded-lg border border-zemin-cizgi bg-black/40">
+      <div className="relative aspect-[4/3] w-full overflow-hidden rounded-lg border border-zemin-cizgi bg-neutral-800">
         {!bagli && <div className="flex h-full items-center justify-center text-sm text-slate-500">görüntü yok</div>}
 
         {/* Tarayıcı kamerası: yerel video + sunucunun bulduğu kutular */}
@@ -120,7 +136,7 @@ export function KameraGorunumu({ saglik, tani, yenile, dondurulmus }: {
               data-test="tarayici-video" />
             {kamera.durum === "acik" && tani && <TespitKatmani tespitler={tani.tespitler} />}
             {kamera.durum !== "acik" && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/50 p-4 text-center">
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-neutral-900/70 p-4 text-center">
                 <p className="text-sm text-slate-200">
                   {kamera.durum === "izin-bekliyor"
                     ? "Tarayıcının kamera izin penceresinde “İzin ver”e basın…"
@@ -140,6 +156,17 @@ export function KameraGorunumu({ saglik, tani, yenile, dondurulmus }: {
           <img src={vision.onizlemeUrl} alt="Kamera önizlemesi" className="h-full w-full object-contain"
             data-test="kamera-onizleme" />
         )}
+        {foto && (
+          <div className="absolute inset-0 bg-neutral-800" data-test="fotograf-karesi">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={foto.goruntu} alt="Çekilen fotoğraf" className="h-full w-full object-contain" />
+            <TespitKatmani tespitler={foto.tespitler} />
+            <span className="absolute left-2 top-2 rounded bg-neutral-900/80 px-2 py-1 text-xs font-bold text-white">
+              FOTOĞRAF
+            </span>
+          </div>
+        )}
+
         {dondurulmus && (
           <div className="absolute inset-0" data-test="donmus-kare">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -150,6 +177,59 @@ export function KameraGorunumu({ saglik, tani, yenile, dondurulmus }: {
           </div>
         )}
       </div>
+
+      {bagli && (
+        <div className="flex flex-wrap items-center gap-2">
+          {!foto ? (
+            <button className="dugme" disabled={cekiliyor || degistiriliyor} onClick={fotografCek}
+              data-test="fotograf-cek">
+              {cekiliyor ? "Çekiliyor…" : "📷 Fotoğraf çek"}
+            </button>
+          ) : (
+            <>
+              <button className="dugme" disabled={cekiliyor} onClick={fotografCek} data-test="fotograf-yeniden">
+                {cekiliyor ? "Çekiliyor…" : "Yeniden çek"}
+              </button>
+              <button className="dugme-ikincil" onClick={() => setFoto(null)} data-test="fotograf-kapat">
+                Canlıya dön
+              </button>
+              <a className="dugme-ikincil" href={foto.goruntu} download="fotograf.jpg" data-test="fotograf-indir">
+                İndir
+              </a>
+            </>
+          )}
+        </div>
+      )}
+
+      {foto && (
+        <div className="rounded-lg border border-zemin-cizgi bg-zemin p-3" data-test="fotograf-sonucu">
+          <p className="etiket">Fotoğraftaki ürünler</p>
+          {foto.nesneSayisi === 0 ? (
+            <p className="mt-1 text-sm text-slate-400" data-test="fotograf-bos">
+              Fotoğrafta nesne bulunamadı. Ürünü düz bir zemine koyup tekrar çekin.
+            </p>
+          ) : (
+            <>
+              <ul className="mt-2 space-y-1" data-test="fotograf-urunler">
+                {foto.urunler.map((u) => (
+                  <li key={u.urunId} className="flex items-center justify-between text-sm"
+                    data-test="fotograf-urun" data-urun={u.urunAdi}>
+                    <span className="font-semibold">{u.urunAdi}</span>
+                    <span className="rozet bg-durum-yesil/15 text-durum-yesil">{u.adet} adet</span>
+                  </li>
+                ))}
+                {foto.bilinmeyen > 0 && (
+                  <li className="flex items-center justify-between text-sm" data-test="fotograf-bilinmeyen">
+                    <span className="text-slate-400">Tanınamayan nesne</span>
+                    <span className="rozet bg-durum-kirmizi/15 text-durum-kirmizi">{foto.bilinmeyen} adet</span>
+                  </li>
+                )}
+              </ul>
+              <p className="ipucu mt-2">Toplam {foto.nesneSayisi} nesne tespit edildi.</p>
+            </>
+          )}
+        </div>
+      )}
 
       {kamera.hata && (
         <p className="rounded-lg border border-durum-kirmizi/40 bg-durum-kirmizi/10 px-3 py-2 text-sm text-durum-kirmizi"

@@ -6,7 +6,7 @@ import { VISION_URL, vision, type DogrulamaYaniti, type DogrulamaDurumu, type Og
 const GORUNUM: Record<DogrulamaDurumu, { baslik: string; sinif: string; ipucu: string }> = {
   bekliyor: {
     baslik: "Ürünü kameraya gösterin",
-    sinif: "border-zemin-cizgi bg-black/20 text-slate-300",
+    sinif: "border-zemin-cizgi bg-zemin text-slate-300",
     ipucu: "Ürünü düz, sade bir zemine koyun ya da kameraya sabit tutun.",
   },
   dogru: {

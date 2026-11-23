@@ -12,6 +12,7 @@ Ortam:        VISION_KAYNAK=kamera:0 | sim | tarayici   (varsayılan: kamera, a�
 """
 from __future__ import annotations
 
+import base64
 import os
 import threading
 import time
@@ -287,6 +288,28 @@ def sahne():
         "nesneSayisi": sum(u["adet"] for u in urunler) + medyan_bilinmeyen,
         "kararli": kararli,
         "kareSayisi": len(sayimlar),
+    }
+
+
+@app.post("/fotograf")
+def fotograf():
+    """
+    "Fotoğraf çek": şu anki kareyi alır, karedeki tüm ürünleri tespit eder ve görüntüyle birlikte döndürür.
+    Görüntü ve tespitler aynı kareden gelir (kutu koordinatları görüntüyle birebir uyumludur).
+    """
+    kare = _kare()
+    tespitler = tanima.tani(kare, depo, min_guven=MIN_GUVEN)
+    adetler, adlar, bilinmeyen = _kare_sayimi(tespitler)
+    _, jpg = cv2.imencode(".jpg", kare, [cv2.IMWRITE_JPEG_QUALITY, 90])
+    return {
+        "kaynak": durum["kaynak"].ad,
+        "zaman": time.time(),
+        "goruntu": "data:image/jpeg;base64," + base64.b64encode(jpg.tobytes()).decode("ascii"),
+        "genislik": int(kare.shape[1]), "yukseklik": int(kare.shape[0]),
+        "tespitler": [t.sozluk() for t in tespitler],
+        "urunler": [{"urunId": u, "urunAdi": adlar[u], "adet": n} for u, n in sorted(adetler.items())],
+        "bilinmeyen": bilinmeyen,
+        "nesneSayisi": len(tespitler),
     }
 
 

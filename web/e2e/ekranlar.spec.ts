@@ -140,18 +140,19 @@ test.describe("Tema", () => {
   test("tema anahtarı seçimi hatırlar ve yenilemede korur", async ({ page }) => {
     await girisYap(page);
 
-    // Varsayılan koyu: depo ekranları loş ışıkta ve uzaktan okunur.
-    await expect(page.locator('[data-test="tema-dugmesi"]')).toHaveAttribute("data-tema", "koyu");
-
-    await page.click('[data-test="tema-dugmesi"]');
+    // Varsayılan sade açık (beyaz/gri) tema; koyu tema isteğe bağlıdır.
+    await expect(page.locator('[data-test="tema-dugmesi"]')).toHaveAttribute("data-tema", "acik");
     await expect(page.locator("html")).toHaveAttribute("data-tema", "acik");
 
-    // Yenilemede korunmalı; ayrıca koyu ekran yanıp sönmemeli (tema <head>'de uygulanır).
+    await page.click('[data-test="tema-dugmesi"]');
+    await expect(page.locator("html")).toHaveAttribute("data-tema", "koyu");
+
+    // Yenilemede korunmalı; ayrıca yanlış tema yanıp sönmemeli (tema <head>'de uygulanır).
     await page.reload({ waitUntil: "domcontentloaded" });
-    await expect(page.locator("html")).toHaveAttribute("data-tema", "acik");
+    await expect(page.locator("html")).toHaveAttribute("data-tema", "koyu");
 
     await page.click('[data-test="tema-dugmesi"]');
-    await expect(page.locator("html")).not.toHaveAttribute("data-tema", "acik");
+    await expect(page.locator("html")).toHaveAttribute("data-tema", "acik");
   });
 });
 
@@ -197,5 +198,39 @@ test.describe("ürün doğrulama: tanınca dondur ve onay iste", () => {
     await expect(page.getByTestId("donmus-kare")).toBeHidden();
 
     await fetch(`${VISION}/sim/sahne`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nesneler: [] }) });
+  });
+});
+
+test.describe("fotoğraf çek", () => {
+  const VISION = process.env.PTL_VISION ?? "http://localhost:5100";
+  const JSON_BASLIK = { "Content-Type": "application/json" };
+
+  test("fotoğraf çekilir, görüntü donar ve karedeki ürünler adetleriyle listelenir", async ({ page }) => {
+    const saglik = await fetch(`${VISION}/saglik`).then((r) => r.json()).catch(() => null);
+    test.skip(!saglik, "Görüntü servisi kapalı");
+    const profiller: { urunId: number; ad: string }[] = await fetch(`${VISION}/profiller`).then((r) => r.json());
+    const somun = profiller.find((p) => /somun/i.test(p.ad));
+    const vida = profiller.find((p) => /vida/i.test(p.ad));
+    test.skip(!somun || !vida, "Somun ve Vida profilleri öğretilmemiş (bash tools/kamera-demo.sh)");
+
+    await fetch(`${VISION}/kaynak`, { method: "POST", headers: JSON_BASLIK, body: JSON.stringify({ tip: "sim" }) });
+    await fetch(`${VISION}/sim/sahne`, { method: "POST", headers: JSON_BASLIK,
+      body: JSON.stringify({ nesneler: [{ tip: "somun", adet: 2 }, { tip: "vida", adet: 3 }] }) });
+
+    await girisYap(page);
+    await page.goto("/kamera");
+    await page.getByTestId("fotograf-cek").click();
+
+    await expect(page.getByTestId("fotograf-karesi")).toBeVisible();
+    await expect(page.getByTestId("fotograf-sonucu")).toBeVisible();
+    await expect(page.locator(`[data-test="fotograf-urun"][data-urun="${somun!.ad}"]`)).toContainText("2 adet");
+    await expect(page.locator(`[data-test="fotograf-urun"][data-urun="${vida!.ad}"]`)).toContainText("3 adet");
+
+    // Canlıya dön: dondurulmuş fotoğraf kalkar
+    await page.getByTestId("fotograf-kapat").click();
+    await expect(page.getByTestId("fotograf-karesi")).toBeHidden();
+    await expect(page.getByTestId("fotograf-cek")).toBeVisible();
+
+    await fetch(`${VISION}/sim/sahne`, { method: "POST", headers: JSON_BASLIK, body: JSON.stringify({ nesneler: [] }) });
   });
 });

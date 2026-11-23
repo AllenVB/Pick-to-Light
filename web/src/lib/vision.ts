@@ -44,6 +44,19 @@ export interface VisionSaglik {
   kaynaklar?: string[];
 }
 
+/** "Fotoğraf çek" sonucu: çekilen kare ve karedeki ürünlerin tespiti (aynı kareden). */
+export interface FotografSonucu {
+  kaynak: string;
+  /** data:image/jpeg;base64,... */
+  goruntu: string;
+  genislik: number;
+  yukseklik: number;
+  tespitler: Tespit[];
+  urunler: { urunId: number; urunAdi: string; adet: number }[];
+  bilinmeyen: number;
+  nesneSayisi: number;
+}
+
 export type DogrulamaDurumu = "dogru" | "yanlis" | "taninmadi" | "bekliyor" | "belirsiz" | "ogretilmemis";
 
 export interface DogrulamaYaniti {
@@ -111,6 +124,7 @@ export const vision = {
   onizlemeUrl: `${VISION_URL}/onizleme`,
   saglik: () => cagir<VisionSaglik>("/saglik", {}, 1500),
   tani: () => cagir<TaniYaniti>("/tani", {}, 2000),
+  fotografCek: () => cagir<FotografSonucu>("/fotograf", { method: "POST" }, 8000),
   dogrula: (urunId: number) => cagir<DogrulamaYaniti>(`/dogrula/${urunId}`, {}, 2000),
   profiller: () => cagir<OgretilenProfil[]>("/profiller"),
   ogret: (urunId: number, ad: string) =>

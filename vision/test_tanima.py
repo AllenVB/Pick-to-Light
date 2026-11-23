@@ -540,3 +540,20 @@ def test_taninan_beklenen_urun_baska_cisimler_olsa_da_direkt_kabul_edilir(depo):
 
     assert karar["durum"] == "dogru"
     assert karar["algilanan"]["urunAdi"] == "Somun"
+
+
+def test_api_fotograf_goruntu_ve_urun_tespitlerini_ayni_kareden_dondurur(api):
+    import time
+    _egit_api(api)
+    api.post("/sim/sahne", json={"nesneler": [{"tip": "somun", "adet": 2}, {"tip": "vida", "adet": 3}]})
+    time.sleep(1.2)
+
+    govde = api.post("/fotograf").json()
+
+    assert govde["goruntu"].startswith("data:image/jpeg;base64,")
+    assert (govde["genislik"], govde["yukseklik"]) == (640, 480)
+    adetler = {u["urunAdi"]: u["adet"] for u in govde["urunler"]}
+    assert adetler == {"Somun": 2, "Vida": 3}
+    assert govde["bilinmeyen"] == 0
+    assert govde["nesneSayisi"] == 5
+    assert len(govde["tespitler"]) == 5

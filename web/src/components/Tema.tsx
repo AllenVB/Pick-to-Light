@@ -7,8 +7,8 @@ export type Tema = "koyu" | "acik";
 const ANAHTAR = "ptl-tema";
 
 /**
- * Tema anahtarı. Varsayılan koyudur (depo ekranları çoğunlukla loş ışıkta ve
- * uzaktan okunur); açık tema parlak aydınlatma ve yazıcı çıktısı içindir.
+ * Tema anahtarı. Varsayılan sade açık (beyaz/gri) temadır; koyu tema loş depo
+ * ekranları içindir.
  *
  * Seçim localStorage'da tutulur: aynı kiosk ekranı her açılışta aynı temayla
  * gelsin. Gizli sekmede veya depolama kapalıysa okuma hata fırlatabilir,
@@ -16,9 +16,9 @@ const ANAHTAR = "ptl-tema";
  */
 export function temaOku(): Tema {
   try {
-    return localStorage.getItem(ANAHTAR) === "acik" ? "acik" : "koyu";
+    return localStorage.getItem(ANAHTAR) === "koyu" ? "koyu" : "acik";
   } catch {
-    return "koyu";
+    return "acik";
   }
 }
 
@@ -32,8 +32,8 @@ function temaUygula(tema: Tema) {
 }
 
 export function TemaDugmesi() {
-  // Sunucuda localStorage yoktur; ilk çizim koyu varsayar, etkiden sonra düzeltilir.
-  const [tema, setTema] = useState<Tema>("koyu");
+  // Sunucuda localStorage yoktur; ilk çizim açık (varsayılan) varsayar, etkiden sonra düzeltilir.
+  const [tema, setTema] = useState<Tema>("acik");
   const [hazir, setHazir] = useState(false);
 
   useEffect(() => {
@@ -70,6 +70,6 @@ export function TemaDugmesi() {
  * her yenilemede önce koyu ekranı görür (flash of wrong theme).
  */
 export function TemaBaslatici() {
-  const betik = `(function(){try{var t=localStorage.getItem("${ANAHTAR}");if(t==="acik")document.documentElement.dataset.tema="acik";}catch(e){}})();`;
+  const betik = `(function(){try{var t=localStorage.getItem("${ANAHTAR}");document.documentElement.dataset.tema=(t==="koyu")?"koyu":"acik";}catch(e){document.documentElement.dataset.tema="acik";}})();`;
   return <script dangerouslySetInnerHTML={{ __html: betik }} />;
 }
