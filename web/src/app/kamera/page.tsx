@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { vision, type OgretilenProfil, type TaniYaniti, type VisionSaglik } from "@/lib/vision";
 import { KameraGorunumu } from "@/components/KameraGorunumu";
+import { UrunDogrulama, type OnaylananUrun } from "@/components/UrunDogrulama";
 import { useKorumaliSayfa } from "@/hooks/useKorumaliSayfa";
 import { useToast } from "@/components/Toast";
 import type { Urun } from "@/types";
@@ -26,6 +27,8 @@ export default function KameraSayfasi() {
   const [secili, setSecili] = useState<number | "">("");
   const [dusus, setDusus] = useState("100");
   const [islemde, setIslemde] = useState(false);
+  const [donmusKare, setDonmusKare] = useState<string | null>(null);
+  const [onaylanan, setOnaylanan] = useState<OnaylananUrun | null>(null);
 
   const profilleriYenile = useCallback(() => {
     vision.profiller().then((p) => setProfiller(p ?? []));
@@ -81,7 +84,10 @@ export default function KameraSayfasi() {
 
   const bagli = !!saglik;
   const baskin = tani?.baskin ?? null;
-  const baskinUrun = baskin ? urunler.find((u) => u.id === baskin.urunId) : undefined;
+  // Ürün onaylandıysa adet hesabı onaylanan ürünle yapılır (kamera donmuş; canlı tanıma değişse de etkilenmez).
+  const hesapUrunId = onaylanan?.urunId ?? baskin?.urunId;
+  const baskinUrun = hesapUrunId !== undefined ? urunler.find((u) => u.id === hesapUrunId) : undefined;
+  const hesapUrunAdi = onaylanan?.urunAdi ?? baskin?.urunAdi ?? null;
   const birim = baskinUrun?.birimAgirlikG ?? null;
   const dususG = Number(dusus.replace(",", "."));
   const adet = birim && dususG > 0 ? Math.round(dususG / birim) : null;
@@ -108,7 +114,7 @@ export default function KameraSayfasi() {
       )}
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-        <KameraGorunumu saglik={saglik} tani={tani} yenile={durumuYenile} />
+        <KameraGorunumu saglik={saglik} tani={tani} yenile={durumuYenile} dondurulmus={donmusKare} />
 
         {/* Tespit */}
         <section className="space-y-4">
@@ -134,6 +140,8 @@ export default function KameraSayfasi() {
             )}
           </div>
 
+          <UrunDogrulama profiller={profiller} bagli={bagli} onDondur={setDonmusKare} onOnay={setOnaylanan} />
+
           {/* Hesap: tanınan ürün + gram düşüşü → adet */}
           <div className="kart space-y-3" data-test="adet-hesabi">
             <h2 className="etiket">Baskül → adet hesabı</h2>
@@ -157,10 +165,12 @@ export default function KameraSayfasi() {
               </div>
             </div>
             <p className="ipucu">
-              {baskin
+              {hesapUrunAdi
                 ? birim
-                  ? `${baskin.urunAdi} birim ağırlığı ${birim} g. Başka bir ürün tanınırsa adet ona göre değişir.`
-                  : `${baskin.urunAdi} için birim ağırlık tanımlı değil (Ürünler sayfası).`
+                  ? onaylanan
+                    ? `${hesapUrunAdi} onaylandı; birim ağırlığı ${birim} g. Adet bu ürüne göre hesaplanır.`
+                    : `${hesapUrunAdi} birim ağırlığı ${birim} g. Başka bir ürün tanınırsa adet ona göre değişir.`
+                  : `${hesapUrunAdi} için birim ağırlık tanımlı değil (Ürünler sayfası).`
                 : "Önce bir ürün tanınmalı."}
             </p>
           </div>

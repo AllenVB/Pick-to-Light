@@ -6,7 +6,7 @@ cd /d "%~dp0"
 rem ---------------------------------------------------------------------------
 rem  Sunum modu: baska projelerle cakismayan portlarda tum sistemi ayaga kaldirir.
 rem    Arayuz  http://localhost:4001      API  http://localhost:4000
-rem    PostgreSQL localhost:5440          MQTT localhost:1884
+rem    PostgreSQL localhost:5441          MQTT localhost:1884
 rem  Ilk kurulumda docker container'lari yoksa olusturur; varsa yalnizca baslatir.
 rem ---------------------------------------------------------------------------
 
@@ -17,15 +17,15 @@ echo.
 
 where docker >nul 2>&1 || (echo HATA: Docker bulunamadi. Docker Desktop acik mi? & goto :son)
 
-echo [1/6] Altyapi (PostgreSQL 5440 + MQTT 1884)...
-docker start ptl-postgres >nul 2>&1 || docker run -d --name ptl-postgres -e POSTGRES_DB=picktolight -e POSTGRES_USER=ptl -e POSTGRES_PASSWORD=ptl_parola -e TZ=Europe/Istanbul -p 5440:5432 -v ptl-pgdata:/var/lib/postgresql/data postgres:17-alpine >nul
+echo [1/6] Altyapi (PostgreSQL 5441 + MQTT 1884)...
+docker start ptl-postgres >nul 2>&1 || docker run -d --name ptl-postgres -e POSTGRES_DB=picktolight -e POSTGRES_USER=ptl -e POSTGRES_PASSWORD=ptl_parola -e TZ=Europe/Istanbul -p 5441:5432 -v ptl-pgdata:/var/lib/postgresql/data postgres:17-alpine >nul
 docker start ptl-mosquitto >nul 2>&1 || docker run -d --name ptl-mosquitto -p 1884:1883 -v "%cd%\docker\mosquitto\mosquitto.conf:/mosquitto/config/mosquitto.conf:ro" -v ptl-mqtt-data:/mosquitto/data eclipse-mosquitto:2 >nul
-powershell -NoProfile -Command "$s=0; while($s -lt 60){ try { $c=New-Object Net.Sockets.TcpClient; $c.Connect('localhost',5440); $c.Dispose(); exit 0 } catch { Start-Sleep 2; $s+=2 } }; exit 1"
+powershell -NoProfile -Command "$s=0; while($s -lt 60){ try { $c=New-Object Net.Sockets.TcpClient; $c.Connect('localhost',5441); $c.Dispose(); exit 0 } catch { Start-Sleep 2; $s+=2 } }; exit 1"
 if errorlevel 1 (echo HATA: PostgreSQL 60 sn icinde acilmadi. & goto :son)
 
 rem --- Ortak ayarlar: tum servisler bu degiskenleri devralir ---
 set ASPNETCORE_ENVIRONMENT=Development
-set ConnectionStrings__Postgres=Host=localhost;Port=5440;Database=picktolight;Username=ptl;Password=ptl_parola
+set ConnectionStrings__Postgres=Host=localhost;Port=5441;Database=picktolight;Username=ptl;Password=ptl_parola
 set Mqtt__Port=1884
 set Cors__IzinliKaynaklar__0=http://localhost:4001
 set Cors__IzinliKaynaklar__1=http://127.0.0.1:4001

@@ -85,6 +85,14 @@ class Tespit:
 ZEMIN_SEVIYESI = np.float32(225.0)   # aydınlatma düzeltmesinden sonra zeminin her kanaldaki seviyesi
 
 
+def cilt_maskesi(kare_bgr: np.ndarray) -> np.ndarray:
+    """Cilt tonundaki pikseller (YCrCb eşiği). Hafif genişletilir: parmak kenarları da gider."""
+    ycc = cv2.cvtColor(kare_bgr, cv2.COLOR_BGR2YCrCb)
+    cilt = cv2.inRange(ycc, (40, 140, 85), (255, 180, 130))
+    cilt = cv2.morphologyEx(cilt, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5)))
+    return cv2.dilate(cilt, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7)))
+
+
 def isik_duzelt(kare_bgr: np.ndarray) -> np.ndarray:
     """Zemin ışık haritasını (büyük çekirdekli medyan) çıkarıp kareyi sabit bir zemin seviyesine normalleştirir."""
     yuk, gen = kare_bgr.shape[:2]
@@ -124,6 +132,10 @@ def nesneleri_bul(kare_bgr: np.ndarray, siniflandir=None, min_guven: float = 0.0
     esik = float(min(max(esik, ESIK_TABANI), ESIK_TAVANI))
     maske = np.where(fark8 > esik, 255, 0).astype(np.uint8)
     bulanik = duzlestirilmis
+
+    # Ürün elde gösterilirken el ve bilek ürüne yapışıp tek büyük nesne olur: cilt tonundaki pikseller
+    # maskeden çıkarılır, geriye yalnızca ürün kalır.
+    maske[cilt_maskesi(duzlestirilmis) > 0] = 0
 
     cekirdek = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
     maske = cv2.morphologyEx(maske, cv2.MORPH_OPEN, cekirdek)
@@ -422,6 +434,63 @@ def baskin_urun(tespitler: list[Tespit], min_guven: float) -> dict | None:
     return {
         "urunId": urun_id, "urunAdi": liste[0].urun_adi,
         "guven": round(float(np.mean([t.guven for t in liste])), 3), "adet": len(liste),
+    }
+
+
+def dogrulama_karari(analizler: list[list[Tespit]], beklenen_id: int, depo: "ProfilDeposu",
+                     min_guven: float) -> dict:
+    """
+    "Ürünü kameraya göster" doğrulaması: son karelerin oylamasıyla, gösterilen ürün beklenen ürün mü?
+
+    durum: ogretilmemis (beklenen ürün için profil yok) | bekliyor (kamerada nesne yok) |
+           dogru | yanlis (başka bir ürün algılandı) | taninmadi (nesne var, hiçbir ürüne benzemiyor) |
+           belirsiz (kareler birbirini tutmuyor: el/titreme)
+    """
+    profiller = {p["urunId"]: p["ad"] for p in depo.liste()}
+    if beklenen_id not in profiller:
+        return {"durum": "ogretilmemis", "algilanan": None, "nesneSayisi": 0, "guven": 0.0}
+
+    etiketler: list[tuple[str, Tespit | None]] = []
+    for tespitler in analizler:
+        taninan = [t for t in tespitler if t.urun_id is not None and t.guven >= min_guven]
+        if not tespitler:
+            etiketler.append(("bekliyor", None))
+        elif not taninan:
+            etiketler.append(("taninmadi", max(tespitler, key=lambda t: t.alan)))
+        else:
+            en_iyi = max(taninan, key=lambda t: t.guven)
+            # Beklenen ürün karede varsa doğrudur: yanındaki başka bir parça sonucu değiştirmez.
+            dogru = [t for t in taninan if t.urun_id == beklenen_id]
+            etiketler.append(("dogru", max(dogru, key=lambda t: t.guven)) if dogru else ("yanlis", en_iyi))
+
+    if not etiketler:
+        return {"durum": "bekliyor", "algilanan": None, "nesneSayisi": 0, "guven": 0.0}
+
+    # Yeşil (tanınmış) beklenen ürün son iki karenin birinde görüldüyse doğrudan kabul edilir: karede
+    # başka cisimler, el ya da oynayan kareler olsa da ürün tanındıysa karar değişmez.
+    son_dogru = [t for d, t in etiketler[-2:] if d == "dogru" and t is not None]
+    if son_dogru:
+        en_iyi = max(son_dogru, key=lambda t: t.guven)
+        return {
+            "durum": "dogru",
+            "algilanan": {"urunId": en_iyi.urun_id, "urunAdi": en_iyi.urun_adi, "guven": round(en_iyi.guven, 3)},
+            "nesneSayisi": len(analizler[-1]), "guven": round(en_iyi.guven, 3),
+        }
+
+    sayac: dict[str, int] = {}
+    for d, _ in etiketler:
+        sayac[d] = sayac.get(d, 0) + 1
+    durum, oy = max(sayac.items(), key=lambda kv: kv[1])
+    if oy * 2 < len(etiketler):
+        durum = "belirsiz"
+
+    ornek = next((t for d, t in reversed(etiketler) if d == durum and t is not None), None)
+    return {
+        "durum": durum,
+        "algilanan": None if ornek is None or ornek.urun_id is None
+        else {"urunId": ornek.urun_id, "urunAdi": ornek.urun_adi, "guven": round(ornek.guven, 3)},
+        "nesneSayisi": len(analizler[-1]) if analizler else 0,
+        "guven": round(ornek.guven, 3) if ornek else 0.0,
     }
 
 

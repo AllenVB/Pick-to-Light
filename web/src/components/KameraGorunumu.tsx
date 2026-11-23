@@ -30,7 +30,9 @@ const KALITE_ACIKLAMA: Record<string, string> = {
   bulanik: "Görüntü bulanık: kamera odağını ayarlayın ya da lensi temizleyin.",
 };
 
-export function KameraGorunumu({ saglik, tani, yenile }: {
+export function KameraGorunumu({ saglik, tani, yenile, dondurulmus }: {
+  /** Doluysa canlı görüntü yerine bu donmuş kare gösterilir (ürün onayı beklerken). */
+  dondurulmus?: string | null;
   saglik: VisionSaglik | null | undefined;
   tani: TaniYaniti | null;
   /** Kaynak değiştikten sonra üst sayfanın sağlık/tanı bilgisini hemen tazelemesi için. */
@@ -137,6 +139,15 @@ export function KameraGorunumu({ saglik, tani, yenile }: {
           // eslint-disable-next-line @next/next/no-img-element
           <img src={vision.onizlemeUrl} alt="Kamera önizlemesi" className="h-full w-full object-contain"
             data-test="kamera-onizleme" />
+        )}
+        {dondurulmus && (
+          <div className="absolute inset-0" data-test="donmus-kare">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={dondurulmus} alt="Donmuş kare" className="h-full w-full object-contain" />
+            <span className="absolute left-2 top-2 rounded bg-marka/90 px-2 py-1 text-xs font-bold text-white">
+              ❄ DONDURULDU
+            </span>
+          </div>
         )}
       </div>
 

@@ -154,3 +154,48 @@ test.describe("Tema", () => {
     await expect(page.locator("html")).not.toHaveAttribute("data-tema", "acik");
   });
 });
+
+test.describe("ürün doğrulama: tanınca dondur ve onay iste", () => {
+  const VISION = process.env.PTL_VISION ?? "http://localhost:5100";
+
+  test("ürün tanınınca görüntü donar, red canlıya döndürür, onay sonraki adıma geçirir", async ({ page }) => {
+    const saglik = await fetch(`${VISION}/saglik`).then((r) => r.json()).catch(() => null);
+    test.skip(!saglik, "Görüntü servisi kapalı");
+
+    await girisYap(page);
+    await page.goto("/kamera");
+    // Sanal sahne: tek somun
+    await fetch(`${VISION}/kaynak`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tip: "sim" }) });
+    await fetch(`${VISION}/sim/sahne`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nesneler: [{ tip: "somun", adet: 1 }] }) });
+
+    const profiller: { urunId: number; ad: string }[] = await fetch(`${VISION}/profiller`).then((r) => r.json());
+    const somun = profiller.find((p) => /somun/i.test(p.ad));
+    test.skip(!somun, "Somun profili öğretilmemiş");
+
+    await page.reload();
+    await page.getByTestId("dogrula-urun").selectOption(String(somun!.urunId));
+
+    // 1) tanınınca: görüntü donar, onay istenir
+    await expect(page.getByTestId("onay-istegi")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("onay-istegi")).toContainText(/somun/i);
+    await expect(page.getByTestId("donmus-kare")).toBeVisible();
+
+    // 2) onaylanmazsa: kamera canlıya döner, ürün hâlâ görünüyorsa kısa soğumadan sonra yeniden sorar
+    await page.getByTestId("reddet").click();
+    await expect(page.getByTestId("donmus-kare")).toBeHidden();
+    await expect(page.getByTestId("onay-istegi")).toBeHidden();
+    await expect(page.getByTestId("onay-istegi")).toBeVisible({ timeout: 15_000 });
+
+    // 3) onaylanırsa: sonraki adıma geçilir
+    await page.getByTestId("onayla").click();
+    await expect(page.getByTestId("onaylandi")).toBeVisible();
+    await expect(page.getByTestId("onaylandi")).toContainText(/somun/i);
+
+    // yeni ürün: sıfırlanır
+    await page.getByTestId("yeni-urun").click();
+    await expect(page.getByTestId("onaylandi")).toBeHidden();
+    await expect(page.getByTestId("donmus-kare")).toBeHidden();
+
+    await fetch(`${VISION}/sim/sahne`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nesneler: [] }) });
+  });
+});

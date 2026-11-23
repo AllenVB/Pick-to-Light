@@ -216,6 +216,22 @@ def tani_et(kutuId: int | None = None):
     })
 
 
+@app.get("/dogrula/{urun_id}")
+def dogrula(urun_id: int):
+    """
+    "Ürünü kameraya gösterin": gösterilen ürün beklenen ürün mü? Son birkaç saniyenin karelerinin
+    oylamasıyla doğru / yanlış / tanınamadı / bekliyor kararı verir (tek kare el ya da titremeyle yanıltmaz).
+    """
+    simdi = time.time()
+    taze = [a["tespitler"] for a in list(durum["analizler"]) if simdi - a["zaman"] <= 2.0]
+    if not taze and durum["kaynak"] is not None and durum["kaynak"].son_kare() is not None:
+        taze = [tanima.tani(_kare(), depo, min_guven=MIN_GUVEN)]
+    karar = tanima.dogrulama_karari(taze, urun_id, depo, MIN_GUVEN)
+    karar["beklenenId"] = urun_id
+    karar["kaynak"] = durum["kaynak"].ad
+    return karar
+
+
 def _kare_sayimi(tespitler: list[tanima.Tespit]) -> tuple[dict[int, int], dict[int, str], int]:
     """Bir karedeki ürün başına adet, ürün adları ve tanınamayan nesne sayısı."""
     adetler: dict[int, int] = {}

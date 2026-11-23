@@ -442,3 +442,101 @@ def test_api_saglik_goruntu_uyarilarini_bildirir(api):
     time.sleep(1.2)
     govde = api.get("/saglik").json()
     assert govde["goruntuUyarilari"] == []   # sanal sahne sağlıklıdır
+
+
+# ───────────────────────────── Ürünü göster → doğru / yanlış ─────────────────────────────
+
+SKIN = (125, 160, 215)   # BGR: açık ten rengi
+
+
+def _elle_tutulan(tip, x=300, y=240):
+    kare = np.full((480, 640, 3), kaynak.ZEMIN, np.uint8)
+    cv2.ellipse(kare, (x + 70, y + 20), (80, 28), 20, 0, 360, SKIN, cv2.FILLED)   # parmak/el
+    kaynak.NESNE_CIZICILER[tip](kare, x, y, 90)
+    return np.clip(kare.astype(np.float32) + np.random.default_rng(2).normal(0, 3, kare.shape), 0, 255).astype(np.uint8)
+
+
+@pytest.mark.parametrize("tip,beklenen", [("somun", 2), ("civata", 1), ("vida", 4)])
+def test_elle_tutulan_urun_eli_yok_sayilarak_taninir(depo, tip, beklenen):
+    tespitler = tanima.tani(_elle_tutulan(tip), depo, MIN)
+
+    assert any(t.urun_id == beklenen for t in tespitler), [t.sozluk() for t in tespitler]
+    assert all(t.alan < 8000 for t in tespitler), "el, ürünle birlikte tek nesne sayılmamalı"
+
+
+def _analiz(depo, kareler):
+    return [tanima.tani(k, depo, MIN) for k in kareler]
+
+
+def test_dogru_urun_gosterilince_dogru_der(depo):
+    kareler = [kaynak.sahne_ciz([{"tip": "somun", "adet": 1}], tohum=t) for t in range(5)]
+    karar = tanima.dogrulama_karari(_analiz(depo, kareler), 2, depo, MIN)
+
+    assert karar["durum"] == "dogru"
+    assert karar["algilanan"]["urunAdi"] == "Somun"
+
+
+def test_yanlis_urun_gosterilince_yanlis_der_ve_ne_gordugunu_soyler(depo):
+    kareler = [kaynak.sahne_ciz([{"tip": "civata", "adet": 1}], tohum=t) for t in range(5)]
+    karar = tanima.dogrulama_karari(_analiz(depo, kareler), 2, depo, MIN)
+
+    assert karar["durum"] == "yanlis"
+    assert karar["algilanan"]["urunAdi"] == "Civata"
+
+
+def test_bos_masada_bekliyor_der(depo):
+    kareler = [kaynak.sahne_ciz([], tohum=t) for t in range(4)]
+    assert tanima.dogrulama_karari(_analiz(depo, kareler), 1, depo, MIN)["durum"] == "bekliyor"
+
+
+def test_ogretilmemis_yabanci_cisim_taninmadi_der(depo):
+    kare = np.full((480, 640, 3), kaynak.ZEMIN, np.uint8)
+    cv2.rectangle(kare, (200, 200), (300, 260), (30, 30, 200), cv2.FILLED)
+    karar = tanima.dogrulama_karari(_analiz(depo, [kare] * 4), 1, depo, MIN)
+
+    assert karar["durum"] == "taninmadi"
+    assert karar["algilanan"] is None
+
+
+def test_beklenen_urunun_profili_yoksa_ogretilmemis_der(depo):
+    kareler = [kaynak.sahne_ciz([{"tip": "somun", "adet": 1}], tohum=1)]
+    assert tanima.dogrulama_karari(_analiz(depo, kareler), 99, depo, MIN)["durum"] == "ogretilmemis"
+
+
+def test_kareler_birbirini_tutmuyorsa_belirsiz_der(depo):
+    somun = kaynak.sahne_ciz([{"tip": "somun", "adet": 1}], tohum=1)
+    civata = kaynak.sahne_ciz([{"tip": "civata", "adet": 1}], tohum=1)
+    bos = kaynak.sahne_ciz([], tohum=1)
+    karar = tanima.dogrulama_karari(_analiz(depo, [somun, civata, bos, somun, civata, bos]), 2, depo, MIN)
+
+    assert karar["durum"] == "belirsiz"
+
+
+def test_api_dogrula_dogru_ve_yanlis_urunu_ayirir(api):
+    import time
+    _egit_api(api)
+    api.post("/sim/sahne", json={"nesneler": [{"tip": "somun", "adet": 1}]})
+    time.sleep(1.5)
+
+    assert api.get("/dogrula/2").json()["durum"] == "dogru"
+    yanlis = api.get("/dogrula/1").json()
+    assert yanlis["durum"] == "yanlis"
+    assert yanlis["algilanan"]["urunAdi"] == "Somun"
+
+    api.post("/sim/sahne", json={"nesneler": []})
+    time.sleep(1.5)
+    assert api.get("/dogrula/2").json()["durum"] == "bekliyor"
+
+
+def test_taninan_beklenen_urun_baska_cisimler_olsa_da_direkt_kabul_edilir(depo):
+    bos = kaynak.sahne_ciz([], tohum=1)
+    yabanci = np.full((480, 640, 3), kaynak.ZEMIN, np.uint8)
+    cv2.rectangle(yabanci, (200, 200), (300, 260), (30, 30, 200), cv2.FILLED)
+    # somun + dikkat dağıtan kırmızı cisim + başka bir ürün (civata) aynı karede
+    karisik = kaynak.sahne_ciz([{"tip": "somun", "adet": 1}, {"tip": "civata", "adet": 1}], tohum=3)
+    cv2.rectangle(karisik, (560, 20), (620, 60), (30, 30, 200), cv2.FILLED)
+
+    karar = tanima.dogrulama_karari(_analiz(depo, [bos, yabanci, bos, yabanci, karisik]), 2, depo, MIN)
+
+    assert karar["durum"] == "dogru"
+    assert karar["algilanan"]["urunAdi"] == "Somun"

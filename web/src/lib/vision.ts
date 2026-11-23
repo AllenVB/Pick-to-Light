@@ -44,6 +44,16 @@ export interface VisionSaglik {
   kaynaklar?: string[];
 }
 
+export type DogrulamaDurumu = "dogru" | "yanlis" | "taninmadi" | "bekliyor" | "belirsiz" | "ogretilmemis";
+
+export interface DogrulamaYaniti {
+  durum: DogrulamaDurumu;
+  beklenenId: number;
+  algilanan: { urunId: number; urunAdi: string | null; guven: number } | null;
+  nesneSayisi: number;
+  guven: number;
+}
+
 export interface OgretilenProfil {
   urunId: number;
   ad: string;
@@ -101,6 +111,7 @@ export const vision = {
   onizlemeUrl: `${VISION_URL}/onizleme`,
   saglik: () => cagir<VisionSaglik>("/saglik", {}, 1500),
   tani: () => cagir<TaniYaniti>("/tani", {}, 2000),
+  dogrula: (urunId: number) => cagir<DogrulamaYaniti>(`/dogrula/${urunId}`, {}, 2000),
   profiller: () => cagir<OgretilenProfil[]>("/profiller"),
   ogret: (urunId: number, ad: string) =>
     cagir<{ eklenenOrnek: number; toplamOrnek: number }>(`/ogret/${urunId}`, {
