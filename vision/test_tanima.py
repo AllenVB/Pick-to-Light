@@ -404,3 +404,41 @@ def test_taninmayan_tek_cisim_bolunmez(depo):
     tespitler = tanima.tani(kare, depo, MIN)
 
     assert len(tespitler) == 1 and tespitler[0].urun_id is None
+
+
+# ───────────────────────────── Görüntü kalitesi uyarıları ─────────────────────────────
+
+def _kalite(kare):
+    return tanima.goruntu_kalitesi(kare, tanima.nesneleri_bul(kare))
+
+
+def test_saglikli_sahnede_kalite_uyarisi_yoktur():
+    kare = kaynak.sahne_ciz([{"tip": "civata", "adet": 2}, {"tip": "somun", "adet": 2}], tohum=11)
+    assert _kalite(kare) == []
+
+
+def test_karanlik_ortam_uyarilir():
+    kare = _isik(kaynak.sahne_ciz([{"tip": "somun", "adet": 2}], tohum=11), 0.2)
+    assert "karanlik" in _kalite(kare)
+
+
+def test_patlamis_goruntu_uyarilir():
+    kare = np.full((480, 640, 3), 255, np.uint8)
+    assert "patlak" in _kalite(kare)
+
+
+def test_duzensiz_isik_uyarilir():
+    kare = _yan_isik(kaynak.sahne_ciz([{"tip": "somun", "adet": 2}], tohum=11), 0.9)
+    assert "duzensiz_isik" in _kalite(kare)
+
+
+def test_odak_kaybi_uyarilir():
+    kare = cv2.GaussianBlur(kaynak.sahne_ciz([{"tip": "civata", "adet": 3}], tohum=11), (0, 0), 3.0)
+    assert "bulanik" in _kalite(kare)
+
+
+def test_api_saglik_goruntu_uyarilarini_bildirir(api):
+    import time
+    time.sleep(1.2)
+    govde = api.get("/saglik").json()
+    assert govde["goruntuUyarilari"] == []   # sanal sahne sağlıklıdır

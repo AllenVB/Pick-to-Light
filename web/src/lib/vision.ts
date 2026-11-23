@@ -38,6 +38,8 @@ export interface VisionSaglik {
   profilSayisi: number;
   /** "donuk": kamera açık ama canlı görüntü yok (gizlilik izni ya da başka uygulama). */
   kameraSorunu?: "donuk" | "bekliyor" | null;
+  /** Kurulum uyarıları (boş = sağlıklı): karanlik, patlak, duzensiz_isik, bulanik. */
+  goruntuUyarilari?: string[];
   /** Seçilebilir görüntü kaynakları: sim, tarayici, kamera:0 ... */
   kaynaklar?: string[];
 }

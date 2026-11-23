@@ -23,6 +23,13 @@ const KAYNAKLAR = [
  * Canlı görüntü kartı: kaynak seçimi (tarayıcı kamerası / sanal sahne / sunucu kamerası), önizleme ve
  * tanınan nesnelerin kutuları. Kamera & Tanıma ve Tartı & Sayım sayfaları ortak kullanır.
  */
+const KALITE_ACIKLAMA: Record<string, string> = {
+  karanlik: "Ortam çok karanlık: masayı aydınlatın.",
+  patlak: "Görüntü aşırı parlak (parlama ya da fazla pozlama): ışığı kamerayla çakışmayacak şekilde yönlendirin.",
+  duzensiz_isik: "Işık masaya eşit dağılmıyor (bir yan çok parlak/karanlık): lambayı yukarıdan ve ortadan tutun.",
+  bulanik: "Görüntü bulanık: kamera odağını ayarlayın ya da lensi temizleyin.",
+};
+
 export function KameraGorunumu({ saglik, tani, yenile }: {
   saglik: VisionSaglik | null | undefined;
   tani: TaniYaniti | null;
@@ -151,6 +158,13 @@ export function KameraGorunumu({ saglik, tani, yenile }: {
           Sunucu kamerasından canlı görüntü gelmiyor (Windows, masaüstü uygulamalarının kamerasını kapatmış olabilir).
           <b> Tarayıcı kamerası</b> seçeneğiyle izin verip devam edebilirsiniz.
         </p>
+      )}
+
+      {bagli && !saglik?.sanal && (saglik?.goruntuUyarilari?.length ?? 0) > 0 && (
+        <ul className="space-y-1 rounded-lg border border-durum-sari/40 bg-durum-sari/10 px-3 py-2 text-sm text-durum-sari"
+          data-test="goruntu-uyarilari">
+          {saglik!.goruntuUyarilari!.map((kod) => <li key={kod}>{KALITE_ACIKLAMA[kod] ?? kod}</li>)}
+        </ul>
       )}
 
       {saglik?.sanal && (

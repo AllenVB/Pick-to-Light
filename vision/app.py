@@ -34,7 +34,8 @@ PROFIL_DOSYASI = Path(os.environ.get("VISION_PROFIL", Path(__file__).with_name("
 PENCERE_SN = 3.0   # baskın ürün son bu kadar saniyenin analizlerinden oylanır
 
 depo = tanima.ProfilDeposu(PROFIL_DOSYASI)
-durum: dict = {"kaynak": None, "analizler": deque(maxlen=12), "calisiyor": True, "kaynaklar": {}}
+durum: dict = {"kaynak": None, "analizler": deque(maxlen=12), "calisiyor": True, "kaynaklar": {},
+               "kalite": []}
 
 
 def _kaynagi_al(tip: str):
@@ -58,12 +59,16 @@ def _kaynagi_al(tip: str):
 
 def _analiz_dongusu():
     """Son kareyi sürekli analiz eder; tek karedeki titreme (el, gölge) oylamayla yumuşar."""
+    sayac = 0
     while durum["calisiyor"]:
         kaynak = durum["kaynak"]
         kare = kaynak.son_kare() if kaynak else None
         if kare is not None:
             t = tanima.tani(kare, depo, min_guven=MIN_GUVEN)
             durum["analizler"].append({"zaman": time.time(), "tespitler": t})
+            sayac += 1
+            if sayac % 5 == 1:   # kalite denetimi pahalı değil ama her karede gerekmez
+                durum["kalite"] = tanima.goruntu_kalitesi(kare, tanima.nesneleri_bul(kare))
         time.sleep(0.2)
 
 
@@ -114,6 +119,8 @@ def saglik():
         "kaynaklar": sorted(durum["kaynaklar"]),
         # "donuk": kamera açık ama canlı görüntü yok (gizlilik izni / başka uygulama kullanıyor).
         "kameraSorunu": kaynak.sorun,
+        # Kurulum uyarıları: karanlik, patlak, duzensiz_isik, bulanik (boş = görüntü sağlıklı).
+        "goruntuUyarilari": durum["kalite"],
     }
 
 
@@ -129,6 +136,7 @@ def kaynak_sec(istek: KaynakIstek):
     yeni = _kaynagi_al(istek.tip.strip().lower())
     durum["kaynak"] = yeni
     durum["analizler"].clear()
+    durum["kalite"] = []
     return {"kaynak": yeni.ad, "kaynaklar": sorted(durum["kaynaklar"])}
 
 

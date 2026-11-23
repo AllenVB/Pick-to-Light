@@ -285,6 +285,44 @@ def ogretme_ornekleri(kare_bgr: np.ndarray, azami: int = 12) -> list[np.ndarray]
     return ozellikler
 
 
+# ───────────────────────────── Görüntü kalitesi ─────────────────────────────
+
+KARANLIK_PARLAKLIK = 60        # kare ortalaması (0–255) bunun altındaysa ortam fazla karanlık
+PATLAK_ORAN = 0.08             # piksellerin bu kadarı 250'nin üstündeyse görüntü patlamış (parlama/pozlama)
+DUZENSIZ_ISIK_ORANI = 0.45     # ışık haritasının en parlak/en karanlık noktası arasındaki göreli fark
+BULANIK_NETLIK = 4.0           # nesne kenarlarındaki Laplacian varyansı bunun altındaysa odak kaybı
+
+
+def goruntu_kalitesi(kare_bgr: np.ndarray, nesneler: list[Nesne] | None = None) -> list[str]:
+    """
+    Sunum öncesi kamera kurulumunu denetler: tanıma başarısız olmadan önce nedenini söyler.
+    Dönen kodlar: karanlik, patlak, duzensiz_isik, bulanik. Boş liste = görüntü sağlıklı.
+    """
+    uyarilar: list[str] = []
+    gri = cv2.cvtColor(kare_bgr, cv2.COLOR_BGR2GRAY)
+    if float(gri.mean()) < KARANLIK_PARLAKLIK:
+        uyarilar.append("karanlik")
+    if float((gri > 250).mean()) > PATLAK_ORAN:
+        uyarilar.append("patlak")
+
+    kucuk = cv2.resize(gri, (max(gri.shape[1] // 4, 8), max(gri.shape[0] // 4, 8)), interpolation=cv2.INTER_AREA)
+    k = int(min(kucuk.shape) * 0.22) | 1
+    harita = cv2.GaussianBlur(cv2.medianBlur(kucuk, k), (0, 0), k / 4).astype(np.float32)
+    ust = float(np.percentile(harita, 98))
+    if ust > 1 and (ust - float(np.percentile(harita, 2))) / ust > DUZENSIZ_ISIK_ORANI:
+        uyarilar.append("duzensiz_isik")
+
+    netlikler = []
+    for n in nesneler or []:
+        x, y, w, h = n.kutu
+        bolge = gri[max(y - 4, 0):y + h + 4, max(x - 4, 0):x + w + 4]
+        if bolge.size:
+            netlikler.append(cv2.Laplacian(bolge, cv2.CV_64F).var())
+    if netlikler and float(np.median(netlikler)) < BULANIK_NETLIK:
+        uyarilar.append("bulanik")
+    return uyarilar
+
+
 # ───────────────────────────── Profil deposu ─────────────────────────────
 
 class ProfilDeposu:

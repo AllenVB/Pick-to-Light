@@ -52,6 +52,8 @@ else
     uyari "Kaynak tarayıcı kamerası: kareler yalnızca Kamera & Tanıma ya da Tartı & Sayım sayfası AÇIKKEN gelir; simülatör demosu (otomatik teyit) için kaynağı Sanal sahne yapın  →  bash tools/sunum-kontrol.sh hazirla"
   fi
   [ -n "$KSORUN" ] && sorun "Kameradan canlı görüntü gelmiyor ($KSORUN)" "Windows Gizlilik > Kamera iznini açın ya da VISION_KAYNAK=sim ile başlatın"
+  KALITE=$(echo "$SAGLIK" | js "', '.join(d.get('goruntuUyarilari') or [])")
+  [ "$KAYNAK" != "sim" ] && [ -n "$KALITE" ] && uyari "Görüntü kalitesi: $KALITE (karanlik: ışığı artırın, patlak: parlamayı azaltın, duzensiz_isik: lambayı ortala, bulanik: odağı ayarla)"
   [ "${PROFIL:-0}" -lt 2 ] && sorun "Kamera yalnızca $PROFIL ürün tanıyor" "bash tools/kamera-demo.sh (sanal sahne) ya da Kamera & Tanıma sayfasından öğretin"
 fi
 
