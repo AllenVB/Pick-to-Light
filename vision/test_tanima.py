@@ -1,5 +1,6 @@
 """Görüntü tanıma testleri — sanal sahne üzerinde (kamera gerekmez)."""
 import io
+import json
 
 import cv2
 import numpy as np
@@ -620,3 +621,33 @@ def test_api_bos_fotograf_kaydedilemez(api):
     yanit = api.post("/fotograf/kaydet", json={"fotografId": foto["fotografId"], "onaylandi": True})
 
     assert yanit.status_code == 422
+
+
+def test_api_ogretme_cekim_sayar_ve_son_cekim_geri_alinir(api):
+    api.post("/sim/sahne", json={"nesneler": [{"tip": "civata", "adet": 2}]})
+    for beklenen in (1, 2, 3):
+        yanit = api.post("/ogret/1", json={"ad": "Civata"})
+        assert yanit.status_code == 200, yanit.text
+        assert yanit.json()["cekimSayisi"] == beklenen
+    toplam = api.get("/profiller").json()[0]["ornekSayisi"]
+
+    geri = api.delete("/ogret/1/son")
+    assert geri.status_code == 200
+    assert geri.json()["cekimSayisi"] == 2
+    profil = api.get("/profiller").json()[0]
+    assert profil["cekimSayisi"] == 2 and profil["ornekSayisi"] < toplam
+
+
+def test_api_tum_cekimler_geri_alinirsa_profil_kalkar_ve_olmayan_404(api):
+    api.post("/sim/sahne", json={"nesneler": [{"tip": "somun", "adet": 1}]})
+    assert api.post("/ogret/2", json={"ad": "Somun"}).status_code == 200
+    assert api.delete("/ogret/2/son").status_code == 200
+    assert api.get("/profiller").json() == []
+    assert api.delete("/ogret/2/son").status_code == 404
+
+
+def test_eski_profil_cekim_bilgisi_olmadan_yuklenir(tmp_path):
+    dosya = tmp_path / "eski.json"
+    dosya.write_text(json.dumps({"5": {"ad": "Eski", "ornekler": [[0.0] * 12] * 12}}), encoding="utf-8")
+    depo = tanima.ProfilDeposu(dosya)
+    assert depo.liste()[0]["cekimSayisi"] == 3   # 12 örnek ≈ 3 çekim (5+5+2)

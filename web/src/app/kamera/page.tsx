@@ -4,9 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { vision, type OgretilenProfil, type TaniYaniti, type VisionSaglik } from "@/lib/vision";
 import { KameraGorunumu } from "@/components/KameraGorunumu";
+import { OgretmeKarti } from "@/components/OgretmeKarti";
 import { UrunDogrulama, type OnaylananUrun } from "@/components/UrunDogrulama";
 import { useKorumaliSayfa } from "@/hooks/useKorumaliSayfa";
-import { useToast } from "@/components/Toast";
 import type { Urun } from "@/types";
 
 /**
@@ -18,15 +18,12 @@ import type { Urun } from "@/types";
  */
 export default function KameraSayfasi() {
   const oturum = useKorumaliSayfa("Admin");
-  const toast = useToast();
 
   const [saglik, setSaglik] = useState<VisionSaglik | null | undefined>(undefined);
   const [tani, setTani] = useState<TaniYaniti | null>(null);
   const [profiller, setProfiller] = useState<OgretilenProfil[]>([]);
   const [urunler, setUrunler] = useState<Urun[]>([]);
-  const [secili, setSecili] = useState<number | "">("");
   const [dusus, setDusus] = useState("100");
-  const [islemde, setIslemde] = useState(false);
   const [donmusKare, setDonmusKare] = useState<string | null>(null);
   const [onaylanan, setOnaylanan] = useState<OnaylananUrun | null>(null);
 
@@ -52,28 +49,6 @@ export default function KameraSayfasi() {
     return () => clearInterval(t);
   }, [oturum]);
 
-  async function ogret() {
-    const urun = urunler.find((u) => u.id === secili);
-    if (!urun) return;
-    setIslemde(true);
-    try {
-      const sonuc = await vision.ogret(urun.id, urun.ad);
-      if (sonuc) toast(`${urun.ad}: ${sonuc.eklenenOrnek} örnek eklendi (toplam ${sonuc.toplamOrnek}).`, "basari");
-      else toast("Görüntü servisine ulaşılamadı.", "hata");
-      profilleriYenile();
-    } catch (h) {
-      toast(h instanceof Error ? h.message : "Öğretme başarısız.", "hata");
-    } finally {
-      setIslemde(false);
-    }
-  }
-
-  async function sil(profil: OgretilenProfil) {
-    if (!confirm(`${profil.ad}: öğretilen ${profil.ornekSayisi} örnek silinsin mi?`)) return;
-    await vision.ogretileniSil(profil.urunId).catch(() => null);
-    profilleriYenile();
-  }
-
   // Kaynak değişince sağlık ve tanı bilgisi 1,5 sn beklemeden tazelenir.
   const durumuYenile = useCallback(() => {
     vision.saglik().then(setSaglik);
@@ -91,7 +66,6 @@ export default function KameraSayfasi() {
   const birim = baskinUrun?.birimAgirlikG ?? null;
   const dususG = Number(dusus.replace(",", "."));
   const adet = birim && dususG > 0 ? Math.round(dususG / birim) : null;
-  const secilenProfil = profiller.find((p) => p.urunId === secili);
 
   return (
     <div className="space-y-6">
@@ -177,55 +151,7 @@ export default function KameraSayfasi() {
         </section>
       </div>
 
-      {/* Öğretme */}
-      <section className="kart space-y-4">
-        <div>
-          <h2 className="etiket">Ürün öğret</h2>
-          <p className="mt-1 text-sm text-slate-400">
-            Ürünü düz zemine, kameranın önüne koyun ve ürünü seçip <b>Örnek ekle</b>ye basın. Farklı açılardan
-            3–5 örnek yeterlidir. Karede yalnızca öğretilen ürün bulunmalı.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="min-w-56">
-            <label className="etiket">Ürün</label>
-            <select className="girdi mt-1" value={secili}
-              onChange={(e) => setSecili(e.target.value ? Number(e.target.value) : "")} data-test="ogret-urun">
-              <option value="">Ürün seçin…</option>
-              {urunler.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.ad}{u.birimAgirlikG ? ` (${u.birimAgirlikG} g)` : " (birim ağırlık yok)"}
-                </option>
-              ))}
-            </select>
-          </div>
-          <button className="dugme" disabled={!secili || !bagli || islemde} onClick={ogret} data-test="ogret-ekle">
-            {islemde ? "Ekleniyor…" : "Örnek ekle"}
-          </button>
-          {secilenProfil && (
-            <p className="ipucu pb-2">{secilenProfil.ornekSayisi} örnek öğretilmiş</p>
-          )}
-        </div>
-
-        <table className="tablo">
-          <thead><tr><th>Ürün</th><th>Öğretilen örnek</th><th /></tr></thead>
-          <tbody>
-            {profiller.length === 0 && (
-              <tr><td colSpan={3} className="text-slate-500">Henüz ürün öğretilmedi.</td></tr>
-            )}
-            {profiller.map((p) => (
-              <tr key={p.urunId} data-test="profil-satiri">
-                <td className="font-semibold">{p.ad}</td>
-                <td>{p.ornekSayisi}</td>
-                <td className="text-right">
-                  <button className="dugme-tehlike dugme-kucuk" onClick={() => sil(p)}>Sil</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
+      <OgretmeKarti urunler={urunler} profiller={profiller} tani={tani} bagli={bagli} yenile={profilleriYenile} />
     </div>
   );
 }

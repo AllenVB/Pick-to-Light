@@ -103,6 +103,41 @@ test.describe("Ekranlar", () => {
     await expect(page.getByTestId("kamera-gorunumu").or(page.getByTestId("vision-kapali")).first()).toBeVisible();
   });
 
+  test("ürün öğretme: çekim eklenir, ilerleme artar, son çekim geri alınır", async ({ page }) => {
+    const VISION = process.env.PTL_VISION ?? "http://localhost:5100";
+    const JSON_BASLIK = { "Content-Type": "application/json" };
+    const saglik = await fetch(`${VISION}/saglik`).then((r) => r.json()).catch(() => null);
+    test.skip(!saglik, "Görüntü servisi kapalı");
+    const token = await tokenAl();
+    const urunler: { id: number; ad: string }[] = await fetch(`${API}/api/urunler`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.json());
+    const profiller: { urunId: number }[] = await fetch(`${VISION}/profiller`).then((r) => r.json());
+    // Canlı profilleri bozmamak için henüz öğretilmemiş bir ürün kullanılır; test sonunda geri alınır.
+    const urun = urunler.find((u) => !profiller.some((p) => p.urunId === u.id));
+    test.skip(!urun, "Öğretilmemiş ürün yok");
+
+    await fetch(`${VISION}/kaynak`, { method: "POST", headers: JSON_BASLIK, body: JSON.stringify({ tip: "sim" }) });
+    await fetch(`${VISION}/sim/sahne`, { method: "POST", headers: JSON_BASLIK,
+      body: JSON.stringify({ nesneler: [{ tip: "civata", adet: 1 }] }) });
+
+    await girisYap(page);
+    await page.goto("/kamera");
+    await page.locator(`[data-test="ogret-urun-secenek"][data-urun="${urun!.ad}"]`).click();
+    await expect(page.getByTestId("ogret-ilerleme")).toContainText("0 / 5");
+    await expect(page.getByTestId("ogret-hazirlik")).toContainText("hazır");
+
+    try {
+      await page.getByTestId("ogret-ekle").click();
+      await expect(page.getByTestId("ogret-ilerleme")).toContainText("1 / 5");
+      await expect(page.getByTestId("ogret-yonerge")).toContainText("ters çevirin");
+      await page.getByTestId("ogret-geri-al").click();
+      await expect(page.getByTestId("ogret-ilerleme")).toContainText("0 / 5");
+      await expect(page.getByTestId("ogret-geri-al")).toBeDisabled();
+    } finally {
+      await fetch(`${VISION}/ogret/${urun!.id}`, { method: "DELETE" }).catch(() => undefined);
+    }
+  });
+
   test("tartı sayfası gramı ürünün birim ağırlığına bölüp adedi bulur", async ({ page }) => {
     // 20 g ÷ 2 g (vida) = 10 adet. Ürün yoksa oluşturulur; sayım hesabı için kutuya bağlı olması gerekmez.
     const token = await tokenAl();

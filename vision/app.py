@@ -428,7 +428,8 @@ def _ogret(urun_id: int, ad: str, kare: np.ndarray) -> dict:
     # Öğretirken kare yalnızca öğretilen ürünü içermelidir. Odak/uzaklık varyantlarından da örnek alınır.
     ornekler = tanima.ogretme_ornekleri(kare)
     toplam = depo.ekle(urun_id, ad, ornekler)
-    return {"urunId": urun_id, "ad": ad, "eklenenOrnek": len(ornekler), "toplamOrnek": toplam}
+    cekim = next((p["cekimSayisi"] for p in depo.liste() if p["urunId"] == urun_id), 1)
+    return {"urunId": urun_id, "ad": ad, "eklenenOrnek": len(ornekler), "toplamOrnek": toplam, "cekimSayisi": cekim}
 
 
 @app.get("/profiller")
@@ -448,6 +449,15 @@ async def ogret_goruntu(urun_id: int, ad: str = Form(...), dosya: UploadFile = F
     if kare is None:
         raise HTTPException(422, "Görüntü çözülemedi.")
     return _ogret(urun_id, ad, kare)
+
+
+@app.delete("/ogret/{urun_id}/son")
+def son_cekimi_geri_al(urun_id: int):
+    """Son öğretme çekimini geri alır (yanlış ürün ya da bulanık kare öğretildiyse)."""
+    sonuc = depo.son_cekimi_sil(urun_id)
+    if sonuc is None:
+        raise HTTPException(404, "Geri alınacak öğretme çekimi yok.")
+    return {"urunId": urun_id, **sonuc}
 
 
 @app.delete("/ogret/{urun_id}")

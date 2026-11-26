@@ -337,6 +337,9 @@ def goruntu_kalitesi(kare_bgr: np.ndarray, nesneler: list[Nesne] | None = None) 
 
 # ───────────────────────────── Profil deposu ─────────────────────────────
 
+ORNEK_CEKIM = 5   # bir öğretme çekiminden çıkan yaklaşık örnek sayısı (düz + odak + 2 ölçek …)
+
+
 class ProfilDeposu:
     """Ürün başına öğretilmiş örnek özellikleri; JSON dosyasında kalıcıdır."""
 
@@ -350,15 +353,40 @@ class ProfilDeposu:
                 self._profiller = {int(k): v for k, v in ham.items()}
             except (json.JSONDecodeError, OSError, ValueError):
                 self._profiller = {}
+        # Eski kayıtlarda çekim bilgisi yok: örnek sayısından tahmin edilir (çekim başına ~5 örnek).
+        for p in self._profiller.values():
+            if "cekimler" not in p:
+                n = len(p["ornekler"])
+                p["cekimler"] = [ORNEK_CEKIM] * (n // ORNEK_CEKIM) + ([n % ORNEK_CEKIM] if n % ORNEK_CEKIM else [])
 
     def ekle(self, urun_id: int, ad: str, ozellikler: list[np.ndarray]) -> int:
         with self._kilit:
-            profil = self._profiller.setdefault(urun_id, {"ad": ad, "ornekler": []})
+            profil = self._profiller.setdefault(urun_id, {"ad": ad, "ornekler": [], "cekimler": []})
             profil["ad"] = ad or profil["ad"]
             profil["ornekler"].extend([o.tolist() for o in ozellikler])
+            profil["cekimler"].append(len(ozellikler))
             profil["ornekler"] = profil["ornekler"][-120:]   # en yeni 120 örnek yeter
+            while profil["cekimler"] and sum(profil["cekimler"]) > len(profil["ornekler"]):
+                profil["cekimler"].pop(0)
             self._kaydet()
             return len(profil["ornekler"])
+
+    def son_cekimi_sil(self, urun_id: int) -> dict | None:
+        """Son öğretme çekiminin örneklerini geri alır (yanlış ürün öğretildiyse). Profil yoksa None."""
+        with self._kilit:
+            profil = self._profiller.get(urun_id)
+            if not profil or not profil["cekimler"]:
+                return None
+            adet = profil["cekimler"].pop()
+            if adet:
+                del profil["ornekler"][-adet:]
+            if not profil["ornekler"]:
+                del self._profiller[urun_id]
+                sonuc = {"toplamOrnek": 0, "cekimSayisi": 0}
+            else:
+                sonuc = {"toplamOrnek": len(profil["ornekler"]), "cekimSayisi": len(profil["cekimler"])}
+            self._kaydet()
+            return sonuc
 
     def sil(self, urun_id: int) -> bool:
         with self._kilit:
@@ -369,7 +397,8 @@ class ProfilDeposu:
 
     def liste(self) -> list[dict]:
         with self._kilit:
-            return [{"urunId": k, "ad": v["ad"], "ornekSayisi": len(v["ornekler"])}
+            return [{"urunId": k, "ad": v["ad"], "ornekSayisi": len(v["ornekler"]),
+                     "cekimSayisi": len(v["cekimler"])}
                     for k, v in sorted(self._profiller.items())]
 
     def _kaydet(self) -> None:

@@ -84,6 +84,8 @@ export interface OgretilenProfil {
   urunId: number;
   ad: string;
   ornekSayisi: number;
+  /** Kaç kez "Örnek ekle"ye basıldı (her çekim birkaç örnek üretir). */
+  cekimSayisi: number;
 }
 
 export interface SahneNesnesi {
@@ -146,9 +148,11 @@ export const vision = {
   dogrula: (urunId: number) => cagir<DogrulamaYaniti>(`/dogrula/${urunId}`, {}, 2000),
   profiller: () => cagir<OgretilenProfil[]>("/profiller"),
   ogret: (urunId: number, ad: string) =>
-    cagir<{ eklenenOrnek: number; toplamOrnek: number }>(`/ogret/${urunId}`, {
+    cagir<{ eklenenOrnek: number; toplamOrnek: number; cekimSayisi: number }>(`/ogret/${urunId}`, {
       method: "POST", body: JSON.stringify({ ad }),
     }),
+  ogretmeyiGeriAl: (urunId: number) =>
+    cagir<{ toplamOrnek: number; cekimSayisi: number }>(`/ogret/${urunId}/son`, { method: "DELETE" }),
   ogretileniSil: (urunId: number) => cagir<{ silindi: number }>(`/ogret/${urunId}`, { method: "DELETE" }),
   simSahne: (nesneler: SahneNesnesi[]) =>
     cagir<{ nesneler: SahneNesnesi[] }>("/sim/sahne", { method: "POST", body: JSON.stringify({ nesneler }) }),
