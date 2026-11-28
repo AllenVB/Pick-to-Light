@@ -41,57 +41,108 @@ depo = tanima.ProfilDeposu(PROFIL_DOSYASI)
 # "Fotoğraf çek" ile çekilen son fotoğraflar (kaydet bunlara id ile başvurur; en eskisi düşer).
 fotograflar: dict[str, dict] = {}
 FOTOGRAF_SAKLAMA = 12
+fotograf_kilidi = threading.Lock()
 kayit_kilidi = threading.Lock()
+durum_kilidi = threading.RLock()
 durum: dict = {"kaynak": None, "analizler": deque(maxlen=12), "calisiyor": True, "kaynaklar": {},
-               "kalite": []}
+               "kalite": [], "zeminler": {}}
+
+
+def _aktif_kaynak():
+    with durum_kilidi:
+        return durum["kaynak"]
+
+
+def _aktif_zemin(kaynak_adi: str | None = None) -> np.ndarray | None:
+    with durum_kilidi:
+        if kaynak_adi is None:
+            kaynak = durum["kaynak"]
+            kaynak_adi = kaynak.ad if kaynak is not None else None
+        if not kaynak_adi:
+            return None
+        zemin = durum["zeminler"].get(kaynak_adi)
+        return None if zemin is None else zemin.copy()
 
 
 def _kaynagi_al(tip: str):
     """Kaynakları bir kez oluşturup saklar: sim ve tarayıcı her zaman hazırdır, kamera ilk seçildiğinde açılır."""
-    kaynaklar = durum["kaynaklar"]
-    if tip not in kaynaklar:
-        if tip.startswith("kamera:"):
-            kamera = kaynak_modulu.KameraKaynak(int(tip.split(":")[1]))
-            if not kamera.acik:
+    with durum_kilidi:
+        mevcut = durum["kaynaklar"].get(tip)
+        if mevcut is not None:
+            return mevcut
+
+    if tip.startswith("kamera:"):
+        try:
+            indeks = kaynak_modulu.kamera_indeksi_coz(tip)
+        except ValueError as hata:
+            raise HTTPException(422, str(hata))
+        kanonik = f"kamera:{indeks}"
+        with durum_kilidi:
+            mevcut = durum["kaynaklar"].get(kanonik)
+            if mevcut is not None:
+                return mevcut
+        kamera = kaynak_modulu.KameraKaynak(indeks)
+        if not kamera.acik:
+            kamera.kapat()
+            raise HTTPException(409, "Sunucu kamerası açılamadı (Windows gizlilik izni ya da başka bir uygulama).")
+        with durum_kilidi:
+            mevcut = durum["kaynaklar"].get(kanonik)
+            if mevcut is not None:
                 kamera.kapat()
-                raise HTTPException(409, "Sunucu kamerası açılamadı (Windows gizlilik izni ya da başka bir uygulama).")
-            kaynaklar[tip] = kamera
-        elif tip == "sim":
-            kaynaklar[tip] = kaynak_modulu.SimKaynak()
-        elif tip == "tarayici":
-            kaynaklar[tip] = kaynak_modulu.PushKaynak()
-        else:
-            raise HTTPException(422, "Bilinmeyen kaynak. Seçenekler: sim, tarayici, kamera:0")
-    return kaynaklar[tip]
+                return mevcut
+            durum["kaynaklar"][kanonik] = kamera
+            return kamera
+    elif tip == "sim":
+        yeni = kaynak_modulu.SimKaynak()
+    elif tip == "tarayici":
+        yeni = kaynak_modulu.PushKaynak()
+    else:
+        raise HTTPException(422, "Bilinmeyen kaynak. Seçenekler: sim, tarayici, kamera:0")
+
+    with durum_kilidi:
+        return durum["kaynaklar"].setdefault(tip, yeni)
 
 
 def _analiz_dongusu():
     """Son kareyi sürekli analiz eder; tek karedeki titreme (el, gölge) oylamayla yumuşar."""
     sayac = 0
-    while durum["calisiyor"]:
-        kaynak = durum["kaynak"]
+    while True:
+        with durum_kilidi:
+            if not durum["calisiyor"]:
+                break
+            kaynak = durum["kaynak"]
+            zemin = durum["zeminler"].get(kaynak.ad) if kaynak else None
+            zemin = None if zemin is None else zemin.copy()
         kare = kaynak.son_kare() if kaynak else None
         if kare is not None:
-            t = tanima.tani(kare, depo, min_guven=MIN_GUVEN)
-            durum["analizler"].append({"zaman": time.time(), "tespitler": t})
+            t = tanima.tani(kare, depo, min_guven=MIN_GUVEN, zemin_bgr=zemin)
+            zaman = time.time()
             sayac += 1
-            if sayac % 5 == 1:   # kalite denetimi pahalı değil ama her karede gerekmez
-                durum["kalite"] = tanima.goruntu_kalitesi(kare, tanima.nesneleri_bul(kare))
+            kalite = tanima.goruntu_kalitesi(kare, tanima.nesneleri_bul(kare, zemin_bgr=zemin)) if sayac % 5 == 1 else None
+            with durum_kilidi:
+                if durum["kaynak"] is kaynak:
+                    durum["analizler"].append({"zaman": zaman, "tespitler": t})
+                    if kalite is not None:
+                        durum["kalite"] = kalite
         time.sleep(0.2)
 
 
 @asynccontextmanager
 async def omur(_: FastAPI):
     ilk = kaynak_modulu.kaynak_sec(os.environ.get("VISION_KAYNAK"))
-    durum["kaynaklar"][ilk.ad] = ilk
-    # Tarayıcı ve sanal kaynak her zaman hazır tutulur: arayüzden anında geçiş yapılabilsin.
-    durum["kaynaklar"].setdefault("tarayici", kaynak_modulu.PushKaynak())
-    durum["kaynaklar"].setdefault("sim", kaynak_modulu.SimKaynak())
-    durum["kaynak"] = ilk
+    with durum_kilidi:
+        durum["calisiyor"] = True
+        durum["kaynaklar"][ilk.ad] = ilk
+        # Tarayıcı ve sanal kaynak her zaman hazır tutulur: arayüzden anında geçiş yapılabilsin.
+        durum["kaynaklar"].setdefault("tarayici", kaynak_modulu.PushKaynak())
+        durum["kaynaklar"].setdefault("sim", kaynak_modulu.SimKaynak())
+        durum["kaynak"] = ilk
     threading.Thread(target=_analiz_dongusu, daemon=True).start()
     yield
-    durum["calisiyor"] = False
-    for k in durum["kaynaklar"].values():
+    with durum_kilidi:
+        durum["calisiyor"] = False
+        kapatilacaklar = list(durum["kaynaklar"].values())
+    for k in kapatilacaklar:
         k.kapat()
 
 
@@ -100,15 +151,19 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 
 
 def _kare() -> np.ndarray:
-    kare = durum["kaynak"].son_kare()
+    kaynak = _aktif_kaynak()
+    kare = kaynak.son_kare() if kaynak is not None else None
     if kare is None:
         raise HTTPException(503, "Kameradan görüntü alınamıyor.")
     return kare
 
 
-def _yanit(tespitler: list[tanima.Tespit], oylanan: dict | None) -> dict:
+def _yanit(tespitler: list[tanima.Tespit], oylanan: dict | None, kaynak_adi: str | None = None) -> dict:
+    if kaynak_adi is None:
+        kaynak = _aktif_kaynak()
+        kaynak_adi = kaynak.ad if kaynak is not None else ""
     return {
-        "kaynak": durum["kaynak"].ad,
+        "kaynak": kaynak_adi,
         "zaman": time.time(),
         "tespitler": [t.sozluk() for t in tespitler],
         "baskin": oylanan,
@@ -120,16 +175,46 @@ def _yanit(tespitler: list[tanima.Tespit], oylanan: dict | None) -> dict:
 
 @app.get("/saglik")
 def saglik():
-    kaynak = durum["kaynak"]
+    with durum_kilidi:
+        kaynak = durum["kaynak"]
+        kaynak_adlari = sorted(durum["kaynaklar"])
+        kalite = list(durum["kalite"])
+        zemin_kalibreli = kaynak.ad in durum["zeminler"]
     return {
         "durum": "hazir", "kaynak": kaynak.ad, "sanal": kaynak.ad == "sim",
         "kareVar": kaynak.son_kare() is not None, "profilSayisi": len(depo.liste()),
-        "kaynaklar": sorted(durum["kaynaklar"]),
+        "kaynaklar": kaynak_adlari,
         # "donuk": kamera açık ama canlı görüntü yok (gizlilik izni / başka uygulama kullanıyor).
         "kameraSorunu": kaynak.sorun,
         # Kurulum uyarıları: karanlik, patlak, duzensiz_isik, bulanik (boş = görüntü sağlıklı).
-        "goruntuUyarilari": durum["kalite"],
+        "goruntuUyarilari": kalite,
+        "zeminKalibreli": zemin_kalibreli,
     }
+
+
+@app.post("/kalibrasyon/zemin")
+def zemin_kalibre():
+    """Aktif kameranın mevcut boş zemin karesini referans olarak kaydeder (geriye uyumlu, opsiyonel)."""
+    kaynak = _aktif_kaynak()
+    kare = kaynak.son_kare() if kaynak is not None else None
+    if kare is None:
+        raise HTTPException(503, "Kameradan görüntü alınamıyor.")
+    with durum_kilidi:
+        durum["zeminler"][kaynak.ad] = kare.copy()
+        durum["analizler"].clear()
+    return {"kalibreli": True, "kaynak": kaynak.ad, "genislik": int(kare.shape[1]), "yukseklik": int(kare.shape[0])}
+
+
+@app.delete("/kalibrasyon/zemin")
+def zemin_kalibrasyon_sil():
+    """Aktif kaynağın referans boş zemin kalibrasyonunu temizler (otomatik ışık haritasına döner)."""
+    with durum_kilidi:
+        kaynak = durum["kaynak"]
+        if kaynak is not None:
+            durum["zeminler"].pop(kaynak.ad, None)
+            durum["analizler"].clear()
+        kaynak_adi = kaynak.ad if kaynak is not None else ""
+    return {"kalibreli": False, "kaynak": kaynak_adi}
 
 
 # ───────────────────────────── Kaynak seçimi ─────────────────────────────
@@ -142,10 +227,12 @@ class KaynakIstek(BaseModel):
 def kaynak_sec(istek: KaynakIstek):
     """Aktif görüntü kaynağını değiştirir: sim (sanal sahne), tarayici (tarayıcı kamerası), kamera:0 (sunucu kamerası)."""
     yeni = _kaynagi_al(istek.tip.strip().lower())
-    durum["kaynak"] = yeni
-    durum["analizler"].clear()
-    durum["kalite"] = []
-    return {"kaynak": yeni.ad, "kaynaklar": sorted(durum["kaynaklar"])}
+    with durum_kilidi:
+        durum["kaynak"] = yeni
+        durum["analizler"].clear()
+        durum["kalite"] = []
+        kaynak_adlari = sorted(durum["kaynaklar"])
+    return {"kaynak": yeni.ad, "kaynaklar": kaynak_adlari}
 
 
 @app.post("/kare")
@@ -155,7 +242,9 @@ async def kare_al(request: Request):
     kullanıcı tarayıcı kaynağına geçtiğinde ilk kare hazır olur.
     """
     govde = await request.body()
-    if not govde or not durum["kaynaklar"]["tarayici"].kare_ver(govde):
+    with durum_kilidi:
+        tarayici = durum["kaynaklar"].get("tarayici")
+    if not govde or tarayici is None or not tarayici.kare_ver(govde):
         raise HTTPException(422, "Kare çözülemedi (JPEG bekleniyor).")
     return {"ok": True}
 
@@ -172,11 +261,14 @@ def kare_jpg():
 def onizleme():
     """MJPEG akışı: nesne kutuları ve tanınan ürün adlarıyla canlı görüntü."""
     def uret():
-        while durum["calisiyor"]:
-            kare = durum["kaynak"].son_kare()
+        while True:
+            with durum_kilidi:
+                if not durum["calisiyor"]:
+                    break
+                kaynak = durum["kaynak"]
+                son = list(durum["analizler"][-1]["tespitler"]) if durum["analizler"] else []
+            kare = kaynak.son_kare() if kaynak is not None else None
             if kare is not None:
-                analizler = durum["analizler"]
-                son = analizler[-1]["tespitler"] if analizler else []
                 _, jpg = cv2.imencode(".jpg", tanima.etiketle(kare, son), [cv2.IMWRITE_JPEG_QUALITY, 75])
                 yield b"--kare\r\nContent-Type: image/jpeg\r\n\r\n" + jpg.tobytes() + b"\r\n"
             time.sleep(0.12)
@@ -193,12 +285,15 @@ def tani_et(kutuId: int | None = None):
     vardır; kutu başına kamera eşlemesi eklendiğinde buradan seçilecek.
     """
     simdi = time.time()
-    taze = [a for a in list(durum["analizler"]) if simdi - a["zaman"] <= PENCERE_SN]
+    with durum_kilidi:
+        kaynak = durum["kaynak"]
+        taze = [a for a in durum["analizler"] if simdi - a["zaman"] <= PENCERE_SN]
 
     if not taze:   # servis yeni açıldı ya da kamera kareleri gelmiyor: anlık analiz
         kare = _kare()
-        t = tanima.tani(kare, depo, min_guven=MIN_GUVEN)
-        return _yanit(t, tanima.baskin_urun(t, MIN_GUVEN))
+        zemin = _aktif_zemin(kaynak.ad if kaynak else None)
+        t = tanima.tani(kare, depo, min_guven=MIN_GUVEN, zemin_bgr=zemin)
+        return _yanit(t, tanima.baskin_urun(t, MIN_GUVEN), kaynak.ad if kaynak else None)
 
     oylar = Counter()
     for a in taze:
@@ -208,20 +303,23 @@ def tani_et(kutuId: int | None = None):
 
     son = taze[-1]["tespitler"]
     if not oylar:
-        return _yanit(son, None)
+        return _yanit(son, None, kaynak.ad if kaynak else None)
 
     kazanan, oy = oylar.most_common(1)[0]
     # Oy çoğunluğu yoksa (el kareyi kapatıyor, tespit gidip geliyor) emin olunamaz.
     if oy * 2 < len(taze):
-        return _yanit(son, None)
+        return _yanit(son, None, kaynak.ad if kaynak else None)
 
     kazanan_karelerden = [tanima.baskin_urun(a["tespitler"], MIN_GUVEN) for a in taze]
     kazanan_karelerden = [b for b in kazanan_karelerden if b and b["urunId"] == kazanan]
     ort_guven = float(np.mean([b["guven"] for b in kazanan_karelerden]))
+    # Tek karedeki geçici adet sıçramasını yumuşatmak için kazanan karelerin medyan adedi alınır.
+    adet_sirali = sorted(b["adet"] for b in kazanan_karelerden)
+    medyan_adet = int(adet_sirali[len(adet_sirali) // 2])
     return _yanit(son, {
         "urunId": kazanan, "urunAdi": kazanan_karelerden[-1]["urunAdi"],
-        "guven": round(ort_guven, 3), "adet": kazanan_karelerden[-1]["adet"],
-    })
+        "guven": round(ort_guven, 3), "adet": medyan_adet,
+    }, kaynak.ad if kaynak else None)
 
 
 @app.get("/dogrula/{urun_id}")
@@ -231,12 +329,16 @@ def dogrula(urun_id: int):
     oylamasıyla doğru / yanlış / tanınamadı / bekliyor kararı verir (tek kare el ya da titremeyle yanıltmaz).
     """
     simdi = time.time()
-    taze = [a["tespitler"] for a in list(durum["analizler"]) if simdi - a["zaman"] <= 2.0]
-    if not taze and durum["kaynak"] is not None and durum["kaynak"].son_kare() is not None:
-        taze = [tanima.tani(_kare(), depo, min_guven=MIN_GUVEN)]
+    with durum_kilidi:
+        kaynak = durum["kaynak"]
+        taze = [a["tespitler"] for a in durum["analizler"] if simdi - a["zaman"] <= 2.0]
+    if not taze and kaynak is not None:
+        kare = kaynak.son_kare()
+        if kare is not None:
+            taze = [tanima.tani(kare, depo, min_guven=MIN_GUVEN, zemin_bgr=_aktif_zemin(kaynak.ad))]
     karar = tanima.dogrulama_karari(taze, urun_id, depo, MIN_GUVEN)
     karar["beklenenId"] = urun_id
-    karar["kaynak"] = durum["kaynak"].ad
+    karar["kaynak"] = kaynak.ad if kaynak is not None else ""
     return karar
 
 
@@ -264,10 +366,13 @@ def sahne():
     üretmez; kullanıcıya "elinizi çekin, tekrar deneyin" der.
     """
     simdi = time.time()
-    taze = [a for a in list(durum["analizler"]) if simdi - a["zaman"] <= PENCERE_SN]
+    with durum_kilidi:
+        kaynak = durum["kaynak"]
+        taze = [a for a in durum["analizler"] if simdi - a["zaman"] <= PENCERE_SN]
 
     if not taze:   # analiz döngüsü henüz kare üretmedi (servis yeni açıldı ya da kaynak yeni değişti)
-        taze = [{"zaman": simdi, "tespitler": tanima.tani(_kare(), depo, min_guven=MIN_GUVEN)}]
+        zemin = _aktif_zemin(kaynak.ad if kaynak else None)
+        taze = [{"zaman": simdi, "tespitler": tanima.tani(_kare(), depo, min_guven=MIN_GUVEN, zemin_bgr=zemin)}]
 
     sayimlar = [_kare_sayimi(a["tespitler"]) for a in taze]
     urun_idleri = sorted({u for adet, _, _ in sayimlar for u in adet})
@@ -279,17 +384,22 @@ def sahne():
     medyanlar = {u: medyan([adet.get(u, 0) for adet, _, _ in sayimlar]) for u in urun_idleri}
     medyan_bilinmeyen = medyan([b for _, _, b in sayimlar])
 
-    # Kararlılık: karelerin en az %70'i medyanla birebir aynı sayımı vermeli (ve birkaç kare görülmüş olmalı).
-    uyan = sum(
-        1 for adet, _, b in sayimlar
-        if b == medyan_bilinmeyen and all(adet.get(u, 0) == n for u, n in medyanlar.items())
-        and set(adet) <= set(medyanlar)
-    )
-    kararli = len(sayimlar) >= 3 and uyan / len(sayimlar) >= 0.7
+    # Kararlılık: karelerin en az %70'i VE son 2 karenin ikisi de medyanla birebir aynı sayımı
+    # vermeli (sahne yeni değiştiğinde eski karelerin çoğunluğuyla yanlış paket onayı engellenir).
+    def _medyana_uyar(adet: dict[int, int], b: int) -> bool:
+        return (
+            b == medyan_bilinmeyen
+            and all(adet.get(u, 0) == n for u, n in medyanlar.items())
+            and set(adet) <= set(medyanlar)
+        )
+
+    uyan = sum(1 for adet, _, b in sayimlar if _medyana_uyar(adet, b))
+    son_iki_tutarli = len(sayimlar) >= 2 and all(_medyana_uyar(adet, b) for adet, _, b in sayimlar[-2:])
+    kararli = len(sayimlar) >= 3 and uyan / len(sayimlar) >= 0.7 and son_iki_tutarli
 
     urunler = [{"urunId": u, "urunAdi": adlar[u], "adet": n} for u, n in medyanlar.items() if n > 0]
     return {
-        "kaynak": durum["kaynak"].ad,
+        "kaynak": kaynak.ad if kaynak is not None else "",
         "urunler": urunler,
         "bilinmeyen": medyan_bilinmeyen,
         "nesneSayisi": sum(u["adet"] for u in urunler) + medyan_bilinmeyen,
@@ -304,19 +414,24 @@ def fotograf():
     "Fotoğraf çek": şu anki kareyi alır, karedeki tüm ürünleri tespit eder ve görüntüyle birlikte döndürür.
     Görüntü ve tespitler aynı kareden gelir (kutu koordinatları görüntüyle birebir uyumludur).
     """
-    kare = _kare()
-    tespitler = tanima.tani(kare, depo, min_guven=MIN_GUVEN)
+    kaynak = _aktif_kaynak()
+    kare = kaynak.son_kare() if kaynak is not None else None
+    if kare is None:
+        raise HTTPException(503, "Kameradan görüntü alınamıyor.")
+    tespitler = tanima.tani(kare, depo, min_guven=MIN_GUVEN, zemin_bgr=_aktif_zemin(kaynak.ad))
     adetler, adlar, bilinmeyen = _kare_sayimi(tespitler)
     _, jpg = cv2.imencode(".jpg", kare, [cv2.IMWRITE_JPEG_QUALITY, 90])
     fotograf_id = uuid.uuid4().hex[:12]
     urunler = [{"urunId": u, "urunAdi": adlar[u], "adet": n} for u, n in sorted(adetler.items())]
-    fotograflar[fotograf_id] = {"jpg": jpg.tobytes(), "urunler": urunler, "bilinmeyen": bilinmeyen,
-                                "kaynak": durum["kaynak"].ad}
-    while len(fotograflar) > FOTOGRAF_SAKLAMA:
-        fotograflar.pop(next(iter(fotograflar)))
+    kaynak_adi = kaynak.ad
+    with fotograf_kilidi:
+        fotograflar[fotograf_id] = {"jpg": jpg.tobytes(), "urunler": urunler, "bilinmeyen": bilinmeyen,
+                                    "kaynak": kaynak_adi}
+        while len(fotograflar) > FOTOGRAF_SAKLAMA:
+            fotograflar.pop(next(iter(fotograflar)))
     return {
         "fotografId": fotograf_id,
-        "kaynak": durum["kaynak"].ad,
+        "kaynak": kaynak_adi,
         "zaman": time.time(),
         "goruntu": "data:image/jpeg;base64," + base64.b64encode(jpg.tobytes()).decode("ascii"),
         "genislik": int(kare.shape[1]), "yukseklik": int(kare.shape[0]),
@@ -360,7 +475,8 @@ def fotograf_kaydet(istek: FotografKaydi):
     """Çekilen fotoğrafı, kullanıcının doğruladığı ürün ve adetlerle kaydeder (görüntü + kayıt satırı)."""
     if not istek.onaylandi:
         raise HTTPException(422, "Kayıt için ürün ve adetlerin doğru olduğunu onaylamalısınız.")
-    foto = fotograflar.get(istek.fotografId)
+    with fotograf_kilidi:
+        foto = fotograflar.get(istek.fotografId)
     if foto is None:
         raise HTTPException(404, "Bu fotoğraf bulunamadı ya da süresi doldu: yeniden fotoğraf çekin.")
 
@@ -422,11 +538,15 @@ class OgretIstek(BaseModel):
     ad: str
 
 
-def _ogret(urun_id: int, ad: str, kare: np.ndarray) -> dict:
-    if not tanima.nesneleri_bul(kare):
+def _ogret(urun_id: int, ad: str, kare: np.ndarray, zemin_bgr: np.ndarray | None = None) -> dict:
+    nesneler = tanima.nesneleri_bul(kare, zemin_bgr=zemin_bgr)
+    if not nesneler:
         raise HTTPException(422, "Kamerada nesne bulunamadı. Ürünü düz zemine, kameranın önüne koyun.")
-    # Öğretirken kare yalnızca öğretilen ürünü içermelidir. Odak/uzaklık varyantlarından da örnek alınır.
-    ornekler = tanima.ogretme_ornekleri(kare)
+    netlik = tanima.kare_netligi(kare, nesneler)
+    if netlik is not None and netlik < tanima.OGRETME_MIN_NETLIK:
+        raise HTTPException(422, "Görüntü fazla bulanık; kamera odağını netleştirip tekrar deneyin.")
+    # Öğretirken kare yalnızca öğretilen ürünü içermelidir. Odak/uzaklık/açı varyantlarından da örnek alınır.
+    ornekler = tanima.ogretme_ornekleri(kare, zemin_bgr=zemin_bgr)
     toplam = depo.ekle(urun_id, ad, ornekler)
     cekim = next((p["cekimSayisi"] for p in depo.liste() if p["urunId"] == urun_id), 1)
     return {"urunId": urun_id, "ad": ad, "eklenenOrnek": len(ornekler), "toplamOrnek": toplam, "cekimSayisi": cekim}
@@ -440,7 +560,11 @@ def profiller():
 @app.post("/ogret/{urun_id}")
 def ogret(urun_id: int, istek: OgretIstek):
     """Kameranın şu anki karesindeki nesne(ler)i bu ürünün örneği olarak kaydeder."""
-    return _ogret(urun_id, istek.ad, _kare())
+    kaynak = _aktif_kaynak()
+    kare = kaynak.son_kare() if kaynak is not None else None
+    if kare is None:
+        raise HTTPException(503, "Kameradan görüntü alınamıyor.")
+    return _ogret(urun_id, istek.ad, kare, zemin_bgr=_aktif_zemin(kaynak.ad))
 
 
 @app.post("/ogret/{urun_id}/goruntu")
@@ -476,9 +600,10 @@ class SahneIstek(BaseModel):
 @app.post("/sim/sahne")
 def sim_sahne(istek: SahneIstek):
     """Yalnızca sanal kaynakta: masaya hangi parçaların kaç adet konulduğunu belirler."""
-    kaynak = durum["kaynak"]
-    if kaynak.ad != "sim":
-        raise HTTPException(409, "Gerçek kamera kullanılıyor; sanal sahne ayarlanamaz.")
-    kaynak.sahne(istek.nesneler)
-    durum["analizler"].clear()
+    with durum_kilidi:
+        kaynak = durum["kaynak"]
+        if kaynak is None or kaynak.ad != "sim":
+            raise HTTPException(409, "Gerçek kamera kullanılıyor; sanal sahne ayarlanamaz.")
+        kaynak.sahne(istek.nesneler)
+        durum["analizler"].clear()
     return {"nesneler": istek.nesneler}

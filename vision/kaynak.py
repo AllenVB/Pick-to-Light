@@ -7,6 +7,7 @@ yolu kullanılır, yalnızca kare farklı yerden gelir.
 """
 from __future__ import annotations
 
+import logging
 import math
 import threading
 import time
@@ -14,8 +15,26 @@ import time
 import cv2
 import numpy as np
 
+log = logging.getLogger(__name__)
+
 KARE_GEN, KARE_YUK = 640, 480
 DONUK_KARE_SAYISI = 8   # üst üste bu kadar özdeş kare gelirse görüntü "donuk" sayılır
+KAMERA_KOPMA_ESIGI = 5  # ardışık bu kadar başarısız okuma sonrası kamera yeniden açılır
+AZAMI_KAMERA_INDEKSI = 64
+
+
+def kamera_indeksi_coz(tip: str) -> int:
+    """'kamera:0' biçimindeki kaynak adını doğrular ve negatif olmayan kamera indeksini döndürür."""
+    parca = tip.strip().lower()
+    if not parca.startswith("kamera:"):
+        raise ValueError("Kamera kaynağı 'kamera:<indeks>' biçiminde olmalıdır.")
+    ek = parca[len("kamera:"):]
+    if not ek or not ek.isascii() or not ek.isdigit():
+        raise ValueError("Geçersiz kamera indeksi: negatif olmayan tam sayı bekleniyor (örn. kamera:0).")
+    indeks = int(ek)
+    if indeks > AZAMI_KAMERA_INDEKSI:
+        raise ValueError(f"Kamera indeksi 0–{AZAMI_KAMERA_INDEKSI} aralığında olmalıdır.")
+    return indeks
 
 
 def kareler_donuk(ozetler: list[int], pencere: int = DONUK_KARE_SAYISI) -> bool:
@@ -186,14 +205,27 @@ class PushKaynak:
 
 
 class KameraKaynak:
-    """Gerçek kamera: arka planda sürekli okur, her zaman en yeni kareyi verir."""
+    """Gerçek kamera: arka planda sürekli okur, bağlantı koparsa otomatik yeniden bağlanır."""
 
-    def __init__(self, indeks: int = 0):
+    def __init__(
+        self,
+        indeks: int = 0,
+        *,
+        kopma_esigi: int = KAMERA_KOPMA_ESIGI,
+        yeniden_baglanma_sn: float = 2.0,
+        okuma_hata_bekleme_sn: float = 0.2,
+    ):
+        if isinstance(indeks, bool) or not isinstance(indeks, int) or indeks < 0 or indeks > AZAMI_KAMERA_INDEKSI:
+            raise ValueError(f"Kamera indeksi 0–{AZAMI_KAMERA_INDEKSI} aralığında tam sayı olmalıdır.")
         self.ad = f"kamera:{indeks}"
         self._indeks = indeks
+        self._kopma_esigi = max(1, int(kopma_esigi))
+        self._yeniden_baglanma_sn = max(0.0, float(yeniden_baglanma_sn))
+        self._okuma_hata_bekleme_sn = max(0.0, float(okuma_hata_bekleme_sn))
         self._kare: np.ndarray | None = None
         self._ozetler: list[int] = []
         self._kilit = threading.Lock()
+        self._dur_olayi = threading.Event()
         self._calisiyor = True
         self._acik = False
         self._kap = self._ac()
@@ -202,7 +234,8 @@ class KameraKaynak:
 
     @property
     def acik(self) -> bool:
-        return self._acik
+        with self._kilit:
+            return self._acik
 
     @property
     def sorun(self) -> str | None:
@@ -214,29 +247,60 @@ class KameraKaynak:
         # Windows'ta DirectShow en kararlı arka uçtur; diğer sistemlerde varsayılan.
         arka_uc = cv2.CAP_DSHOW if hasattr(cv2, "CAP_DSHOW") and _windows() else cv2.CAP_ANY
         kap = cv2.VideoCapture(self._indeks, arka_uc)
-        if kap.isOpened():
+        acik = bool(kap is not None and kap.isOpened())
+        if acik:
             kap.set(cv2.CAP_PROP_FRAME_WIDTH, KARE_GEN)
             kap.set(cv2.CAP_PROP_FRAME_HEIGHT, KARE_YUK)
-        self._acik = kap.isOpened()
+        with self._kilit:
+            self._acik = acik
         return kap
 
-    def _oku(self):
-        while self._calisiyor:
-            if not self._kap.isOpened():
-                time.sleep(2.0)
+    def _yeniden_baglan(self) -> None:
+        """Mevcut yakalama nesnesini serbest bırakır, bekler ve kamerayı yeniden açar."""
+        with self._kilit:
+            self._acik = False
+            self._kare = None
+            self._ozetler.clear()
+        if self._kap is not None:
+            try:
                 self._kap.release()
-                self._kap = self._ac()
+            except Exception:
+                pass
+        if self._dur_olayi.wait(self._yeniden_baglanma_sn):
+            return
+        if self._calisiyor:
+            self._kap = self._ac()
+
+    def _oku(self):
+        ardisik_hata = 0
+        while self._calisiyor:
+            if self._kap is None or not self._kap.isOpened():
+                ardisik_hata = 0
+                self._yeniden_baglan()
                 continue
-            ok, kare = self._kap.read()
-            if ok:
+            try:
+                ok, kare = self._kap.read()
+            except Exception:
+                ok, kare = False, None
+            if ok and kare is not None:
+                ardisik_hata = 0
                 # Seyrek örneklenmiş piksellerin özeti: donuk görüntü tespiti için yeterli ve ucuz.
                 ozet = hash(kare[::16, ::16].tobytes())
                 with self._kilit:
+                    self._acik = True
                     self._kare = kare
                     self._ozetler = (self._ozetler + [ozet])[-DONUK_KARE_SAYISI:]
             else:
-                self._acik = False
-                time.sleep(0.2)
+                ardisik_hata += 1
+                with self._kilit:
+                    self._acik = False
+                if ardisik_hata >= self._kopma_esigi:
+                    log.warning("%s bağlantısı koptu (%d başarısız okuma); yeniden bağlanılıyor.",
+                                self.ad, ardisik_hata)
+                    ardisik_hata = 0
+                    self._yeniden_baglan()
+                else:
+                    self._dur_olayi.wait(self._okuma_hata_bekleme_sn)
 
     def son_kare(self) -> np.ndarray | None:
         with self._kilit:
@@ -244,7 +308,14 @@ class KameraKaynak:
 
     def kapat(self) -> None:
         self._calisiyor = False
-        self._kap.release()
+        self._dur_olayi.set()
+        if self._is_parcacigi.is_alive() and threading.current_thread() is not self._is_parcacigi:
+            self._is_parcacigi.join(timeout=1.5)
+        if self._kap is not None:
+            try:
+                self._kap.release()
+            except Exception:
+                pass
 
 
 def _windows() -> bool:
@@ -260,7 +331,18 @@ def kaynak_sec(istek: str | None):
     if istek == "tarayici":
         return PushKaynak()
 
-    indeks = int(istek.split(":")[1]) if istek.startswith("kamera:") else 0
+    if istek.startswith("kamera:"):
+        try:
+            indeks = kamera_indeksi_coz(istek)
+        except ValueError as hata:
+            log.warning("Geçersiz VISION_KAYNAK=%r (%s); sanal sahneye düşülüyor.", istek, hata)
+            return SimKaynak()
+    elif istek:
+        log.warning("Bilinmeyen VISION_KAYNAK=%r; sanal sahneye düşülüyor.", istek)
+        return SimKaynak()
+    else:
+        indeks = 0
+
     kamera = KameraKaynak(indeks)
     time.sleep(1.0)
     if kamera.acik and kamera.son_kare() is not None:
